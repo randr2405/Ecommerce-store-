@@ -8,6 +8,11 @@
     "start": "next start",
     "lint": "next lint"
   },
+  "eslintConfig": {
+    "rules": {
+      "react/no-unescaped-entities": "off"
+    }
+  },
   "dependencies": {
     "firebase": "^12.12.0",
     "md5": "^2.3.0",

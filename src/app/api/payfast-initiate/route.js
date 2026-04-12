@@ -8,6 +8,9 @@ export async function POST(req) {
   const passphrase = process.env.PAYFAST_PASSPHRASE;
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
 
+  // Temporary debug - remove after fixing
+  console.log('ENV CHECK:', { merchantId, merchantKey, passphrase, siteUrl });
+
   const data = {
     merchant_id: merchantId,
     merchant_key: merchantKey,
@@ -22,7 +25,6 @@ export async function POST(req) {
     item_name: 'RnR Agencies Order',
   };
 
-  // Exclude merchant_key from signature
   const { merchant_key, ...dataForSignature } = data;
 
   let pfParamString = Object.entries(dataForSignature)
@@ -30,10 +32,12 @@ export async function POST(req) {
     .map(([k, v]) => `${k}=${encodeURIComponent(String(v).trim()).replace(/%20/g, '+')}`)
     .join('&');
 
-  // Append passphrase before hashing
   if (passphrase) {
     pfParamString += `&passphrase=${encodeURIComponent(passphrase.trim()).replace(/%20/g, '+')}`;
   }
+
+  // Temporary debug - remove after fixing
+  console.log('PARAM STRING:', pfParamString);
 
   data.signature = md5(pfParamString);
 

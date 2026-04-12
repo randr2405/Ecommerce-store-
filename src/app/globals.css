@@ -2,26 +2,97 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&family=Montserrat:wght@300;400;500;600&display=swap');
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --gold: #C9A84C;
+  --gold-light: #E8C96D;
+  --gold-dark: #A67C32;
+  --black: #0A0A0A;
+  --off-white: #F5F0E8;
+  --charcoal: #1A1A1A;
+  --gray-mid: #2E2E2E;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--black);
+  color: var(--off-white);
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 300;
+  letter-spacing: 0.02em;
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+h1, h2, h3, h4, h5 {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+}
+
+.gold-text {
+  color: var(--gold);
+}
+
+.gold-border {
+  border-color: var(--gold);
+}
+
+.btn-gold {
+  background-color: var(--gold);
+  color: var(--black);
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  padding: 0.85rem 2.5rem;
+  transition: all 0.3s ease;
+  border: 1px solid var(--gold);
+}
+
+.btn-gold:hover {
+  background-color: transparent;
+  color: var(--gold);
+}
+
+.btn-outline-gold {
+  background-color: transparent;
+  color: var(--gold);
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  padding: 0.85rem 2.5rem;
+  transition: all 0.3s ease;
+  border: 1px solid var(--gold);
+}
+
+.btn-outline-gold:hover {
+  background-color: var(--gold);
+  color: var(--black);
+}
+
+.divider-gold {
+  width: 60px;
+  height: 1px;
+  background-color: var(--gold);
+  margin: 1.5rem auto;
+}
+
+.section-label {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.65rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--gold);
 }

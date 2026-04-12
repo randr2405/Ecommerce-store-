@@ -8,7 +8,6 @@ export async function POST(req) {
   const passphrase = process.env.PAYFAST_PASSPHRASE;
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
 
-  // Order matters for PayFast signature
   const pfData = {
     merchant_id: merchantId,
     merchant_key: merchantKey,
@@ -23,7 +22,6 @@ export async function POST(req) {
     item_name: 'RnR Agencies Order',
   };
 
-  // Build param string excluding merchant_key
   const pfParamString = Object.entries(pfData)
     .filter(([key, val]) => key !== 'merchant_key' && String(val ?? '').trim() !== '')
     .map(([key, val]) => `${key}=${encodeURIComponent(String(val).trim()).replace(/%20/g, '+')}`)
@@ -32,5 +30,6 @@ export async function POST(req) {
 
   pfData.signature = md5(pfParamString);
 
-  return Response.json(pfData);
+  // TEMP: return param string for debugging
+  return Response.json({ ...pfData, _debug_paramString: pfParamString });
 }

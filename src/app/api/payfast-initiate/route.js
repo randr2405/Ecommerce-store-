@@ -8,10 +8,8 @@ export async function POST(req) {
   const passphrase = process.env.PAYFAST_PASSPHRASE;
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
 
-  // Temporary debug - remove after fixing
-  console.log('ENV CHECK:', { merchantId, merchantKey, passphrase, siteUrl });
-
-  const data = {
+  // Order matters for PayFast signature
+  const pfData = {
     merchant_id: merchantId,
     merchant_key: merchantKey,
     return_url: `${siteUrl}/checkout/success`,
@@ -25,21 +23,14 @@ export async function POST(req) {
     item_name: 'RnR Agencies Order',
   };
 
-  const { merchant_key, ...dataForSignature } = data;
+  // Build param string excluding merchant_key
+  const pfParamString = Object.entries(pfData)
+    .filter(([key, val]) => key !== 'merchant_key' && String(val ?? '').trim() !== '')
+    .map(([key, val]) => `${key}=${encodeURIComponent(String(val).trim()).replace(/%20/g, '+')}`)
+    .join('&')
+    + `&passphrase=${encodeURIComponent(passphrase.trim()).replace(/%20/g, '+')}`;
 
-  let pfParamString = Object.entries(dataForSignature)
-    .filter(([, v]) => String(v ?? '').trim() !== '')
-    .map(([k, v]) => `${k}=${encodeURIComponent(String(v).trim()).replace(/%20/g, '+')}`)
-    .join('&');
+  pfData.signature = md5(pfParamString);
 
-  if (passphrase) {
-    pfParamString += `&passphrase=${encodeURIComponent(passphrase.trim()).replace(/%20/g, '+')}`;
-  }
-
-  // Temporary debug - remove after fixing
-  console.log('PARAM STRING:', pfParamString);
-
-  data.signature = md5(pfParamString);
-
-  return Response.json(data);
+  return Response.json(pfData);
 }

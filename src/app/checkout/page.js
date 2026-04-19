@@ -56,6 +56,9 @@ export default function CheckoutPage() {
 
       const pfData = await res.json();
 
+      // TEMP DEBUG
+      alert(JSON.stringify(pfData._debug_paramString));
+
       const pfForm = document.createElement('form');
       pfForm.method = 'POST';
       pfForm.action = 'https://www.payfast.co.za/eng/process'; // live

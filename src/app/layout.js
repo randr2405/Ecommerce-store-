@@ -76,7 +76,7 @@ function Navbar() {
         ))}
       </div>
 
-      {/* Icons */}
+      {/* Iconss */}
       <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
         <a href="/profile" title="Profile" style={{ color: '#F5F0E8', textDecoration: 'none', fontSize: '1.1rem' }}>👤</a>
         <a href="/cart" title="Cart" style={{ color: '#C9A84C', textDecoration: 'none', fontSize: '1.1rem' }}>🛒</a>

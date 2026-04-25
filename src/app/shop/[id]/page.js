@@ -15,7 +15,7 @@ export default function ProductPage({ params }) {
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        const docRef = doc(db, 'products', params.id);
+        const docRef = doc(db, 'products', decodeURIComponent(params.id));
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           setProduct({ id: docSnap.id, ...docSnap.data() });

@@ -89,7 +89,7 @@ function ProductCard({ product }) {
     : [];
 
   return (
-    <Link href={`/shop/${product.id}`} style={{ textDecoration: 'none' }}>
+    <Link href={`/shop/${encodeURIComponent(product.id)}`} style={{ textDecoration: 'none' }}>
       <div
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}

@@ -149,13 +149,14 @@ export default function ProductPage({ params }) {
                   Select Size {selectedSize && <span style={{ color: '#888' }}>— {selectedSize}</span>}
                 </p>
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  {['S', 'M', 'L', 'XL', 'XXL'].filter(s => availableSizes.includes(s)).map(size => (
+                  {availableSizes.map(size => (
                     <button
                       key={size}
                       onClick={() => setSelectedSize(size)}
                       style={{
-                        width: '48px',
+                        minWidth: '48px',
                         height: '48px',
+                        padding: '0 0.75rem',
                         fontSize: '0.75rem',
                         letterSpacing: '0.1em',
                         fontFamily: 'Montserrat, sans-serif',

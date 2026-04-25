@@ -89,8 +89,7 @@ function ProductCard({ product }) {
     : [];
 
   return (
-    // ✅ Use product.id instead of product.name — no encoding needed, instant lookup
-    <Link href={`/shop/${product.id}`} style={{ textDecoration: 'none' }}>
+    <Link href={`/shop/${encodeURIComponent(product.name)}`} style={{ textDecoration: 'none' }}>
       <div
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}

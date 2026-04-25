@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Toaster } from 'react-hot-toast';
 import './globals.css';
 
@@ -29,6 +30,29 @@ export default function RootLayout({ children }) {
 }
 
 function Navbar() {
+  const [cartCount, setCartCount] = useState(0);
+
+  useEffect(() => {
+    const updateCount = () => {
+      const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+      const total = cart.reduce((sum, item) => sum + item.quantity, 0);
+      setCartCount(total);
+    };
+
+    updateCount();
+
+    // Update count whenever storage changes (e.g. adding to cart in another tab)
+    window.addEventListener('storage', updateCount);
+
+    // Also update on a custom event fired when cart changes in the same tab
+    window.addEventListener('cartUpdated', updateCount);
+
+    return () => {
+      window.removeEventListener('storage', updateCount);
+      window.removeEventListener('cartUpdated', updateCount);
+    };
+  }, []);
+
   return (
     <nav style={{
       position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
@@ -54,11 +78,10 @@ function Navbar() {
           { label: 'Shop', href: '/shop' },
           { label: 'About', href: '/about' },
           { label: 'Contact', href: '/contact' },
-       ].map(link => (
-        <a
+        ].map(link => (
+          <a
             key={link.href}
             href={link.href}
-
             style={{
               fontFamily: 'Montserrat, sans-serif',
               fontSize: '0.7rem',
@@ -76,10 +99,35 @@ function Navbar() {
         ))}
       </div>
 
-      {/* Iconss */}
+      {/* Icons */}
       <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
         <a href="/profile" title="Profile" style={{ color: '#F5F0E8', textDecoration: 'none', fontSize: '1.1rem' }}>👤</a>
-        <a href="/cart" title="Cart" style={{ color: '#C9A84C', textDecoration: 'none', fontSize: '1.1rem' }}>🛒</a>
+
+        {/* Cart icon with badge */}
+        <a href="/cart" title="Cart" style={{ color: '#C9A84C', textDecoration: 'none', fontSize: '1.1rem', position: 'relative' }}>
+          🛒
+          {cartCount > 0 && (
+            <span style={{
+              position: 'absolute',
+              top: '-8px',
+              right: '-8px',
+              background: '#C9A84C',
+              color: '#0A0A0A',
+              fontSize: '0.55rem',
+              fontFamily: 'Montserrat, sans-serif',
+              fontWeight: 700,
+              width: '16px',
+              height: '16px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              letterSpacing: 0,
+            }}>
+              {cartCount > 99 ? '99+' : cartCount}
+            </span>
+          )}
+        </a>
       </div>
     </nav>
   );

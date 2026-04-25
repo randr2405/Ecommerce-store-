@@ -30,7 +30,7 @@ export default function CheckoutPage() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handlePayFast = async (e) => {
+  const handlePayment = async (e) => {
     e.preventDefault();
 
     const required = ['firstName', 'lastName', 'email', 'phone'];
@@ -44,7 +44,7 @@ export default function CheckoutPage() {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/payfast-initiate', {
+      const res = await fetch('/api/ikhokha-initiate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -54,27 +54,16 @@ export default function CheckoutPage() {
         }),
       });
 
-      const pfData = await res.json();
+      const data = await res.json();
 
-   
-
-      const pfForm = document.createElement('form');
-      pfForm.method = 'POST';
-      pfForm.action = 'https://www.payfast.co.za/eng/process'; // live
-      // pfForm.action = 'https://sandbox.payfast.co.za/eng/process'; // sandbox
-
-      Object.entries(pfData).forEach(([key, value]) => {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = key;
-        input.value = value;
-        pfForm.appendChild(input);
-      });
-
-      document.body.appendChild(pfForm);
-      pfForm.submit();
+      if (data.paymentUrl) {
+        window.location.href = data.paymentUrl;
+      } else {
+        alert('Payment error: ' + (data.error || 'Unknown error'));
+        setLoading(false);
+      }
     } catch (err) {
-      console.error('PayFast error:', err);
+      console.error('iKhokha error:', err);
       alert('Payment could not be initiated. Please try again.');
       setLoading(false);
     }
@@ -107,7 +96,7 @@ export default function CheckoutPage() {
         <h1 style={{ fontSize: 'clamp(2.5rem, 6vw, 5rem)', color: '#F5F0E8', marginTop: '0.5rem' }}>Checkout</h1>
         <div className="divider-gold" />
         <p style={{ fontSize: '0.85rem', color: '#999', maxWidth: '500px', margin: '0 auto', lineHeight: 1.9 }}>
-          Complete your details below and proceed to secure payment via PayFast.
+          Complete your details below and proceed to secure payment via iKhokha.
         </p>
       </section>
 
@@ -211,20 +200,20 @@ export default function CheckoutPage() {
 
             <div style={{ borderTop: '1px solid rgba(201,168,76,0.1)', paddingTop: '2rem' }}>
               <p style={{ fontSize: '0.72rem', color: '#555', lineHeight: 1.8, marginBottom: '1.5rem' }}>
-                🔒 You will be redirected to <span style={{ color: '#C9A84C' }}>PayFast</span> to complete secure payment. R&amp;R Agencies never stores your card details.
+                🔒 You will be redirected to <span style={{ color: '#C9A84C' }}>iKhokha</span> to complete secure payment. R&amp;R Agencies never stores your card details.
               </p>
               <button
-                onClick={handlePayFast}
+                onClick={handlePayment}
                 disabled={loading}
                 className="btn-gold"
                 style={{ width: '100%', cursor: loading ? 'not-allowed' : 'pointer', border: 'none', opacity: loading ? 0.7 : 1 }}
               >
-                {loading ? 'Redirecting to PayFast...' : `Pay R ${subtotal.toFixed(2)} via PayFast`}
+                {loading ? 'Redirecting to iKhokha...' : `Pay R ${subtotal.toFixed(2)} securely`}
               </button>
             </div>
           </div>
 
-          {/* ORDER SUMMARY */}
+          {/* ORDER SUMMARY — unchanged */}
           <div style={{
             border: '1px solid rgba(201,168,76,0.2)',
             padding: '2.5rem',

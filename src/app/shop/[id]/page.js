@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
@@ -15,10 +15,14 @@ export default function ProductPage({ params }) {
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        // ✅ Direct document lookup by ID — instant, no collection scan
-        const docRef = doc(db, 'products', params.id);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
+        const productName = decodeURIComponent(params.id);
+        const q = query(
+          collection(db, 'products'),
+          where('name', '==', productName)
+        );
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) {
+          const docSnap = snapshot.docs[0];
           setProduct({ id: docSnap.id, ...docSnap.data() });
         }
       } catch (error) {

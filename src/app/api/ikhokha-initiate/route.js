@@ -23,12 +23,12 @@ export async function POST(req) {
 
   const bodyString = JSON.stringify(payload);
 
+  // Try base64 instead of hex
   const signature = crypto
     .createHmac('sha256', APP_SECRET)
     .update(bodyString)
-    .digest('hex');
+    .digest('base64');
 
-  // Try both possible endpoint URLs
   const response = await fetch('https://api.ikhokha.com/applications/paymentlink', {
     method:  'POST',
     headers: {

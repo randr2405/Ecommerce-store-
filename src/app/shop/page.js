@@ -13,7 +13,9 @@ export default function ShopPage() {
     const fetchProducts = async () => {
       try {
         const snapshot = await getDocs(collection(db, 'products'));
-        const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const items = snapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .filter(product => product.stock > 0);
         setProducts(items);
       } catch (error) {
         console.error('Error fetching products:', error);
@@ -136,19 +138,7 @@ function ProductCard({ product }) {
             </div>
           )}
 
-          {/* Out of stock overlay */}
-          {product.stock === 0 && (
-            <div style={{
-              position: 'absolute',
-              inset: 0,
-              background: 'rgba(10,10,10,0.75)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-              <p style={{ fontSize: '0.65rem', color: '#888', letterSpacing: '0.3em', textTransform: 'uppercase' }}>Out of Stock</p>
-            </div>
-          )}
+
         </div>
 
         {/* Info */}

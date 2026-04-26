@@ -50,75 +50,199 @@ function ThreeBackground({ scrollRef, mouseRef }) {
       renderer.setClearColor(0x000000, 0);
       mount.appendChild(renderer.domElement);
 
-      /* Materials — 3 gold tiers */
-      const mats = [
-        new THREE.LineBasicMaterial({ color: 0xC9A84C, transparent: true, opacity: 0.75 }),
-        new THREE.LineBasicMaterial({ color: 0xC9A84C, transparent: true, opacity: 0.35 }),
-        new THREE.LineBasicMaterial({ color: 0xE8D080, transparent: true, opacity: 0.12 }),
-      ];
+      /* Materials — gold thread hierarchy */
+      const matThread     = new THREE.LineBasicMaterial({ color: 0xC9A84C, transparent: true, opacity: 0.8 });
+      const matThreadDim  = new THREE.LineBasicMaterial({ color: 0xC9A84C, transparent: true, opacity: 0.35 });
+      const matFabricEdge = new THREE.LineBasicMaterial({ color: 0xE8D080, transparent: true, opacity: 0.14 });
+      const matFabricFill = new THREE.LineBasicMaterial({ color: 0xC9A84C, transparent: true, opacity: 0.06 });
 
-      /* Geometry pool */
-      const geoPool = [
-        new THREE.IcosahedronGeometry(3.5, 0),
-        new THREE.OctahedronGeometry(4.5, 0),
-        new THREE.TetrahedronGeometry(4, 0),
-        new THREE.BoxGeometry(7, 7, 7),
-        new THREE.TorusGeometry(4.5, 1.2, 6, 14),
-        new THREE.ConeGeometry(3.5, 7, 5),
-      ];
-
-      /* Spawn 80 objects across deep Z space */
       const objects = [];
-      for (let i = 0; i < 80; i++) {
-        const geo = geoPool[i % geoPool.length];
-        const wf = new THREE.WireframeGeometry(geo);
-        const mat = mats[Math.floor(Math.random() * mats.length)];
+      const fabricPanels = []; /* store for wave animation */
+
+      /* ── 1. FLOWING FABRIC PANELS
+         Large draped PlaneGeometry meshes — look like silk panels floating in space ── */
+      for (let i = 0; i < 14; i++) {
+        const w = 18 + Math.random() * 22;
+        const h = 28 + Math.random() * 35;
+        const segsX = 10, segsY = 16;
+        const geo = new THREE.PlaneGeometry(w, h, segsX, segsY);
+
+        /* Initial drape displacement — random wave phase per panel */
+        const phaseX = Math.random() * Math.PI * 2;
+        const phaseY = Math.random() * Math.PI * 2;
+        const ampX   = 1.5 + Math.random() * 3;
+        const ampY   = 2 + Math.random() * 4;
+        const pos    = geo.attributes.position;
+        for (let v = 0; v < pos.count; v++) {
+          const x = pos.getX(v);
+          const y = pos.getY(v);
+          pos.setZ(v, Math.sin(x * 0.25 + phaseX) * ampX + Math.cos(y * 0.18 + phaseY) * ampY);
+        }
+        pos.needsUpdate = true;
+        geo.computeVertexNormals();
+
+        const wf   = new THREE.WireframeGeometry(geo);
+        const mat  = Math.random() > 0.4 ? matFabricEdge : matFabricFill;
         const mesh = new THREE.LineSegments(wf, mat);
 
-        /* Spread wide + deep: z from -280 to 120 */
         mesh.position.set(
-          (Math.random() - 0.5) * 320,
-          (Math.random() - 0.5) * 180,
-          Math.random() * 400 - 280
+          (Math.random() - 0.5) * 280,
+          (Math.random() - 0.5) * 160,
+          Math.random() * 360 - 240
         );
         mesh.rotation.set(
-          Math.random() * Math.PI * 2,
-          Math.random() * Math.PI * 2,
-          Math.random() * Math.PI * 2
+          (Math.random() - 0.5) * 0.6,
+          (Math.random() - 0.5) * 0.8,
+          (Math.random() - 0.5) * 0.3
         );
-        const s = 0.35 + Math.random() * 1.6;
-        mesh.scale.setScalar(s);
-        mesh.userData.rx = (Math.random() - 0.5) * 0.005;
-        mesh.userData.ry = (Math.random() - 0.5) * 0.007;
-        mesh.userData.rz = (Math.random() - 0.5) * 0.003;
+
+        mesh.userData = {
+          type: 'fabric',
+          phaseX, phaseY, ampX, ampY,
+          segsX, segsY, w, h,
+          speed: 0.004 + Math.random() * 0.006,
+          ry: (Math.random() - 0.5) * 0.0008,
+        };
+
         scene.add(mesh);
         objects.push(mesh);
+        fabricPanels.push({ mesh, geo, originalGeo: geo });
       }
 
-      /* Tunnel rings — create a sense of depth corridor */
-      for (let i = 0; i < 12; i++) {
-        const ring = new THREE.TorusGeometry(28 + i * 6, 0.25, 4, 60);
-        const wf = new THREE.WireframeGeometry(ring);
-        const mesh = new THREE.LineSegments(wf, mats[2]);
-        mesh.position.z = -20 - i * 22;
-        mesh.userData.rx = 0.001;
-        mesh.userData.ry = 0.002;
-        mesh.userData.rz = 0;
-        scene.add(mesh);
-        objects.push(mesh);
+      /* ── 2. GOLDEN THREAD FILAMENTS
+         CatmullRom spline curves rendered as single lines — loose floating threads ── */
+      for (let i = 0; i < 40; i++) {
+        const depth = Math.random() * 400 - 280;
+        const cx    = (Math.random() - 0.5) * 260;
+        const cy    = (Math.random() - 0.5) * 150;
+
+        /* Build a flowing curve with 5-8 control points */
+        const numPts = 5 + Math.floor(Math.random() * 4);
+        const pts = [];
+        for (let p = 0; p < numPts; p++) {
+          pts.push(new THREE.Vector3(
+            cx + (Math.random() - 0.5) * (20 + Math.random() * 40),
+            cy + (Math.random() - 0.5) * (15 + Math.random() * 30),
+            depth + (Math.random() - 0.5) * 8
+          ));
+        }
+        const curve  = new THREE.CatmullRomCurve3(pts);
+        const points = curve.getPoints(80);
+        const geo    = new THREE.BufferGeometry().setFromPoints(points);
+        const mat    = Math.random() > 0.35 ? matThread : matThreadDim;
+        const line   = new THREE.Line(geo, mat);
+
+        line.userData = {
+          type: 'thread',
+          pts,
+          baseY: cy,
+          speed: 0.002 + Math.random() * 0.004,
+          phase: Math.random() * Math.PI * 2,
+          driftY: (Math.random() - 0.5) * 0.012,
+        };
+
+        scene.add(line);
+        objects.push(line);
+      }
+
+      /* ── 3. STITCH DASHES
+         Short straight line segments scattered like scattered stitching / seam lines ── */
+      for (let i = 0; i < 55; i++) {
+        const len    = 1.5 + Math.random() * 6;
+        const angle  = Math.random() * Math.PI;
+        const geo    = new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(-Math.cos(angle) * len, -Math.sin(angle) * len, 0),
+          new THREE.Vector3( Math.cos(angle) * len,  Math.sin(angle) * len, 0),
+        ]);
+        const mat    = Math.random() > 0.5 ? matThread : matThreadDim;
+        const line   = new THREE.Line(geo, mat);
+
+        line.position.set(
+          (Math.random() - 0.5) * 300,
+          (Math.random() - 0.5) * 170,
+          Math.random() * 380 - 260
+        );
+        line.userData = {
+          type: 'stitch',
+          ry: (Math.random() - 0.5) * 0.003,
+          driftY: (Math.random() - 0.5) * 0.015,
+        };
+
+        scene.add(line);
+        objects.push(line);
+      }
+
+      /* ── 4. FINE FABRIC GRAIN PARTICLES
+         Point cloud suggesting fabric texture / loose fibres in the air ── */
+      {
+        const COUNT  = 500;
+        const posArr = new Float32Array(COUNT * 3);
+        for (let i = 0; i < COUNT; i++) {
+          posArr[i * 3]     = (Math.random() - 0.5) * 380;
+          posArr[i * 3 + 1] = (Math.random() - 0.5) * 220;
+          posArr[i * 3 + 2] = Math.random() * 420 - 300;
+        }
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.BufferAttribute(posArr, 3));
+        const pts = new THREE.Points(geo, new THREE.PointsMaterial({
+          color: 0xC9A84C, size: 0.28, transparent: true, opacity: 0.45,
+        }));
+        pts.userData = { type: 'particles', driftY: 0.006 };
+        scene.add(pts);
+        objects.push(pts);
       }
 
       /* Camera smooth state */
       let camZ = 90, camX = 0, camY = 0;
-      let raf;
+      let raf, clock = 0;
 
       const animate = () => {
         raf = requestAnimationFrame(animate);
+        clock += 0.01;
 
         objects.forEach(o => {
-          o.rotation.x += o.userData.rx;
-          o.rotation.y += o.userData.ry;
-          o.rotation.z += o.userData.rz;
+          const d = o.userData;
+
+          if (d.type === 'fabric') {
+            /* Gently ripple fabric vertices — simulates silk catching a breeze */
+            const geo = o.geometry.sourceGeometry || o.geometry;
+            /* Rebuild wireframe each frame for animated fabric */
+            const planeGeo = new THREE.PlaneGeometry(d.w, d.h, d.segsX, d.segsY);
+            const pos = planeGeo.attributes.position;
+            for (let v = 0; v < pos.count; v++) {
+              const x = pos.getX(v);
+              const y = pos.getY(v);
+              pos.setZ(v,
+                Math.sin(x * 0.25 + d.phaseX + clock * d.speed * 3) * d.ampX +
+                Math.cos(y * 0.18 + d.phaseY + clock * d.speed * 2) * d.ampY
+              );
+            }
+            pos.needsUpdate = true;
+            planeGeo.computeVertexNormals();
+            const newWf = new THREE.WireframeGeometry(planeGeo);
+            o.geometry.dispose();
+            o.geometry = newWf;
+            planeGeo.dispose();
+            o.rotation.y += d.ry;
+
+          } else if (d.type === 'thread') {
+            /* Threads drift slowly upward and sway */
+            o.position.y += d.driftY;
+            if (o.position.y > 120) o.position.y = -120;
+            /* Subtle sway */
+            o.rotation.z = Math.sin(clock * d.speed + d.phase) * 0.08;
+
+          } else if (d.type === 'stitch') {
+            /* Stitches float gently */
+            o.position.y += d.driftY;
+            if (o.position.y > 110) o.position.y = -110;
+            o.rotation.y += d.ry;
+
+          } else if (d.type === 'particles') {
+            /* Grain particles drift upward very slowly */
+            o.position.y += d.driftY;
+            if (o.position.y > 40) o.position.y = -40;
+          }
         });
 
         /* Drive camera Z from scroll (0→1 maps to z 90→-310) */

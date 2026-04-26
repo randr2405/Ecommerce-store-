@@ -50,144 +50,129 @@ function ThreeBackground({ scrollRef, mouseRef }) {
       renderer.setClearColor(0x000000, 0);
       mount.appendChild(renderer.domElement);
 
-      /* Materials — gold thread hierarchy */
-      const matThread     = new THREE.LineBasicMaterial({ color: 0xC9A84C, transparent: true, opacity: 0.8 });
-      const matThreadDim  = new THREE.LineBasicMaterial({ color: 0xC9A84C, transparent: true, opacity: 0.35 });
-      const matFabricEdge = new THREE.LineBasicMaterial({ color: 0xE8D080, transparent: true, opacity: 0.14 });
-      const matFabricFill = new THREE.LineBasicMaterial({ color: 0xC9A84C, transparent: true, opacity: 0.06 });
+      /* ── Materials ── */
+      const matRingBright = new THREE.LineBasicMaterial({ color: 0xC9A84C, transparent: true, opacity: 0.55 });
+      const matRingMid    = new THREE.LineBasicMaterial({ color: 0xC9A84C, transparent: true, opacity: 0.22 });
+      const matRingFaint  = new THREE.LineBasicMaterial({ color: 0xC9A84C, transparent: true, opacity: 0.08 });
+      const matLine       = new THREE.LineBasicMaterial({ color: 0xC9A84C, transparent: true, opacity: 0.30 });
+      const matLineFaint  = new THREE.LineBasicMaterial({ color: 0xC9A84C, transparent: true, opacity: 0.10 });
 
       const objects = [];
-      const fabricPanels = []; /* store for wave animation */
 
-      /* ── 1. FLOWING FABRIC PANELS
-         Large draped PlaneGeometry meshes — look like silk panels floating in space ── */
-      for (let i = 0; i < 14; i++) {
-        const w = 18 + Math.random() * 22;
-        const h = 28 + Math.random() * 35;
-        const segsX = 10, segsY = 16;
-        const geo = new THREE.PlaneGeometry(w, h, segsX, segsY);
-
-        /* Initial drape displacement — random wave phase per panel */
-        const phaseX = Math.random() * Math.PI * 2;
-        const phaseY = Math.random() * Math.PI * 2;
-        const ampX   = 1.5 + Math.random() * 3;
-        const ampY   = 2 + Math.random() * 4;
-        const pos    = geo.attributes.position;
-        for (let v = 0; v < pos.count; v++) {
-          const x = pos.getX(v);
-          const y = pos.getY(v);
-          pos.setZ(v, Math.sin(x * 0.25 + phaseX) * ampX + Math.cos(y * 0.18 + phaseY) * ampY);
+      /* Helper: perfect circle as Line */
+      const makeCircle = (radius, segments, mat) => {
+        const pts = [];
+        for (let i = 0; i <= segments; i++) {
+          const a = (i / segments) * Math.PI * 2;
+          pts.push(new THREE.Vector3(Math.cos(a) * radius, Math.sin(a) * radius, 0));
         }
-        pos.needsUpdate = true;
-        geo.computeVertexNormals();
+        return new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), mat);
+      };
 
-        const wf   = new THREE.WireframeGeometry(geo);
-        const mat  = Math.random() > 0.4 ? matFabricEdge : matFabricFill;
-        const mesh = new THREE.LineSegments(wf, mat);
+      /* ── 1. TUNNEL RINGS ──
+         Deep corridor of concentric rings — the hero 3D effect they liked.
+         Rings are spaced along Z, camera flies through them on scroll. ── */
+      const TUNNEL_DEPTH = 28;
+      for (let i = 0; i < TUNNEL_DEPTH; i++) {
+        const z      = 60 - i * 16;                 /* from near to far */
+        const radius = 55 + i * 2;                  /* slight outward flare for drama */
+        const fade   = i < 4 ? matRingBright : (i < 12 ? matRingMid : matRingFaint);
+        const ring   = makeCircle(radius, 96, fade);
+        ring.position.z = z;
+        ring.userData  = { type: 'ring', baseZ: z, ry: 0.0003 * (i % 3 === 0 ? 1 : -1) };
+        scene.add(ring);
+        objects.push(ring);
 
-        mesh.position.set(
-          (Math.random() - 0.5) * 280,
-          (Math.random() - 0.5) * 160,
-          Math.random() * 360 - 240
-        );
-        mesh.rotation.set(
-          (Math.random() - 0.5) * 0.6,
-          (Math.random() - 0.5) * 0.8,
-          (Math.random() - 0.5) * 0.3
-        );
-
-        mesh.userData = {
-          type: 'fabric',
-          phaseX, phaseY, ampX, ampY,
-          segsX, segsY, w, h,
-          speed: 0.004 + Math.random() * 0.006,
-          ry: (Math.random() - 0.5) * 0.0008,
-        };
-
-        scene.add(mesh);
-        objects.push(mesh);
-        fabricPanels.push({ mesh, geo, originalGeo: geo });
+        /* Every 4th ring: add a slightly smaller inner ring for depth detail */
+        if (i % 4 === 0 && i < 20) {
+          const inner = makeCircle(radius * 0.72, 96, matRingFaint);
+          inner.position.z = z;
+          inner.userData = { type: 'ring', ry: 0.0002 };
+          scene.add(inner);
+          objects.push(inner);
+        }
       }
 
-      /* ── 2. GOLDEN THREAD FILAMENTS
-         CatmullRom spline curves rendered as single lines — loose floating threads ── */
-      for (let i = 0; i < 40; i++) {
-        const depth = Math.random() * 400 - 280;
-        const cx    = (Math.random() - 0.5) * 260;
-        const cy    = (Math.random() - 0.5) * 150;
+      /* ── 2. CROSS RINGS — tilted rings flanking the tunnel ── */
+      const tiltedConfigs = [
+        { rx: Math.PI / 4,  ry: 0,             x: -80,  z: -60,  r: 45, mat: matRingMid   },
+        { rx: -Math.PI / 5, ry: Math.PI / 6,   x: 85,   z: -80,  r: 50, mat: matRingFaint },
+        { rx: Math.PI / 3,  ry: -Math.PI / 8,  x: -60,  z: -140, r: 38, mat: matRingFaint },
+        { rx: Math.PI / 7,  ry: Math.PI / 4,   x: 100,  z: -180, r: 55, mat: matRingFaint },
+      ];
+      tiltedConfigs.forEach(cfg => {
+        const ring = makeCircle(cfg.r, 96, cfg.mat);
+        ring.position.set(cfg.x, 0, cfg.z);
+        ring.rotation.x = cfg.rx;
+        ring.rotation.y = cfg.ry;
+        ring.userData = { type: 'tilted', ry: 0.0006 };
+        scene.add(ring);
+        objects.push(ring);
+      });
 
-        /* Build a flowing curve with 5-8 control points */
-        const numPts = 5 + Math.floor(Math.random() * 4);
-        const pts = [];
-        for (let p = 0; p < numPts; p++) {
-          pts.push(new THREE.Vector3(
-            cx + (Math.random() - 0.5) * (20 + Math.random() * 40),
-            cy + (Math.random() - 0.5) * (15 + Math.random() * 30),
-            depth + (Math.random() - 0.5) * 8
-          ));
-        }
-        const curve  = new THREE.CatmullRomCurve3(pts);
-        const points = curve.getPoints(80);
-        const geo    = new THREE.BufferGeometry().setFromPoints(points);
-        const mat    = Math.random() > 0.35 ? matThread : matThreadDim;
-        const line   = new THREE.Line(geo, mat);
-
-        line.userData = {
-          type: 'thread',
-          pts,
-          baseY: cy,
-          speed: 0.002 + Math.random() * 0.004,
-          phase: Math.random() * Math.PI * 2,
-          driftY: (Math.random() - 0.5) * 0.012,
-        };
-
+      /* ── 3. VERTICAL PINSTRIPE LINES ──
+         Perfect vertical lines like tailoring chalk marks / pinstripes in 3D space ── */
+      for (let i = 0; i < 30; i++) {
+        const height = 40 + Math.random() * 90;
+        const pts    = [
+          new THREE.Vector3(0, -height / 2, 0),
+          new THREE.Vector3(0,  height / 2, 0),
+        ];
+        const line = new THREE.Line(
+          new THREE.BufferGeometry().setFromPoints(pts),
+          Math.random() > 0.5 ? matLine : matLineFaint
+        );
+        line.position.set(
+          (Math.random() - 0.5) * 320,
+          (Math.random() - 0.5) * 60,
+          Math.random() * 380 - 280
+        );
+        line.userData = { type: 'pin', driftY: (Math.random() - 0.5) * 0.008 };
         scene.add(line);
         objects.push(line);
       }
 
-      /* ── 3. STITCH DASHES
-         Short straight line segments scattered like scattered stitching / seam lines ── */
-      for (let i = 0; i < 55; i++) {
-        const len    = 1.5 + Math.random() * 6;
-        const angle  = Math.random() * Math.PI;
-        const geo    = new THREE.BufferGeometry().setFromPoints([
-          new THREE.Vector3(-Math.cos(angle) * len, -Math.sin(angle) * len, 0),
-          new THREE.Vector3( Math.cos(angle) * len,  Math.sin(angle) * len, 0),
-        ]);
-        const mat    = Math.random() > 0.5 ? matThread : matThreadDim;
-        const line   = new THREE.Line(geo, mat);
-
+      /* ── 4. SMOOTH ARC CURVES ──
+         Single clean Bezier arcs — like the curved edge of a collar, hem, or shoulder seam ── */
+      for (let i = 0; i < 18; i++) {
+        const span  = 30 + Math.random() * 50;
+        const bulge = 10 + Math.random() * 25;
+        const curve = new THREE.QuadraticBezierCurve3(
+          new THREE.Vector3(-span / 2, 0, 0),
+          new THREE.Vector3(0, bulge * (Math.random() > 0.5 ? 1 : -1), 0),
+          new THREE.Vector3( span / 2, 0, 0)
+        );
+        const pts  = curve.getPoints(60);
+        const line = new THREE.Line(
+          new THREE.BufferGeometry().setFromPoints(pts),
+          Math.random() > 0.4 ? matLineFaint : matLine
+        );
         line.position.set(
           (Math.random() - 0.5) * 300,
-          (Math.random() - 0.5) * 170,
-          Math.random() * 380 - 260
+          (Math.random() - 0.5) * 150,
+          Math.random() * 360 - 260
         );
-        line.userData = {
-          type: 'stitch',
-          ry: (Math.random() - 0.5) * 0.003,
-          driftY: (Math.random() - 0.5) * 0.015,
-        };
-
+        line.rotation.z = (Math.random() - 0.5) * 0.6;
+        line.userData   = { type: 'arc', driftY: (Math.random() - 0.5) * 0.006, ry: (Math.random() - 0.5) * 0.001 };
         scene.add(line);
         objects.push(line);
       }
 
-      /* ── 4. FINE FABRIC GRAIN PARTICLES
-         Point cloud suggesting fabric texture / loose fibres in the air ── */
+      /* ── 5. FINE PARTICLE DUST — very subtle ── */
       {
-        const COUNT  = 500;
-        const posArr = new Float32Array(COUNT * 3);
+        const COUNT = 350;
+        const pos   = new Float32Array(COUNT * 3);
         for (let i = 0; i < COUNT; i++) {
-          posArr[i * 3]     = (Math.random() - 0.5) * 380;
-          posArr[i * 3 + 1] = (Math.random() - 0.5) * 220;
-          posArr[i * 3 + 2] = Math.random() * 420 - 300;
+          pos[i * 3]     = (Math.random() - 0.5) * 400;
+          pos[i * 3 + 1] = (Math.random() - 0.5) * 240;
+          pos[i * 3 + 2] = Math.random() * 440 - 300;
         }
         const geo = new THREE.BufferGeometry();
-        geo.setAttribute('position', new THREE.BufferAttribute(posArr, 3));
+        geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
         const pts = new THREE.Points(geo, new THREE.PointsMaterial({
-          color: 0xC9A84C, size: 0.28, transparent: true, opacity: 0.45,
+          color: 0xC9A84C, size: 0.22, transparent: true, opacity: 0.35,
         }));
-        pts.userData = { type: 'particles', driftY: 0.006 };
+        pts.userData = { type: 'particles', driftY: 0.005 };
         scene.add(pts);
         objects.push(pts);
       }
@@ -202,46 +187,22 @@ function ThreeBackground({ scrollRef, mouseRef }) {
 
         objects.forEach(o => {
           const d = o.userData;
-
-          if (d.type === 'fabric') {
-            /* Gently ripple fabric vertices — simulates silk catching a breeze */
-            const geo = o.geometry.sourceGeometry || o.geometry;
-            /* Rebuild wireframe each frame for animated fabric */
-            const planeGeo = new THREE.PlaneGeometry(d.w, d.h, d.segsX, d.segsY);
-            const pos = planeGeo.attributes.position;
-            for (let v = 0; v < pos.count; v++) {
-              const x = pos.getX(v);
-              const y = pos.getY(v);
-              pos.setZ(v,
-                Math.sin(x * 0.25 + d.phaseX + clock * d.speed * 3) * d.ampX +
-                Math.cos(y * 0.18 + d.phaseY + clock * d.speed * 2) * d.ampY
-              );
-            }
-            pos.needsUpdate = true;
-            planeGeo.computeVertexNormals();
-            const newWf = new THREE.WireframeGeometry(planeGeo);
-            o.geometry.dispose();
-            o.geometry = newWf;
-            planeGeo.dispose();
-            o.rotation.y += d.ry;
-
-          } else if (d.type === 'thread') {
-            /* Threads drift slowly upward and sway */
+          if (d.type === 'ring' || d.type === 'tilted') {
+            /* Rings breathe very slowly — almost imperceptible */
+            if (d.ry) o.rotation.y += d.ry;
+          } else if (d.type === 'pin') {
+            /* Pinstripes drift up and loop */
             o.position.y += d.driftY;
-            if (o.position.y > 120) o.position.y = -120;
-            /* Subtle sway */
-            o.rotation.z = Math.sin(clock * d.speed + d.phase) * 0.08;
-
-          } else if (d.type === 'stitch') {
-            /* Stitches float gently */
+            if (o.position.y > 100)  o.position.y = -100;
+            if (o.position.y < -100) o.position.y =  100;
+          } else if (d.type === 'arc') {
             o.position.y += d.driftY;
-            if (o.position.y > 110) o.position.y = -110;
-            o.rotation.y += d.ry;
-
+            if (o.position.y > 100)  o.position.y = -100;
+            if (o.position.y < -100) o.position.y =  100;
+            if (d.ry) o.rotation.y += d.ry;
           } else if (d.type === 'particles') {
-            /* Grain particles drift upward very slowly */
             o.position.y += d.driftY;
-            if (o.position.y > 40) o.position.y = -40;
+            if (o.position.y > 30) o.position.y = -30;
           }
         });
 

@@ -24,7 +24,8 @@ function useElementScroll() {
 }
 
 /* ═══════════════════════════════════════════════
-   THREE.JS FLYING-CAMERA BACKGROUND
+   THREE.JS — LUXURY 3D SCENE
+   Infinite corridor of rings + floating fabric planes
 ═══════════════════════════════════════════════ */
 function ThreeBackground({ scrollRef, mouseRef }) {
   const mountRef = useRef(null);
@@ -35,31 +36,30 @@ function ThreeBackground({ scrollRef, mouseRef }) {
     let cleanupFn = () => {};
 
     import('three').then((THREE) => {
-      /* Scene */
       const scene = new THREE.Scene();
-      scene.fog = new THREE.FogExp2(0x040404, 0.0045);
+      scene.fog = new THREE.FogExp2(0x020202, 0.003);
 
-      /* Camera */
-      const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 800);
-      camera.position.set(0, 0, 90);
+      const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1200);
+      camera.position.set(0, 0, 120);
 
-      /* Renderer */
       const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       renderer.setClearColor(0x000000, 0);
       mount.appendChild(renderer.domElement);
 
-      /* ── Materials ── */
-      const matRingBright = new THREE.LineBasicMaterial({ color: 0xC9A84C, transparent: true, opacity: 0.55 });
-      const matRingMid    = new THREE.LineBasicMaterial({ color: 0xC9A84C, transparent: true, opacity: 0.22 });
-      const matRingFaint  = new THREE.LineBasicMaterial({ color: 0xC9A84C, transparent: true, opacity: 0.08 });
-      const matLine       = new THREE.LineBasicMaterial({ color: 0xC9A84C, transparent: true, opacity: 0.30 });
-      const matLineFaint  = new THREE.LineBasicMaterial({ color: 0xC9A84C, transparent: true, opacity: 0.10 });
+      /* ── Gold palette ── */
+      const GOLD      = 0xC9A84C;
+      const GOLD_DIM  = 0x8B6914;
+      const WHITE_DIM = 0xCCCCCC;
+
+      const matGoldBright = new THREE.LineBasicMaterial({ color: GOLD,      transparent: true, opacity: 0.75 });
+      const matGoldMid    = new THREE.LineBasicMaterial({ color: GOLD,      transparent: true, opacity: 0.35 });
+      const matGoldFaint  = new THREE.LineBasicMaterial({ color: GOLD_DIM,  transparent: true, opacity: 0.12 });
+      const matWhite      = new THREE.LineBasicMaterial({ color: WHITE_DIM, transparent: true, opacity: 0.06 });
 
       const objects = [];
 
-      /* Helper: perfect circle as Line */
       const makeCircle = (radius, segments, mat) => {
         const pts = [];
         for (let i = 0; i <= segments; i++) {
@@ -69,156 +69,167 @@ function ThreeBackground({ scrollRef, mouseRef }) {
         return new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), mat);
       };
 
-      /* ── 1. TUNNEL RINGS ──
-         Deep corridor of concentric rings — the hero 3D effect they liked.
-         Rings are spaced along Z, camera flies through them on scroll. ── */
-      const TUNNEL_DEPTH = 28;
-      for (let i = 0; i < TUNNEL_DEPTH; i++) {
-        const z      = 60 - i * 16;                 /* from near to far */
-        const radius = 55 + i * 2;                  /* slight outward flare for drama */
-        const fade   = i < 4 ? matRingBright : (i < 12 ? matRingMid : matRingFaint);
-        const ring   = makeCircle(radius, 96, fade);
+      /* ── 1. GRAND ENTRANCE TUNNEL — tighter, brighter, more dramatic ── */
+      for (let i = 0; i < 40; i++) {
+        const z      = 80 - i * 18;
+        const radius = 70 + i * 3.5;
+        const mat    = i < 3 ? matGoldBright : i < 10 ? matGoldMid : matGoldFaint;
+        const ring   = makeCircle(radius, 128, mat);
         ring.position.z = z;
-        ring.userData  = { type: 'ring', baseZ: z, ry: 0.0003 * (i % 3 === 0 ? 1 : -1) };
+        ring.userData  = { type: 'ring', ry: 0.0002 * (i % 2 === 0 ? 1 : -1) };
         scene.add(ring);
         objects.push(ring);
 
-        /* Every 4th ring: add a slightly smaller inner ring for depth detail */
-        if (i % 4 === 0 && i < 20) {
-          const inner = makeCircle(radius * 0.72, 96, matRingFaint);
+        /* Inner ring detail */
+        if (i % 3 === 0 && i < 25) {
+          const inner = makeCircle(radius * 0.68, 128, matGoldFaint);
           inner.position.z = z;
-          inner.userData = { type: 'ring', ry: 0.0002 };
+          inner.userData = { type: 'ring', ry: 0.00015 };
           scene.add(inner);
           objects.push(inner);
         }
       }
 
-      /* ── 2. CROSS RINGS — tilted rings flanking the tunnel ── */
-      const tiltedConfigs = [
-        { rx: Math.PI / 4,  ry: 0,             x: -80,  z: -60,  r: 45, mat: matRingMid   },
-        { rx: -Math.PI / 5, ry: Math.PI / 6,   x: 85,   z: -80,  r: 50, mat: matRingFaint },
-        { rx: Math.PI / 3,  ry: -Math.PI / 8,  x: -60,  z: -140, r: 38, mat: matRingFaint },
-        { rx: Math.PI / 7,  ry: Math.PI / 4,   x: 100,  z: -180, r: 55, mat: matRingFaint },
+      /* ── 2. MONUMENTAL TILTED RINGS — flanking like cathedral arches ── */
+      const archConfigs = [
+        { rx: Math.PI / 3,   ry: 0,           x: -120, z: -100, r: 80,  mat: matGoldMid   },
+        { rx: -Math.PI / 3,  ry: 0,           x:  120, z: -100, r: 80,  mat: matGoldMid   },
+        { rx: Math.PI / 2,   ry: Math.PI / 8, x: -200, z: -250, r: 100, mat: matGoldFaint },
+        { rx: -Math.PI / 2,  ry: -Math.PI/8,  x:  200, z: -250, r: 100, mat: matGoldFaint },
+        { rx: Math.PI / 4,   ry: Math.PI / 5, x: 0,    z: -400, r: 160, mat: matGoldFaint },
       ];
-      tiltedConfigs.forEach(cfg => {
-        const ring = makeCircle(cfg.r, 96, cfg.mat);
+      archConfigs.forEach(cfg => {
+        const ring = makeCircle(cfg.r, 128, cfg.mat);
         ring.position.set(cfg.x, 0, cfg.z);
         ring.rotation.x = cfg.rx;
         ring.rotation.y = cfg.ry;
-        ring.userData = { type: 'tilted', ry: 0.0006 };
+        ring.userData = { type: 'arch', ry: 0.0004 };
         scene.add(ring);
         objects.push(ring);
       });
 
-      /* ── 3. VERTICAL PINSTRIPE LINES ──
-         Perfect vertical lines like tailoring chalk marks / pinstripes in 3D space ── */
-      for (let i = 0; i < 30; i++) {
-        const height = 40 + Math.random() * 90;
-        const pts    = [
-          new THREE.Vector3(0, -height / 2, 0),
-          new THREE.Vector3(0,  height / 2, 0),
+      /* ── 3. FLOATING GRID PLANES — like luxury tiles receding into distance ── */
+      for (let row = -2; row <= 2; row++) {
+        for (let col = -3; col <= 3; col++) {
+          const size = 60;
+          const pts = [
+            new THREE.Vector3(-size/2, -size/2, 0),
+            new THREE.Vector3( size/2, -size/2, 0),
+            new THREE.Vector3( size/2,  size/2, 0),
+            new THREE.Vector3(-size/2,  size/2, 0),
+            new THREE.Vector3(-size/2, -size/2, 0),
+          ];
+          const sq = new THREE.Line(
+            new THREE.BufferGeometry().setFromPoints(pts),
+            matWhite
+          );
+          sq.position.set(col * 62, row * 62, -300 - Math.abs(col) * 20 - Math.abs(row) * 20);
+          sq.rotation.x = 0.15;
+          sq.userData = { type: 'grid' };
+          scene.add(sq);
+          objects.push(sq);
+        }
+      }
+
+      /* ── 4. VERTICAL LIGHT SHAFTS — cathedral light beams ── */
+      for (let i = 0; i < 22; i++) {
+        const h = 80 + Math.random() * 200;
+        const pts = [
+          new THREE.Vector3(0, -h/2, 0),
+          new THREE.Vector3(0,  h/2, 0),
         ];
-        const line = new THREE.Line(
+        const shaft = new THREE.Line(
           new THREE.BufferGeometry().setFromPoints(pts),
-          Math.random() > 0.5 ? matLine : matLineFaint
+          Math.random() > 0.6 ? matGoldFaint : matWhite
         );
-        line.position.set(
-          (Math.random() - 0.5) * 320,
-          (Math.random() - 0.5) * 60,
-          Math.random() * 380 - 280
+        shaft.position.set(
+          (Math.random() - 0.5) * 500,
+          (Math.random() - 0.5) * 80,
+          Math.random() * 500 - 380
         );
-        line.userData = { type: 'pin', driftY: (Math.random() - 0.5) * 0.008 };
-        scene.add(line);
-        objects.push(line);
+        shaft.userData = { type: 'shaft', driftY: (Math.random() - 0.5) * 0.006 };
+        scene.add(shaft);
+        objects.push(shaft);
       }
 
-      /* ── 4. SMOOTH ARC CURVES ──
-         Single clean Bezier arcs — like the curved edge of a collar, hem, or shoulder seam ── */
-      for (let i = 0; i < 18; i++) {
-        const span  = 30 + Math.random() * 50;
-        const bulge = 10 + Math.random() * 25;
+      /* ── 5. DIAGONAL SWEEP LINES — like fabric drape ── */
+      for (let i = 0; i < 14; i++) {
+        const span = 60 + Math.random() * 100;
         const curve = new THREE.QuadraticBezierCurve3(
-          new THREE.Vector3(-span / 2, 0, 0),
-          new THREE.Vector3(0, bulge * (Math.random() > 0.5 ? 1 : -1), 0),
-          new THREE.Vector3( span / 2, 0, 0)
+          new THREE.Vector3(-span/2, (Math.random()-0.5)*30, 0),
+          new THREE.Vector3(0, (Math.random()-0.5)*50, 0),
+          new THREE.Vector3(span/2, (Math.random()-0.5)*30, 0)
         );
-        const pts  = curve.getPoints(60);
         const line = new THREE.Line(
-          new THREE.BufferGeometry().setFromPoints(pts),
-          Math.random() > 0.4 ? matLineFaint : matLine
+          new THREE.BufferGeometry().setFromPoints(curve.getPoints(80)),
+          Math.random() > 0.5 ? matGoldFaint : matWhite
         );
         line.position.set(
-          (Math.random() - 0.5) * 300,
-          (Math.random() - 0.5) * 150,
-          Math.random() * 360 - 260
+          (Math.random()-0.5) * 400,
+          (Math.random()-0.5) * 200,
+          Math.random() * 450 - 320
         );
-        line.rotation.z = (Math.random() - 0.5) * 0.6;
-        line.userData   = { type: 'arc', driftY: (Math.random() - 0.5) * 0.006, ry: (Math.random() - 0.5) * 0.001 };
+        line.rotation.z = (Math.random()-0.5) * Math.PI;
+        line.userData = { type: 'drape', driftY: (Math.random()-0.5)*0.007, ry: (Math.random()-0.5)*0.0008 };
         scene.add(line);
         objects.push(line);
       }
 
-      /* ── 5. FINE PARTICLE DUST — very subtle ── */
+      /* ── 6. GOLD DUST PARTICLES ── */
       {
-        const COUNT = 350;
+        const COUNT = 600;
         const pos   = new Float32Array(COUNT * 3);
         for (let i = 0; i < COUNT; i++) {
-          pos[i * 3]     = (Math.random() - 0.5) * 400;
-          pos[i * 3 + 1] = (Math.random() - 0.5) * 240;
-          pos[i * 3 + 2] = Math.random() * 440 - 300;
+          pos[i*3]   = (Math.random()-0.5)*600;
+          pos[i*3+1] = (Math.random()-0.5)*300;
+          pos[i*3+2] = Math.random()*600 - 420;
         }
         const geo = new THREE.BufferGeometry();
         geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
         const pts = new THREE.Points(geo, new THREE.PointsMaterial({
-          color: 0xC9A84C, size: 0.22, transparent: true, opacity: 0.35,
+          color: GOLD, size: 0.3, transparent: true, opacity: 0.5,
         }));
-        pts.userData = { type: 'particles', driftY: 0.005 };
+        pts.userData = { type: 'dust', driftY: 0.006 };
         scene.add(pts);
         objects.push(pts);
       }
 
       /* Camera smooth state */
-      let camZ = 90, camX = 0, camY = 0;
-      let raf, clock = 0;
+      let camZ = 120, camX = 0, camY = 0;
+      let raf;
 
       const animate = () => {
         raf = requestAnimationFrame(animate);
-        clock += 0.01;
 
         objects.forEach(o => {
           const d = o.userData;
-          if (d.type === 'ring' || d.type === 'tilted') {
-            /* Rings breathe very slowly — almost imperceptible */
+          if (d.type === 'ring' || d.type === 'arch') {
             if (d.ry) o.rotation.y += d.ry;
-          } else if (d.type === 'pin') {
-            /* Pinstripes drift up and loop */
+          } else if (d.type === 'shaft') {
             o.position.y += d.driftY;
-            if (o.position.y > 100)  o.position.y = -100;
-            if (o.position.y < -100) o.position.y =  100;
-          } else if (d.type === 'arc') {
+            if (o.position.y > 120)  o.position.y = -120;
+            if (o.position.y < -120) o.position.y =  120;
+          } else if (d.type === 'drape') {
             o.position.y += d.driftY;
-            if (o.position.y > 100)  o.position.y = -100;
-            if (o.position.y < -100) o.position.y =  100;
+            if (o.position.y > 120)  o.position.y = -120;
+            if (o.position.y < -120) o.position.y =  120;
             if (d.ry) o.rotation.y += d.ry;
-          } else if (d.type === 'particles') {
+          } else if (d.type === 'dust') {
             o.position.y += d.driftY;
-            if (o.position.y > 30) o.position.y = -30;
+            if (o.position.y > 40) o.position.y = -40;
           }
         });
 
-        /* Drive camera Z from scroll (0→1 maps to z 90→-310) */
-        const targetZ = 90 - scrollRef.current * 400;
-        camZ += (targetZ - camZ) * 0.035;
+        const targetZ = 120 - scrollRef.current * 500;
+        camZ += (targetZ - camZ) * 0.03;
 
-        /* Mouse-based camera drift */
         const mx = mouseRef.current.x;
         const my = mouseRef.current.y;
-        camX += (mx * 14 - camX) * 0.018;
-        camY += (-my * 9 - camY) * 0.018;
+        camX += (mx * 18 - camX) * 0.015;
+        camY += (-my * 11 - camY) * 0.015;
 
         camera.position.set(camX, camY, camZ);
-        /* Look slightly ahead + toward center */
-        camera.lookAt(camX * 0.15, camY * 0.15, camZ - 60);
+        camera.lookAt(camX * 0.1, camY * 0.1, camZ - 80);
 
         renderer.render(scene, camera);
       };
@@ -243,63 +254,61 @@ function ThreeBackground({ scrollRef, mouseRef }) {
   }, []);
 
   return (
-    <div
-      ref={mountRef}
-      style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}
-    />
+    <div ref={mountRef} style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }} />
   );
 }
 
 /* ═══════════════════════════════════════════════
-   DEPTH TEXT — stacked z-layers for 3D letters
+   3D DEPTH TEXT — stacked layers with real pop
 ═══════════════════════════════════════════════ */
-function DepthText({ children, style = {}, layers = 5 }) {
+function DepthText({ children, gold = false, style = {} }) {
+  const layers = gold ? 10 : 6;
   return (
     <div style={{ position: 'relative', display: 'inline-block', ...style }}>
-      {/* Shadow layers */}
       {Array.from({ length: layers }).map((_, i) => (
         <span key={i} aria-hidden="true" style={{
           position: 'absolute', inset: 0,
-          transform: `translateZ(${-(i + 1) * 6}px) translateX(${(i + 1) * 1.5}px) translateY(${(i + 1) * 1}px)`,
-          color: `rgba(201,168,76,${0.08 - i * 0.012})`,
+          transform: `translateX(${(i+1)*1.2}px) translateY(${(i+1)*0.8}px)`,
+          color: gold
+            ? `rgba(100,65,0,${0.35 - i*0.032})`
+            : `rgba(0,0,0,${0.6 - i*0.08})`,
           pointerEvents: 'none',
           userSelect: 'none',
           whiteSpace: 'nowrap',
+          display: 'block',
         }}>{children}</span>
       ))}
-      {/* Real text */}
       <span style={{ position: 'relative', display: 'block' }}>{children}</span>
     </div>
   );
 }
 
 /* ═══════════════════════════════════════════════
-   3D CATEGORY CARD
+   3D CATEGORY CARD — magnetic tilt + emerge from depth
 ═══════════════════════════════════════════════ */
 function CategoryCard3D({ cat, index, sectionProgress }) {
   const [hovered, setHovered] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const cardRef = useRef(null);
 
-  /* Per-card entry stagger */
-  const delay = index * 0.12;
-  const cardProgress = Math.max(0, Math.min(1, (sectionProgress - 0.15 - delay) / 0.4));
-  const enterZ = (1 - cardProgress) * -400;
-  const enterRotY = (1 - cardProgress) * (index % 2 === 0 ? -45 : 45);
-  const enterOpacity = cardProgress;
+  const delay = index * 0.13;
+  const cardProgress = Math.max(0, Math.min(1, (sectionProgress - 0.1 - delay) / 0.45));
+
+  const enterZ    = (1 - cardProgress) * -600;
+  const enterRotY = (1 - cardProgress) * (index % 2 === 0 ? -55 : 55);
+  const enterOp   = Math.min(1, cardProgress * 1.2);
 
   const handleMouseMove = useCallback((e) => {
     const rect = cardRef.current?.getBoundingClientRect();
     if (!rect) return;
     setMousePos({
-      x: (e.clientX - rect.left) / rect.width - 0.5,
-      y: (e.clientY - rect.top) / rect.height - 0.5,
+      x: (e.clientX - rect.left) / rect.width  - 0.5,
+      y: (e.clientY - rect.top)  / rect.height - 0.5,
     });
   }, []);
 
-  const tiltX = hovered ? mousePos.y * -20 : 0;
-  const tiltY = hovered ? mousePos.x * 25 : 0;
-  const tiltZ = hovered ? 30 : 0;
+  const tiltX = hovered ? mousePos.y * -22 : 0;
+  const tiltY = hovered ? mousePos.x *  28 : 0;
 
   return (
     <Link href={`/shop?category=${cat.label.toLowerCase()}`} style={{ textDecoration: 'none', display: 'block' }}>
@@ -308,18 +317,16 @@ function CategoryCard3D({ cat, index, sectionProgress }) {
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => { setHovered(false); setMousePos({ x: 0, y: 0 }); }}
         onMouseMove={handleMouseMove}
-        style={{
-          perspective: '800px',
-        }}
+        style={{ perspective: '900px' }}
       >
         <div style={{
           border: '1px solid',
-          borderColor: hovered ? 'rgba(201,168,76,0.8)' : 'rgba(201,168,76,0.12)',
-          padding: '3.5rem 2.5rem',
+          borderColor: hovered ? 'rgba(201,168,76,0.9)' : 'rgba(201,168,76,0.15)',
+          padding: '4rem 2.8rem',
           background: hovered
-            ? 'linear-gradient(135deg, rgba(201,168,76,0.08), rgba(201,168,76,0.02))'
-            : 'rgba(8,8,6,0.85)',
-          backdropFilter: 'blur(12px)',
+            ? 'linear-gradient(145deg, rgba(201,168,76,0.1) 0%, rgba(201,168,76,0.03) 100%)'
+            : 'rgba(6,5,4,0.92)',
+          backdropFilter: 'blur(18px)',
           cursor: 'pointer',
           position: 'relative',
           overflow: 'hidden',
@@ -328,93 +335,93 @@ function CategoryCard3D({ cat, index, sectionProgress }) {
             translateZ(${enterZ}px)
             rotateY(${enterRotY + tiltY}deg)
             rotateX(${tiltX}deg)
-            translateZ(${tiltZ}px)
+            ${hovered ? 'translateZ(20px)' : ''}
           `,
-          opacity: enterOpacity,
+          opacity: enterOp,
           transition: hovered
-            ? 'border-color 0.3s, background 0.3s, transform 0.08s ease, box-shadow 0.3s'
+            ? 'border-color 0.25s, background 0.25s, box-shadow 0.25s, transform 0.07s ease'
             : 'border-color 0.5s, background 0.5s, box-shadow 0.5s',
           boxShadow: hovered
-            ? `-${mousePos.x * 30}px ${mousePos.y * 20}px 60px rgba(201,168,76,0.15), inset 0 0 40px rgba(201,168,76,0.03)`
-            : 'none',
+            ? `0 40px 80px rgba(0,0,0,0.7), 0 0 60px rgba(201,168,76,0.18), inset 0 1px 0 rgba(201,168,76,0.2)`
+            : '0 10px 40px rgba(0,0,0,0.5)',
           willChange: 'transform',
         }}>
-          {/* Scanline texture overlay */}
+          {/* Scanline overlay */}
           <div style={{
             position: 'absolute', inset: 0,
-            backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(201,168,76,0.012) 3px, rgba(201,168,76,0.012) 4px)',
+            backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(201,168,76,0.008) 2px, rgba(201,168,76,0.008) 3px)',
             pointerEvents: 'none',
           }} />
 
-          {/* Corner accent */}
-          <div style={{
-            position: 'absolute', top: 0, left: 0,
-            width: hovered ? '40px' : '16px',
-            height: hovered ? '40px' : '16px',
-            borderTop: '1px solid #C9A84C',
-            borderLeft: '1px solid #C9A84C',
-            transition: 'all 0.5s cubic-bezier(0.16,1,0.3,1)',
-          }} />
-          <div style={{
-            position: 'absolute', bottom: 0, right: 0,
-            width: hovered ? '40px' : '16px',
-            height: hovered ? '40px' : '16px',
-            borderBottom: '1px solid #C9A84C',
-            borderRight: '1px solid #C9A84C',
-            transition: 'all 0.5s cubic-bezier(0.16,1,0.3,1)',
-          }} />
+          {/* Corner brackets */}
+          {[['top','left'],['top','right'],['bottom','left'],['bottom','right']].map(([v,h], ci) => (
+            <div key={ci} style={{
+              position: 'absolute', [v]: 0, [h]: 0,
+              width: hovered ? '36px' : '14px',
+              height: hovered ? '36px' : '14px',
+              borderTop: v === 'top' ? '1px solid #C9A84C' : 'none',
+              borderBottom: v === 'bottom' ? '1px solid #C9A84C' : 'none',
+              borderLeft: h === 'left' ? '1px solid #C9A84C' : 'none',
+              borderRight: h === 'right' ? '1px solid #C9A84C' : 'none',
+              transition: 'all 0.5s cubic-bezier(0.16,1,0.3,1)',
+            }} />
+          ))}
 
-          {/* Bottom sweep */}
+          {/* Sweep line */}
           <div style={{
             position: 'absolute', bottom: 0, left: 0,
             height: '1px', width: hovered ? '100%' : '0%',
-            background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)',
-            transition: 'width 0.6s cubic-bezier(0.16,1,0.3,1)',
+            background: 'linear-gradient(90deg, transparent, #C9A84C 30%, #C9A84C 70%, transparent)',
+            transition: 'width 0.7s cubic-bezier(0.16,1,0.3,1)',
           }} />
 
+          {/* Index */}
           <p style={{
             fontFamily: 'Cormorant Garamond, serif',
-            fontSize: '0.7rem',
-            color: hovered ? '#C9A84C' : 'rgba(201,168,76,0.2)',
-            letterSpacing: '0.25em',
-            marginBottom: '1.5rem',
+            fontSize: '0.65rem',
+            color: hovered ? '#C9A84C' : 'rgba(201,168,76,0.25)',
+            letterSpacing: '0.3em',
+            marginBottom: '2rem',
             transition: 'color 0.4s',
           }}>{String(index + 1).padStart(2, '0')}</p>
 
+          {/* Icon */}
           <span style={{
-            fontSize: '3rem',
-            display: 'block',
-            marginBottom: '1.5rem',
-            transform: hovered ? 'scale(1.15) rotate(-8deg) translateZ(20px)' : 'scale(1) rotate(0) translateZ(0)',
+            fontSize: '3.5rem', display: 'block', marginBottom: '2rem',
+            transform: hovered ? 'scale(1.2) rotate(-10deg) translateZ(30px)' : 'scale(1) rotate(0) translateZ(0)',
             transformStyle: 'preserve-3d',
-            transition: 'transform 0.5s cubic-bezier(0.16,1,0.3,1)',
-            filter: hovered ? 'drop-shadow(0 0 12px rgba(201,168,76,0.4))' : 'none',
+            transition: 'transform 0.55s cubic-bezier(0.16,1,0.3,1)',
+            filter: hovered ? 'drop-shadow(0 0 20px rgba(201,168,76,0.6))' : 'none',
           }}>{cat.icon}</span>
 
+          {/* Label */}
           <h3 style={{
             fontFamily: 'Cormorant Garamond, serif',
-            fontSize: '1.9rem',
-            fontWeight: 300,
-            color: hovered ? '#C9A84C' : '#F5F0E8',
-            marginBottom: '0.7rem',
-            transition: 'color 0.3s',
+            fontSize: '2.1rem', fontWeight: 300,
+            color: hovered ? '#FFFFFF' : '#E8E0D0',
+            marginBottom: '0.8rem',
+            textShadow: hovered ? '0 0 40px rgba(255,255,255,0.2)' : 'none',
+            transition: 'color 0.3s, text-shadow 0.3s',
           }}>{cat.label}</h3>
 
-          <p style={{ fontSize: '0.65rem', color: '#555', letterSpacing: '0.1em', lineHeight: 1.9 }}>
+          <p style={{ fontSize: '0.63rem', color: '#555', letterSpacing: '0.12em', lineHeight: 2 }}>
             {cat.desc}
           </p>
 
+          {/* Explore arrow */}
           <div style={{
-            display: 'flex', alignItems: 'center', gap: '0.5rem',
-            marginTop: '2rem',
+            display: 'flex', alignItems: 'center', gap: '0.6rem',
+            marginTop: '2.2rem',
             opacity: hovered ? 1 : 0,
-            transform: hovered ? 'translateX(0) translateZ(20px)' : 'translateX(-12px)',
-            transition: 'all 0.4s cubic-bezier(0.16,1,0.3,1)',
+            transform: hovered ? 'translateX(0)' : 'translateX(-16px)',
+            transition: 'all 0.45s cubic-bezier(0.16,1,0.3,1)',
           }}>
-            <div style={{ width: '20px', height: '1px', background: '#C9A84C' }} />
-            <span style={{ fontSize: '0.55rem', color: '#C9A84C', letterSpacing: '0.3em', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif' }}>
-              Explore
-            </span>
+            <div style={{ width: '24px', height: '1px', background: '#C9A84C' }} />
+            <span style={{
+              fontSize: '0.52rem', color: '#C9A84C',
+              letterSpacing: '0.35em', textTransform: 'uppercase',
+              fontFamily: 'Montserrat, sans-serif',
+            }}>Explore</span>
           </div>
         </div>
       </div>
@@ -423,68 +430,67 @@ function CategoryCard3D({ cat, index, sectionProgress }) {
 }
 
 /* ═══════════════════════════════════════════════
-   3D VALUE CARD
+   VALUE CARD
 ═══════════════════════════════════════════════ */
 function ValueCard3D({ value, index, sectionProgress }) {
   const [hovered, setHovered] = useState(false);
   const romans = ['I', 'II', 'III', 'IV'];
 
-  const delay = index * 0.15;
-  const cardP = Math.max(0, Math.min(1, (sectionProgress - 0.1 - delay) / 0.5));
-
-  /* Different depth per card — creates staggered Z plane effect */
-  const depthZ = [0, -30, -15, -45][index];
-  const entryY = (1 - cardP) * 100;
-  const entryRot = (1 - cardP) * (index % 2 === 0 ? -8 : 8);
+  const delay  = index * 0.15;
+  const cardP  = Math.max(0, Math.min(1, (sectionProgress - 0.08 - delay) / 0.5));
+  const entryY = (1 - cardP) * 120;
+  const entryR = (1 - cardP) * (index % 2 === 0 ? -12 : 12);
+  const depths = [0, -25, -12, -38];
 
   return (
     <div
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        background: hovered ? 'rgba(201,168,76,0.04)' : 'rgba(6,6,6,0.9)',
-        padding: '3.5rem 2rem',
+        background: hovered ? 'rgba(201,168,76,0.05)' : 'rgba(5,5,4,0.92)',
+        padding: '4rem 2.2rem',
         textAlign: 'center',
-        position: 'relative',
-        overflow: 'hidden',
-        backdropFilter: 'blur(8px)',
+        position: 'relative', overflow: 'hidden',
+        backdropFilter: 'blur(12px)',
         border: '1px solid',
-        borderColor: hovered ? 'rgba(201,168,76,0.25)' : 'rgba(201,168,76,0.04)',
-        transform: `translateY(${entryY}px) rotateX(${entryRot}deg) translateZ(${depthZ}px)`,
+        borderColor: hovered ? 'rgba(201,168,76,0.3)' : 'rgba(201,168,76,0.06)',
+        transform: `translateY(${entryY}px) rotateX(${entryR}deg) translateZ(${depths[index]}px)`,
         opacity: cardP,
         transition: hovered
           ? 'background 0.4s, border-color 0.4s, box-shadow 0.3s'
           : 'background 0.4s, border-color 0.4s',
-        boxShadow: hovered ? `0 20px 60px rgba(201,168,76,0.1), 0 0 0 1px rgba(201,168,76,0.1)` : 'none',
+        boxShadow: hovered ? `0 30px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(201,168,76,0.12)` : 'none',
         willChange: 'transform, opacity',
       }}
     >
+      {/* Ghost numeral */}
       <div style={{
-        position: 'absolute', top: '-0.8rem', right: '1rem',
+        position: 'absolute', top: '-1rem', right: '1.2rem',
         fontFamily: 'Cormorant Garamond, serif',
-        fontSize: '5.5rem', fontWeight: 300,
-        color: hovered ? 'rgba(201,168,76,0.1)' : 'rgba(201,168,76,0.03)',
+        fontSize: '6rem', fontWeight: 300,
+        color: hovered ? 'rgba(201,168,76,0.12)' : 'rgba(201,168,76,0.04)',
         transition: 'color 0.4s',
         userSelect: 'none', pointerEvents: 'none',
       }}>{romans[index]}</div>
 
       <div style={{
-        width: hovered ? '55px' : '22px',
+        width: hovered ? '60px' : '20px',
         height: '1px',
         background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)',
-        margin: '0 auto 1.8rem',
-        transition: 'width 0.5s cubic-bezier(0.16,1,0.3,1)',
+        margin: '0 auto 2rem',
+        transition: 'width 0.55s cubic-bezier(0.16,1,0.3,1)',
       }} />
 
       <h3 style={{
         fontFamily: 'Cormorant Garamond, serif',
-        fontSize: '1.5rem', fontWeight: 300,
-        color: '#C9A84C', marginBottom: '1rem',
-        transform: hovered ? 'translateZ(10px)' : 'translateZ(0)',
-        transition: 'transform 0.3s',
+        fontSize: '1.6rem', fontWeight: 300,
+        color: hovered ? '#FFFFFF' : '#C9A84C',
+        marginBottom: '1.2rem',
+        textShadow: hovered ? '0 0 30px rgba(255,255,255,0.2)' : 'none',
+        transition: 'color 0.3s, text-shadow 0.3s',
       }}>{value.title}</h3>
 
-      <p style={{ fontSize: '0.65rem', color: '#666', lineHeight: 2, letterSpacing: '0.06em' }}>
+      <p style={{ fontSize: '0.64rem', color: '#666', lineHeight: 2.1, letterSpacing: '0.07em' }}>
         {value.desc}
       </p>
     </div>
@@ -498,24 +504,22 @@ function Marquee() {
   const items = ['Premium Quality', '✦', 'South African Brand', '✦', 'Sport & Lifestyle', '✦', 'All Ages', '✦', 'Free Delivery', '✦', '118 Pieces', '✦'];
   return (
     <div style={{
-      borderTop: '1px solid rgba(201,168,76,0.12)',
-      borderBottom: '1px solid rgba(201,168,76,0.12)',
-      padding: '1.2rem 0',
+      borderTop: '1px solid rgba(201,168,76,0.18)',
+      borderBottom: '1px solid rgba(201,168,76,0.18)',
+      padding: '1.3rem 0',
       overflow: 'hidden',
-      background: 'rgba(4,4,4,0.95)',
+      background: 'rgba(4,3,2,0.97)',
       backdropFilter: 'blur(10px)',
       position: 'relative', zIndex: 2,
     }}>
       <div style={{ display: 'flex', gap: '3rem', animation: 'rrMarquee 28s linear infinite', width: 'max-content' }}>
-        {[...items, ...items].map((text, i) => (
+        {[...items, ...items].map((t, i) => (
           <span key={i} style={{
-            fontSize: '0.55rem',
-            color: text === '✦' ? '#C9A84C' : '#444',
-            letterSpacing: '0.38em',
-            textTransform: 'uppercase',
-            whiteSpace: 'nowrap',
-            fontFamily: 'Montserrat, sans-serif',
-          }}>{text}</span>
+            fontSize: '0.53rem',
+            color: t === '✦' ? '#C9A84C' : '#4A4030',
+            letterSpacing: '0.42em', textTransform: 'uppercase',
+            whiteSpace: 'nowrap', fontFamily: 'Montserrat, sans-serif',
+          }}>{t}</span>
         ))}
       </div>
     </div>
@@ -527,29 +531,40 @@ function Marquee() {
 ═══════════════════════════════════════════════ */
 export default function HomePage() {
   const [heroVisible, setHeroVisible] = useState(false);
-  const [scrollY, setScrollY] = useState(0);
-  const [cursor, setCursor] = useState({ x: 0, y: 0 });
+  const [cursor, setCursor]           = useState({ x: 0, y: 0 });
+  const [cursorTrail, setCursorTrail] = useState({ x: 0, y: 0 });
   const [cursorVisible, setCursorVisible] = useState(false);
-  const [cursorHover, setCursorHover] = useState(false);
+  const [cursorHover, setCursorHover]     = useState(false);
 
-  /* Shared refs for Three.js animation loop */
-  const scrollRef = useRef(0);   /* 0–1 overall progress */
-  const mouseRef = useRef({ x: 0, y: 0 });
+  const scrollRef = useRef(0);
+  const mouseRef  = useRef({ x: 0, y: 0 });
+  const trailRef  = useRef({ x: 0, y: 0 });
 
-  /* Section scroll progress */
-  const [heroRef, heroScroll] = useElementScroll();
+  const [heroRef,        heroScroll]        = useElementScroll();
   const [collectionsRef, collectionsScroll] = useElementScroll();
-  const [brandRef, brandScroll] = useElementScroll();
-  const [valuesRef, valuesScroll] = useElementScroll();
+  const [brandRef,       brandScroll]       = useElementScroll();
+  const [valuesRef,      valuesScroll]      = useElementScroll();
+
+  /* Smooth cursor trail */
+  useEffect(() => {
+    let raf;
+    const loop = () => {
+      trailRef.current.x += (cursor.x - trailRef.current.x) * 0.1;
+      trailRef.current.y += (cursor.y - trailRef.current.y) * 0.1;
+      setCursorTrail({ x: trailRef.current.x, y: trailRef.current.y });
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, [cursor]);
 
   useEffect(() => {
-    const t = setTimeout(() => setHeroVisible(true), 120);
+    const t = setTimeout(() => setHeroVisible(true), 100);
 
     const onScroll = () => {
       const sy = window.scrollY;
-      const maxScroll = document.body.scrollHeight - window.innerHeight;
-      scrollRef.current = maxScroll > 0 ? sy / maxScroll : 0;
-      setScrollY(sy);
+      const mx = document.body.scrollHeight - window.innerHeight;
+      scrollRef.current = mx > 0 ? sy / mx : 0;
     };
     window.addEventListener('scroll', onScroll, { passive: true });
 
@@ -557,41 +572,35 @@ export default function HomePage() {
       setCursor({ x: e.clientX, y: e.clientY });
       setCursorVisible(true);
       mouseRef.current = {
-        x: (e.clientX / window.innerWidth - 0.5) * 2,
+        x: (e.clientX / window.innerWidth  - 0.5) * 2,
         y: (e.clientY / window.innerHeight - 0.5) * 2,
       };
     };
-    const onLeave = () => setCursorVisible(false);
     window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseleave', onLeave);
+    window.addEventListener('mouseleave', () => setCursorVisible(false));
 
-    const enterHover = () => setCursorHover(true);
-    const leaveHover = () => setCursorHover(false);
-    const updateInteractive = () => {
+    const addHover = () => {
       document.querySelectorAll('a, button').forEach(el => {
-        el.removeEventListener('mouseenter', enterHover);
-        el.removeEventListener('mouseleave', leaveHover);
-        el.addEventListener('mouseenter', enterHover);
-        el.addEventListener('mouseleave', leaveHover);
+        el.addEventListener('mouseenter', () => setCursorHover(true));
+        el.addEventListener('mouseleave', () => setCursorHover(false));
       });
     };
-    updateInteractive();
-    const obs = new MutationObserver(updateInteractive);
+    addHover();
+    const obs = new MutationObserver(addHover);
     obs.observe(document.body, { subtree: true, childList: true });
 
     return () => {
       clearTimeout(t);
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseleave', onLeave);
       obs.disconnect();
     };
   }, []);
 
   const categories = [
-    { label: 'Menswear',   desc: 'Sport & lifestyle essentials for the modern man', icon: '👔' },
-    { label: 'Womenswear', desc: 'Elegant everyday wear, effortlessly refined',      icon: '👗' },
-    { label: 'Kiddies',    desc: 'Stylish pieces designed for little ones',           icon: '🧒' },
+    { label: 'Menswear',   desc: 'Sport & lifestyle essentials for the modern man',  icon: '👔' },
+    { label: 'Womenswear', desc: 'Elegant everyday wear, effortlessly refined',       icon: '👗' },
+    { label: 'Kiddies',    desc: 'Stylish pieces crafted for little ones',            icon: '🧒' },
     { label: 'Baby Wear',  desc: 'Soft, premium comfort from day one',               icon: '👶' },
   ];
 
@@ -602,50 +611,43 @@ export default function HomePage() {
     { title: 'Innovation',     desc: 'Always improving, always evolving, never standing still.' },
   ];
 
-  /* Hero parallax — content tilts back + recedes as you scroll past */
-  const heroDepth = heroScroll * 60;
-  const heroTiltX = heroScroll * 22;
-  const heroOpacity = Math.max(0, 1 - heroScroll * 1.6);
+  const heroDepth  = heroScroll * 80;
+  const heroTiltX  = heroScroll * 28;
+  const heroOpacity = Math.max(0, 1 - heroScroll * 1.5);
 
-  /* Brand statement parallax */
-  const brandTilt = (brandScroll - 0.5) * 14;
-  const brandScale = 0.88 + brandScroll * 0.24;
+  const brandTilt  = (brandScroll - 0.5) * 16;
+  const brandScale = 0.85 + brandScroll * 0.28;
 
   return (
-    <div style={{ paddingTop: '70px', background: '#060606', overflowX: 'hidden' }}>
+    <div style={{ paddingTop: '70px', background: '#040302', overflowX: 'hidden' }}>
 
-      {/* ── Three.js background ── */}
       <ThreeBackground scrollRef={scrollRef} mouseRef={mouseRef} />
 
-      {/* ── Custom cursor ── */}
+      {/* ── Custom cursor dot ── */}
       <div style={{
-        position: 'fixed',
-        left: cursor.x, top: cursor.y,
-        width: cursorHover ? '6px' : '10px',
-        height: cursorHover ? '6px' : '10px',
-        background: '#C9A84C',
-        borderRadius: '50%',
+        position: 'fixed', left: cursor.x, top: cursor.y,
+        width: cursorHover ? '5px' : '8px', height: cursorHover ? '5px' : '8px',
+        background: '#C9A84C', borderRadius: '50%',
         pointerEvents: 'none', zIndex: 9999,
         transform: 'translate(-50%,-50%)',
         opacity: cursorVisible ? 1 : 0,
         transition: 'opacity 0.3s, width 0.2s, height 0.2s',
         mixBlendMode: 'difference',
       }} />
+      {/* Trailing ring */}
       <div style={{
-        position: 'fixed',
-        left: cursor.x, top: cursor.y,
-        width: cursorHover ? '50px' : '34px',
-        height: cursorHover ? '50px' : '34px',
-        border: '1px solid rgba(201,168,76,0.55)',
+        position: 'fixed', left: cursorTrail.x, top: cursorTrail.y,
+        width: cursorHover ? '55px' : '38px', height: cursorHover ? '55px' : '38px',
+        border: '1px solid rgba(201,168,76,0.6)',
         borderRadius: '50%',
         pointerEvents: 'none', zIndex: 9998,
         transform: 'translate(-50%,-50%)',
-        opacity: cursorVisible ? 1 : 0,
-        transition: 'left 0.08s, top 0.08s, opacity 0.3s, width 0.3s, height 0.3s',
+        opacity: cursorVisible ? 0.8 : 0,
+        transition: 'opacity 0.3s, width 0.4s cubic-bezier(0.16,1,0.3,1), height 0.4s cubic-bezier(0.16,1,0.3,1)',
       }} />
 
       {/* ══════════════════════════════════
-          HERO — CSS 3D depth layers
+          HERO
       ══════════════════════════════════ */}
       <section
         ref={heroRef}
@@ -655,115 +657,123 @@ export default function HomePage() {
           textAlign: 'center',
           padding: '4rem 2rem',
           position: 'relative',
-          perspective: '1200px',
+          perspective: '1400px',
           perspectiveOrigin: '50% 50%',
         }}
       >
-        {/* Depth grid */}
+        {/* Deep perspective grid */}
         <div style={{
           position: 'absolute', inset: 0,
           backgroundImage: `
-            linear-gradient(rgba(201,168,76,0.03) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(201,168,76,0.03) 1px, transparent 1px)
+            linear-gradient(rgba(201,168,76,0.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(201,168,76,0.04) 1px, transparent 1px)
           `,
-          backgroundSize: '80px 80px',
-          transform: `translateZ(-120px) scale(1.4) rotateX(${heroScroll * 8}deg)`,
-          transformStyle: 'preserve-3d',
+          backgroundSize: '90px 90px',
+          transform: `perspective(800px) rotateX(${55 + heroScroll * 15}deg) translateZ(-80px) scale(2.2)`,
+          transformOrigin: '50% 100%',
+          opacity: 0.6,
           zIndex: 1,
+          pointerEvents: 'none',
         }} />
 
-        {/* Radial glow */}
+        {/* Radial bloom */}
         <div style={{
           position: 'absolute', top: '50%', left: '50%',
-          transform: `translate(-50%,-50%) translateZ(-60px)`,
-          width: '800px', height: '800px', borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(201,168,76,0.055) 0%, transparent 65%)',
+          transform: 'translate(-50%,-50%)',
+          width: '900px', height: '900px', borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(201,168,76,0.07) 0%, rgba(201,168,76,0.02) 35%, transparent 65%)',
           pointerEvents: 'none', zIndex: 1,
+          animation: 'rrBloom 4s ease-in-out infinite alternate',
         }} />
 
-        {/* Main content — tilts back on scroll */}
+        {/* Main content */}
         <div style={{
-          maxWidth: '920px',
+          maxWidth: '980px',
           position: 'relative', zIndex: 2,
           transformStyle: 'preserve-3d',
-          transform: `
-            rotateX(${heroTiltX}deg)
-            translateZ(${-heroDepth}px)
-          `,
+          transform: `rotateX(${heroTiltX}deg) translateZ(${-heroDepth}px)`,
           opacity: heroOpacity,
-          transition: 'none',
           willChange: 'transform, opacity',
         }}>
           {/* Eyebrow */}
-          <p style={{
-            fontSize: '0.6rem', color: '#C9A84C',
-            letterSpacing: '0.55em', textTransform: 'uppercase',
-            marginBottom: '2.5rem',
-            fontFamily: 'Montserrat, sans-serif', fontWeight: 300,
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1.2rem',
+            marginBottom: '3rem',
             opacity: heroVisible ? 1 : 0,
-            transform: heroVisible ? 'none' : 'translateY(20px)',
+            transform: heroVisible ? 'none' : 'translateY(24px)',
             transition: 'opacity 1s ease 0.2s, transform 1s ease 0.2s',
           }}>
-            ✦ &nbsp; Premium Sport &amp; Lifestyle &nbsp; ✦
-          </p>
+            <div style={{ width: '40px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C)' }} />
+            <p style={{
+              fontSize: '0.58rem', color: '#C9A84C',
+              letterSpacing: '0.55em', textTransform: 'uppercase',
+              fontFamily: 'Montserrat, sans-serif', fontWeight: 300,
+            }}>Premium Sport &amp; Lifestyle</p>
+            <div style={{ width: '40px', height: '1px', background: 'linear-gradient(90deg, #C9A84C, transparent)' }} />
+          </div>
 
-          {/* 3D stacked heading */}
-          <div style={{ transformStyle: 'preserve-3d', perspective: '600px' }}>
+          {/* 3D Heading */}
+          <div style={{ transformStyle: 'preserve-3d', perspective: '800px', marginBottom: '2rem' }}>
             {[
-              { text: 'R&R',       gold: true,  z: 30  },
-              { text: 'Sport &',   gold: false, z: 15  },
-              { text: 'Lifestyle', gold: false, z: 0   },
+              { text: 'R&R',       gold: true,  z: 40, delay: 0.35 },
+              { text: 'Sport &',   gold: false, z: 20, delay: 0.52 },
+              { text: 'Lifestyle', gold: false, z: 0,  delay: 0.69 },
             ].map((word, i) => (
-              <div key={i} style={{ overflow: 'hidden', lineHeight: 1.02, transformStyle: 'preserve-3d' }}>
-                <DepthText
-                  layers={word.gold ? 8 : 4}
-                  style={{
-                    fontFamily: 'Cormorant Garamond, serif',
-                    fontSize: 'clamp(3.5rem, 11vw, 9rem)',
-                    fontWeight: 300,
-                    color: word.gold ? '#C9A84C' : '#F5F0E8',
-                    display: 'block',
-                    transformStyle: 'preserve-3d',
-                    transform: `translateZ(${word.z}px)`,
-                    opacity: heroVisible ? 1 : 0,
-                    transition: `opacity 1.1s cubic-bezier(0.16,1,0.3,1) ${0.3 + i * 0.18}s`,
-                    willChange: 'transform',
-                  }}
-                >
-                  <span dangerouslySetInnerHTML={{ __html: word.text }} />
-                </DepthText>
+              <div key={i} style={{
+                overflow: 'hidden', lineHeight: 1.0,
+                transformStyle: 'preserve-3d',
+                transform: `translateZ(${word.z}px)`,
+              }}>
+                <div style={{
+                  opacity: heroVisible ? 1 : 0,
+                  transform: heroVisible ? 'none' : 'translateY(100%)',
+                  transition: `opacity 1.2s cubic-bezier(0.16,1,0.3,1) ${word.delay}s, transform 1.2s cubic-bezier(0.16,1,0.3,1) ${word.delay}s`,
+                }}>
+                  <DepthText gold={word.gold}>
+                    <span style={{
+                      fontFamily: 'Cormorant Garamond, serif',
+                      fontSize: 'clamp(4rem, 12vw, 10rem)',
+                      fontWeight: 300,
+                      color: word.gold ? '#C9A84C' : '#FFFFFF',
+                      display: 'block',
+                      letterSpacing: word.gold ? '-0.02em' : '-0.01em',
+                      textShadow: word.gold
+                        ? '0 0 80px rgba(201,168,76,0.5), 0 0 160px rgba(201,168,76,0.2)'
+                        : '0 0 60px rgba(255,255,255,0.12), 0 4px 30px rgba(0,0,0,0.9)',
+                      lineHeight: 1.02,
+                    }} dangerouslySetInnerHTML={{ __html: word.text }} />
+                  </DepthText>
+                </div>
               </div>
             ))}
           </div>
 
-          {/* Divider */}
+          {/* Divider line */}
           <div style={{
-            width: heroVisible ? '120px' : '0px',
-            height: '1px',
+            width: heroVisible ? '140px' : '0px', height: '1px',
             background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)',
-            margin: '2.8rem auto',
-            transition: 'width 1.4s cubic-bezier(0.16,1,0.3,1) 0.9s',
+            margin: '3rem auto',
+            transition: 'width 1.6s cubic-bezier(0.16,1,0.3,1) 0.9s',
           }} />
 
           {/* Tagline */}
           <p style={{
-            fontSize: '0.68rem', color: '#777',
-            letterSpacing: '0.35em', textTransform: 'uppercase',
-            marginBottom: '3.5rem',
+            fontSize: '0.7rem', color: 'rgba(255,255,255,0.35)',
+            letterSpacing: '0.4em', textTransform: 'uppercase',
+            marginBottom: '4rem',
             fontFamily: 'Montserrat, sans-serif', fontWeight: 200,
             opacity: heroVisible ? 1 : 0,
-            transform: `translateZ(${heroVisible ? 20 : 0}px)`,
             transition: 'opacity 1s ease 1.2s',
           }}>
-            Own the Look, Own the Moment
+            Own the Look · Own the Moment
           </p>
 
           {/* CTAs */}
           <div style={{
-            display: 'flex', gap: '1.2rem',
+            display: 'flex', gap: '1.4rem',
             justifyContent: 'center', flexWrap: 'wrap',
             opacity: heroVisible ? 1 : 0,
-            transform: heroVisible ? 'none' : 'translateY(20px)',
+            transform: heroVisible ? 'none' : 'translateY(24px)',
             transition: 'opacity 1s ease 1.5s, transform 1s ease 1.5s',
           }}>
             <Link href="/shop" className="rr-btn-primary">Shop the Collection</Link>
@@ -772,38 +782,37 @@ export default function HomePage() {
 
           {/* Scroll indicator */}
           <div style={{
-            position: 'absolute', bottom: '-140px', left: '50%',
+            position: 'absolute', bottom: '-160px', left: '50%',
             transform: 'translateX(-50%)',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.7rem',
-            opacity: heroVisible ? 1 : 0,
-            transition: 'opacity 1s ease 2s',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.8rem',
+            opacity: heroVisible ? 0.6 : 0,
+            transition: 'opacity 1s ease 2.2s',
           }}>
-            <p style={{ fontSize: '0.48rem', color: '#333', letterSpacing: '0.45em', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif' }}>
+            <p style={{ fontSize: '0.44rem', color: '#C9A84C', letterSpacing: '0.5em', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif' }}>
               Scroll
             </p>
             <div style={{
-              width: '1px', height: '65px',
+              width: '1px', height: '70px',
               background: 'linear-gradient(180deg, #C9A84C, transparent)',
-              animation: 'rrScrollPulse 1.8s ease-in-out infinite',
+              animation: 'rrScrollPulse 2s ease-in-out infinite',
             }} />
           </div>
         </div>
 
-        {/* Floating depth rings — CSS only */}
-        {[0, 1, 2].map(i => (
+        {/* Floating concentric rings */}
+        {[0,1,2,3].map(i => (
           <div key={i} style={{
             position: 'absolute', inset: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            transform: `translateZ(${-80 - i * 60}px)`,
+            transform: `translateZ(${-100 - i * 80}px)`,
             pointerEvents: 'none', zIndex: 1,
           }}>
             <div style={{
-              width: `${400 + i * 200}px`,
-              height: `${400 + i * 200}px`,
+              width: `${380 + i * 220}px`, height: `${380 + i * 220}px`,
               borderRadius: '50%',
-              border: `1px solid rgba(201,168,76,${0.06 - i * 0.015})`,
-              animation: `rrRingPulse ${3 + i}s ease-in-out infinite alternate`,
-              animationDelay: `${i * 0.8}s`,
+              border: `1px solid rgba(201,168,76,${0.07 - i * 0.012})`,
+              animation: `rrRingPulse ${3.5 + i * 0.9}s ease-in-out infinite alternate`,
+              animationDelay: `${i * 0.7}s`,
             }} />
           </div>
         ))}
@@ -815,198 +824,210 @@ export default function HomePage() {
       </div>
 
       {/* ══════════════════════════════════
-          COLLECTIONS — 3D card entrance
+          COLLECTIONS
       ══════════════════════════════════ */}
       <section
         ref={collectionsRef}
         style={{
-          padding: '10rem 4rem 9rem',
-          maxWidth: '1300px', margin: '0 auto',
+          padding: '11rem 4rem 10rem',
+          maxWidth: '1380px', margin: '0 auto',
           position: 'relative', zIndex: 2,
-          perspective: '1400px',
-          perspectiveOrigin: '50% 40%',
+          perspective: '1600px',
+          perspectiveOrigin: '50% 35%',
         }}
       >
+        {/* Section header */}
         <div style={{
-          textAlign: 'center', marginBottom: '6rem',
-          transform: `translateY(${Math.max(0, (0.5 - collectionsScroll) * 60)}px)`,
-          opacity: Math.min(1, collectionsScroll * 3),
-          transition: 'none',
+          textAlign: 'center', marginBottom: '7rem',
+          transform: `translateY(${Math.max(0, (0.5 - collectionsScroll) * 70)}px)`,
+          opacity: Math.min(1, collectionsScroll * 3.5),
         }}>
-          <p style={{ fontSize: '0.58rem', color: '#C9A84C', letterSpacing: '0.55em', textTransform: 'uppercase', marginBottom: '1rem', fontFamily: 'Montserrat, sans-serif' }}>
+          <p style={{ fontSize: '0.55rem', color: '#C9A84C', letterSpacing: '0.6em', textTransform: 'uppercase', marginBottom: '1.2rem', fontFamily: 'Montserrat, sans-serif' }}>
             Browse
           </p>
           <h2 style={{
             fontFamily: 'Cormorant Garamond, serif',
-            fontSize: 'clamp(2.5rem,6vw,5rem)', fontWeight: 300, color: '#F5F0E8',
+            fontSize: 'clamp(2.8rem, 7vw, 5.5rem)', fontWeight: 300,
+            color: '#FFFFFF',
+            textShadow: '0 0 60px rgba(255,255,255,0.08)',
           }}>Our Collections</h2>
-          <div style={{ width: '60px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: '1.5rem auto 0' }} />
+          <div style={{ width: '70px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: '1.8rem auto 0' }} />
         </div>
 
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-          gap: '1px',
-          background: 'rgba(201,168,76,0.04)',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gap: '2px',
+          background: 'rgba(201,168,76,0.06)',
           transformStyle: 'preserve-3d',
         }}>
           {categories.map((cat, i) => (
-            <CategoryCard3D
-              key={cat.label}
-              cat={cat}
-              index={i}
-              sectionProgress={collectionsScroll}
-            />
+            <CategoryCard3D key={cat.label} cat={cat} index={i} sectionProgress={collectionsScroll} />
           ))}
         </div>
       </section>
 
       {/* ══════════════════════════════════
-          BRAND STATEMENT — 3D perspective text
+          BRAND STATEMENT
       ══════════════════════════════════ */}
       <section
         ref={brandRef}
         style={{
-          background: 'rgba(8,8,6,0.92)',
-          backdropFilter: 'blur(20px)',
-          borderTop: '1px solid rgba(201,168,76,0.1)',
-          borderBottom: '1px solid rgba(201,168,76,0.1)',
-          padding: '10rem 2rem',
+          background: 'rgba(6,5,3,0.95)',
+          backdropFilter: 'blur(24px)',
+          borderTop: '1px solid rgba(201,168,76,0.12)',
+          borderBottom: '1px solid rgba(201,168,76,0.12)',
+          padding: '11rem 2rem',
           textAlign: 'center',
           position: 'relative', zIndex: 2,
           overflow: 'hidden',
-          perspective: '1000px',
+          perspective: '1200px',
         }}
       >
-        {/* Massive 3D watermark */}
+        {/* Massive watermark */}
         <div style={{
           position: 'absolute', top: '50%', left: '50%',
           fontFamily: 'Cormorant Garamond, serif',
-          fontSize: 'clamp(8rem, 24vw, 20rem)',
+          fontSize: 'clamp(10rem, 28vw, 24rem)',
           color: 'transparent',
-          WebkitTextStroke: '1px rgba(201,168,76,0.04)',
-          userSelect: 'none', pointerEvents: 'none', whiteSpace: 'nowrap', fontWeight: 300,
+          WebkitTextStroke: '1px rgba(201,168,76,0.05)',
+          userSelect: 'none', pointerEvents: 'none',
+          whiteSpace: 'nowrap', fontWeight: 300,
           transform: `translate(-50%,-50%) rotateX(${brandTilt}deg) scale(${brandScale})`,
-          transition: 'none',
           willChange: 'transform',
         }}>R&amp;R</div>
 
         <div style={{
-          maxWidth: '880px', margin: '0 auto',
+          maxWidth: '900px', margin: '0 auto',
           position: 'relative', zIndex: 1,
-          transform: `rotateX(${brandTilt * 0.5}deg) scale(${0.95 + brandScroll * 0.08})`,
-          opacity: Math.min(1, brandScroll * 2.5),
-          transition: 'none',
+          transform: `rotateX(${brandTilt * 0.45}deg) scale(${0.94 + brandScroll * 0.09})`,
+          opacity: Math.min(1, brandScroll * 3),
           willChange: 'transform, opacity',
         }}>
-          <p style={{ fontSize: '0.58rem', color: '#C9A84C', letterSpacing: '0.55em', textTransform: 'uppercase', marginBottom: '2rem', fontFamily: 'Montserrat, sans-serif' }}>
+          <p style={{ fontSize: '0.55rem', color: '#C9A84C', letterSpacing: '0.6em', textTransform: 'uppercase', marginBottom: '2.2rem', fontFamily: 'Montserrat, sans-serif' }}>
             Our Mission
           </p>
 
           <h2 style={{
             fontFamily: 'Cormorant Garamond, serif',
-            fontSize: 'clamp(1.8rem, 4.5vw, 3.5rem)',
+            fontSize: 'clamp(2rem, 5vw, 3.8rem)',
             fontWeight: 300, fontStyle: 'italic',
-            color: '#F5F0E8', lineHeight: 1.6,
+            color: '#FFFFFF', lineHeight: 1.65,
+            textShadow: '0 0 80px rgba(255,255,255,0.06)',
           }}>
             "Premium clothing that combines{' '}
-            <span style={{ color: '#C9A84C', fontStyle: 'normal' }}>elegance with comfort</span>,
+            <span style={{
+              color: '#C9A84C', fontStyle: 'normal',
+              textShadow: '0 0 40px rgba(201,168,76,0.4)',
+            }}>elegance with comfort</span>,
             designed for the modern individual who lives without compromise."
           </h2>
 
-          <div style={{ width: '60px', height: '1px', background: '#C9A84C', margin: '3rem auto 2.5rem' }} />
+          <div style={{ width: '70px', height: '1px', background: '#C9A84C', margin: '3.5rem auto 3rem' }} />
           <Link href="/about" className="rr-btn-outline">Read Our Story</Link>
         </div>
       </section>
 
       {/* ══════════════════════════════════
-          VALUES — depth-stacked cards
+          VALUES
       ══════════════════════════════════ */}
       <section
         ref={valuesRef}
         style={{
-          padding: '10rem 4rem', maxWidth: '1200px', margin: '0 auto',
+          padding: '11rem 4rem', maxWidth: '1300px', margin: '0 auto',
           position: 'relative', zIndex: 2,
-          perspective: '1200px',
-          perspectiveOrigin: '50% 30%',
+          perspective: '1400px',
+          perspectiveOrigin: '50% 25%',
         }}
       >
         <div style={{
-          textAlign: 'center', marginBottom: '5rem',
-          transform: `translateY(${Math.max(0, (0.4 - valuesScroll) * 60)}px)`,
-          opacity: Math.min(1, valuesScroll * 3),
+          textAlign: 'center', marginBottom: '6rem',
+          transform: `translateY(${Math.max(0, (0.4 - valuesScroll) * 70)}px)`,
+          opacity: Math.min(1, valuesScroll * 3.5),
         }}>
-          <p style={{ fontSize: '0.58rem', color: '#C9A84C', letterSpacing: '0.55em', textTransform: 'uppercase', marginBottom: '1rem', fontFamily: 'Montserrat, sans-serif' }}>
+          <p style={{ fontSize: '0.55rem', color: '#C9A84C', letterSpacing: '0.6em', textTransform: 'uppercase', marginBottom: '1.2rem', fontFamily: 'Montserrat, sans-serif' }}>
             What We Stand For
           </p>
-          <h2 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(2.5rem,6vw,5rem)', fontWeight: 300, color: '#F5F0E8' }}>
-            Our Values
-          </h2>
+          <h2 style={{
+            fontFamily: 'Cormorant Garamond, serif',
+            fontSize: 'clamp(2.8rem, 7vw, 5.5rem)', fontWeight: 300, color: '#FFFFFF',
+            textShadow: '0 0 60px rgba(255,255,255,0.08)',
+          }}>Our Values</h2>
+          <div style={{ width: '70px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: '1.8rem auto 0' }} />
         </div>
 
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-          gap: '1px',
-          background: 'rgba(201,168,76,0.04)',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+          gap: '2px',
+          background: 'rgba(201,168,76,0.05)',
           transformStyle: 'preserve-3d',
         }}>
           {values.map((v, i) => (
-            <ValueCard3D
-              key={v.title}
-              value={v}
-              index={i}
-              sectionProgress={valuesScroll}
-            />
+            <ValueCard3D key={v.title} value={v} index={i} sectionProgress={valuesScroll} />
           ))}
         </div>
       </section>
 
       {/* ══════════════════════════════════
-          FINAL CTA — 3D tunnel effect
+          FINAL CTA
       ══════════════════════════════════ */}
       <section style={{
-        padding: '12rem 2rem',
+        padding: '14rem 2rem',
         textAlign: 'center',
-        background: 'linear-gradient(135deg, rgba(4,4,4,0.96), rgba(12,12,8,0.96))',
-        backdropFilter: 'blur(16px)',
-        borderTop: '1px solid rgba(201,168,76,0.1)',
+        background: 'linear-gradient(180deg, rgba(4,3,2,0.97) 0%, rgba(8,6,3,0.99) 100%)',
+        backdropFilter: 'blur(20px)',
+        borderTop: '1px solid rgba(201,168,76,0.12)',
         position: 'relative', zIndex: 2,
         overflow: 'hidden',
-        perspective: '1000px',
+        perspective: '1200px',
       }}>
-        {/* 3D receding rings tunnel */}
-        {[1, 2, 3, 4, 5].map((i) => (
+        {/* Tunnel rings */}
+        {[1,2,3,4,5,6].map(i => (
           <div key={i} style={{
             position: 'absolute', top: '50%', left: '50%',
-            width: `${i * 22}vw`, height: `${i * 22}vw`,
+            width: `${i * 20}vw`, height: `${i * 20}vw`,
             borderRadius: '50%',
-            border: `1px solid rgba(201,168,76,${0.08 - i * 0.012})`,
-            transform: `translate(-50%, -50%) translateZ(${-i * 80}px)`,
-            animation: `rrRingPulse ${2.5 + i * 0.7}s ease-in-out infinite alternate`,
-            animationDelay: `${i * 0.5}s`,
+            border: `1px solid rgba(201,168,76,${0.09 - i * 0.01})`,
+            transform: `translate(-50%, -50%) translateZ(${-i * 100}px)`,
+            animation: `rrRingPulse ${2.5 + i * 0.6}s ease-in-out infinite alternate`,
+            animationDelay: `${i * 0.4}s`,
             pointerEvents: 'none',
           }} />
         ))}
 
         <div style={{ position: 'relative', zIndex: 1 }}>
+          {/* Pre-headline */}
+          <p style={{
+            fontSize: '0.55rem', color: '#C9A84C',
+            letterSpacing: '0.6em', textTransform: 'uppercase',
+            marginBottom: '2rem',
+            fontFamily: 'Montserrat, sans-serif',
+          }}>118 premium pieces — available now</p>
+
           <h2 style={{
             fontFamily: 'Cormorant Garamond, serif',
-            fontSize: 'clamp(2.5rem, 8vw, 6.5rem)',
-            fontWeight: 300, color: '#F5F0E8',
-            lineHeight: 1.05, marginBottom: '1rem',
+            fontSize: 'clamp(3rem, 9vw, 7.5rem)',
+            fontWeight: 300, lineHeight: 1.05,
+            marginBottom: '4rem',
           }}>
-            Ready to{' '}
-            <span style={{ color: '#C9A84C' }}>elevate</span>
-            {' '}your wardrobe?
+            <span style={{
+              color: '#FFFFFF',
+              textShadow: '0 0 80px rgba(255,255,255,0.1)',
+              display: 'block',
+            }}>Ready to</span>
+            <span style={{
+              color: '#C9A84C',
+              textShadow: '0 0 80px rgba(201,168,76,0.5), 0 0 160px rgba(201,168,76,0.2)',
+              fontStyle: 'italic', display: 'block',
+            }}>elevate</span>
+            <span style={{
+              color: '#FFFFFF',
+              textShadow: '0 0 80px rgba(255,255,255,0.1)',
+              display: 'block',
+            }}>your wardrobe?</span>
           </h2>
-          <p style={{
-            fontSize: '0.65rem', color: '#444',
-            letterSpacing: '0.3em', marginBottom: '3.5rem',
-            fontFamily: 'Montserrat, sans-serif', textTransform: 'uppercase',
-          }}>
-            118 premium pieces — available now
-          </p>
+
           <Link href="/shop" className="rr-btn-primary">Shop Now</Link>
         </div>
       </section>
@@ -1023,67 +1044,69 @@ export default function HomePage() {
           to   { transform: translateX(-50%); }
         }
         @keyframes rrScrollPulse {
-          0%,100% { opacity: 1; transform: scaleY(1); }
-          50%     { opacity: 0.15; transform: scaleY(0.3); }
+          0%,100% { opacity: 0.8; transform: scaleY(1); }
+          50%     { opacity: 0.1; transform: scaleY(0.2); }
         }
         @keyframes rrRingPulse {
-          from { opacity: 0.15; transform: translate(-50%,-50%) scale(0.97); }
-          to   { opacity: 0.55; transform: translate(-50%,-50%) scale(1.03); }
+          from { opacity: 0.12; transform: translate(-50%,-50%) scale(0.96); }
+          to   { opacity: 0.6;  transform: translate(-50%,-50%) scale(1.04); }
+        }
+        @keyframes rrBloom {
+          from { opacity: 0.6; transform: translate(-50%,-50%) scale(0.95); }
+          to   { opacity: 1.0; transform: translate(-50%,-50%) scale(1.05); }
         }
 
         .rr-btn-primary {
           display: inline-block;
-          padding: 1.1rem 3rem;
+          padding: 1.15rem 3.2rem;
           background: #C9A84C;
-          color: #0a0a0a;
+          color: #080604;
           font-family: 'Montserrat', sans-serif;
-          font-size: 0.58rem;
-          font-weight: 500;
-          letter-spacing: 0.38em;
-          text-transform: uppercase;
+          font-size: 0.57rem; font-weight: 500;
+          letter-spacing: 0.4em; text-transform: uppercase;
           text-decoration: none;
           position: relative; overflow: hidden;
-          transition: transform 0.3s cubic-bezier(0.16,1,0.3,1), box-shadow 0.3s;
-          clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+          transition: transform 0.35s cubic-bezier(0.16,1,0.3,1), box-shadow 0.35s;
+          box-shadow: 0 8px 40px rgba(201,168,76,0.2);
         }
         .rr-btn-primary::before {
           content: '';
           position: absolute; inset: 0;
-          background: #E8C96A;
+          background: #EDD070;
           transform: translateX(-101%);
-          transition: transform 0.48s cubic-bezier(0.16,1,0.3,1);
+          transition: transform 0.55s cubic-bezier(0.16,1,0.3,1);
         }
         .rr-btn-primary:hover::before { transform: translateX(0); }
         .rr-btn-primary:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 20px 40px rgba(201,168,76,0.25);
+          transform: translateY(-5px);
+          box-shadow: 0 25px 60px rgba(201,168,76,0.35);
         }
-        .rr-btn-primary span { position: relative; z-index: 1; }
+        .rr-btn-primary > * { position: relative; z-index: 1; }
 
         .rr-btn-outline {
           display: inline-block;
-          padding: 1.1rem 3rem;
-          border: 1px solid rgba(201,168,76,0.5);
+          padding: 1.15rem 3.2rem;
+          border: 1px solid rgba(201,168,76,0.55);
           color: #C9A84C;
           font-family: 'Montserrat', sans-serif;
-          font-size: 0.58rem; font-weight: 300;
-          letter-spacing: 0.38em; text-transform: uppercase;
+          font-size: 0.57rem; font-weight: 300;
+          letter-spacing: 0.4em; text-transform: uppercase;
           text-decoration: none;
           position: relative; overflow: hidden;
-          transition: border-color 0.4s, transform 0.3s cubic-bezier(0.16,1,0.3,1), box-shadow 0.3s;
+          transition: border-color 0.4s, transform 0.35s cubic-bezier(0.16,1,0.3,1), box-shadow 0.35s;
         }
         .rr-btn-outline::before {
           content: '';
           position: absolute; inset: 0;
-          background: rgba(201,168,76,0.07);
+          background: rgba(201,168,76,0.08);
           transform: scaleX(0); transform-origin: left;
-          transition: transform 0.48s cubic-bezier(0.16,1,0.3,1);
+          transition: transform 0.55s cubic-bezier(0.16,1,0.3,1);
         }
         .rr-btn-outline:hover::before { transform: scaleX(1); }
         .rr-btn-outline:hover {
           border-color: #C9A84C;
-          transform: translateY(-4px);
-          box-shadow: 0 20px 40px rgba(201,168,76,0.12);
+          transform: translateY(-5px);
+          box-shadow: 0 20px 50px rgba(201,168,76,0.15);
         }
       `}</style>
     </div>

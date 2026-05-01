@@ -3,13 +3,9 @@
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { Renderer, Triangle, Program, Mesh } from 'ogl';
-
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { useEffect, useRef, useState, useCallback } from 'react';
 import gsap from 'gsap';
-import { Renderer, Program, Mesh, Triangle } from 'ogl';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import * as THREE from 'three';
 
 function useElementScroll() {
   const ref = useRef(null);

@@ -2,6 +2,13 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback } from 'react';
+import LineWaves from './LineWaves';
+import Ribbons from './Ribbons';
+import Antigravity from './Antigravity';
+import Ballpit from './Ballpit';
+import BounceCards from './BounceCards';
+import ClickSpark from './ClickSpark';
+import GooeyNav from './GooeyNav';
 
 function useElementScroll() {
   const ref = useRef(null);
@@ -18,228 +25,6 @@ function useElementScroll() {
     return () => window.removeEventListener('scroll', update);
   }, []);
   return [ref, p];
-}
-
-function ThreeBackground({ scrollRef, mouseRef }) {
-  const mountRef = useRef(null);
-
-  useEffect(() => {
-    const mount = mountRef.current;
-    if (!mount) return;
-    let cleanupFn = () => {};
-
-    import('three').then((THREE) => {
-      const scene = new THREE.Scene();
-      scene.fog = new THREE.FogExp2(0x020202, 0.003);
-
-      const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1200);
-      camera.position.set(0, 0, 120);
-
-      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      renderer.setClearColor(0x000000, 0);
-      mount.appendChild(renderer.domElement);
-
-      const GOLD      = 0xC9A84C;
-      const GOLD_DIM  = 0x8B6914;
-      const WHITE_DIM = 0xCCCCCC;
-
-      const matGoldBright = new THREE.LineBasicMaterial({ color: GOLD,      transparent: true, opacity: 0.75 });
-      const matGoldMid    = new THREE.LineBasicMaterial({ color: GOLD,      transparent: true, opacity: 0.35 });
-      const matGoldFaint  = new THREE.LineBasicMaterial({ color: GOLD_DIM,  transparent: true, opacity: 0.12 });
-      const matWhite      = new THREE.LineBasicMaterial({ color: WHITE_DIM, transparent: true, opacity: 0.06 });
-
-      const objects = [];
-
-      const makeCircle = (radius, segments, mat) => {
-        const pts = [];
-        for (let i = 0; i <= segments; i++) {
-          const a = (i / segments) * Math.PI * 2;
-          pts.push(new THREE.Vector3(Math.cos(a) * radius, Math.sin(a) * radius, 0));
-        }
-        return new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), mat);
-      };
-
-      for (let i = 0; i < 40; i++) {
-        const z      = 80 - i * 18;
-        const radius = 70 + i * 3.5;
-        const mat    = i < 3 ? matGoldBright : i < 10 ? matGoldMid : matGoldFaint;
-        const ring   = makeCircle(radius, 128, mat);
-        ring.position.z = z;
-        ring.userData  = { type: 'ring', ry: 0.0002 * (i % 2 === 0 ? 1 : -1) };
-        scene.add(ring);
-        objects.push(ring);
-
-        if (i % 3 === 0 && i < 25) {
-          const inner = makeCircle(radius * 0.68, 128, matGoldFaint);
-          inner.position.z = z;
-          inner.userData = { type: 'ring', ry: 0.00015 };
-          scene.add(inner);
-          objects.push(inner);
-        }
-      }
-
-      const archConfigs = [
-        { rx: Math.PI / 3,   ry: 0,           x: -120, z: -100, r: 80,  mat: matGoldMid   },
-        { rx: -Math.PI / 3,  ry: 0,           x:  120, z: -100, r: 80,  mat: matGoldMid   },
-        { rx: Math.PI / 2,   ry: Math.PI / 8, x: -200, z: -250, r: 100, mat: matGoldFaint },
-        { rx: -Math.PI / 2,  ry: -Math.PI/8,  x:  200, z: -250, r: 100, mat: matGoldFaint },
-        { rx: Math.PI / 4,   ry: Math.PI / 5, x: 0,    z: -400, r: 160, mat: matGoldFaint },
-      ];
-      archConfigs.forEach(cfg => {
-        const ring = makeCircle(cfg.r, 128, cfg.mat);
-        ring.position.set(cfg.x, 0, cfg.z);
-        ring.rotation.x = cfg.rx;
-        ring.rotation.y = cfg.ry;
-        ring.userData = { type: 'arch', ry: 0.0004 };
-        scene.add(ring);
-        objects.push(ring);
-      });
-
-      for (let row = -2; row <= 2; row++) {
-        for (let col = -3; col <= 3; col++) {
-          const size = 60;
-          const pts = [
-            new THREE.Vector3(-size/2, -size/2, 0),
-            new THREE.Vector3( size/2, -size/2, 0),
-            new THREE.Vector3( size/2,  size/2, 0),
-            new THREE.Vector3(-size/2,  size/2, 0),
-            new THREE.Vector3(-size/2, -size/2, 0),
-          ];
-          const sq = new THREE.Line(
-            new THREE.BufferGeometry().setFromPoints(pts),
-            matWhite
-          );
-          sq.position.set(col * 62, row * 62, -300 - Math.abs(col) * 20 - Math.abs(row) * 20);
-          sq.rotation.x = 0.15;
-          sq.userData = { type: 'grid' };
-          scene.add(sq);
-          objects.push(sq);
-        }
-      }
-
-      for (let i = 0; i < 22; i++) {
-        const h = 80 + Math.random() * 200;
-        const pts = [
-          new THREE.Vector3(0, -h/2, 0),
-          new THREE.Vector3(0,  h/2, 0),
-        ];
-        const shaft = new THREE.Line(
-          new THREE.BufferGeometry().setFromPoints(pts),
-          Math.random() > 0.6 ? matGoldFaint : matWhite
-        );
-        shaft.position.set(
-          (Math.random() - 0.5) * 500,
-          (Math.random() - 0.5) * 80,
-          Math.random() * 500 - 380
-        );
-        shaft.userData = { type: 'shaft', driftY: (Math.random() - 0.5) * 0.006 };
-        scene.add(shaft);
-        objects.push(shaft);
-      }
-
-      for (let i = 0; i < 14; i++) {
-        const span = 60 + Math.random() * 100;
-        const curve = new THREE.QuadraticBezierCurve3(
-          new THREE.Vector3(-span/2, (Math.random()-0.5)*30, 0),
-          new THREE.Vector3(0, (Math.random()-0.5)*50, 0),
-          new THREE.Vector3(span/2, (Math.random()-0.5)*30, 0)
-        );
-        const line = new THREE.Line(
-          new THREE.BufferGeometry().setFromPoints(curve.getPoints(80)),
-          Math.random() > 0.5 ? matGoldFaint : matWhite
-        );
-        line.position.set(
-          (Math.random()-0.5) * 400,
-          (Math.random()-0.5) * 200,
-          Math.random() * 450 - 320
-        );
-        line.rotation.z = (Math.random()-0.5) * Math.PI;
-        line.userData = { type: 'drape', driftY: (Math.random()-0.5)*0.007, ry: (Math.random()-0.5)*0.0008 };
-        scene.add(line);
-        objects.push(line);
-      }
-
-      {
-        const COUNT = 600;
-        const pos   = new Float32Array(COUNT * 3);
-        for (let i = 0; i < COUNT; i++) {
-          pos[i*3]   = (Math.random()-0.5)*600;
-          pos[i*3+1] = (Math.random()-0.5)*300;
-          pos[i*3+2] = Math.random()*600 - 420;
-        }
-        const geo = new THREE.BufferGeometry();
-        geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-        const pts = new THREE.Points(geo, new THREE.PointsMaterial({
-          color: GOLD, size: 0.3, transparent: true, opacity: 0.5,
-        }));
-        pts.userData = { type: 'dust', driftY: 0.006 };
-        scene.add(pts);
-        objects.push(pts);
-      }
-
-      let camZ = 120, camX = 0, camY = 0;
-      let raf;
-
-      const animate = () => {
-        raf = requestAnimationFrame(animate);
-
-        objects.forEach(o => {
-          const d = o.userData;
-          if (d.type === 'ring' || d.type === 'arch') {
-            if (d.ry) o.rotation.y += d.ry;
-          } else if (d.type === 'shaft') {
-            o.position.y += d.driftY;
-            if (o.position.y > 120)  o.position.y = -120;
-            if (o.position.y < -120) o.position.y =  120;
-          } else if (d.type === 'drape') {
-            o.position.y += d.driftY;
-            if (o.position.y > 120)  o.position.y = -120;
-            if (o.position.y < -120) o.position.y =  120;
-            if (d.ry) o.rotation.y += d.ry;
-          } else if (d.type === 'dust') {
-            o.position.y += d.driftY;
-            if (o.position.y > 40) o.position.y = -40;
-          }
-        });
-
-        const targetZ = 120 - scrollRef.current * 500;
-        camZ += (targetZ - camZ) * 0.03;
-
-        const mx = mouseRef.current.x;
-        const my = mouseRef.current.y;
-        camX += (mx * 18 - camX) * 0.015;
-        camY += (-my * 11 - camY) * 0.015;
-
-        camera.position.set(camX, camY, camZ);
-        camera.lookAt(camX * 0.1, camY * 0.1, camZ - 80);
-
-        renderer.render(scene, camera);
-      };
-      animate();
-
-      const onResize = () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-      };
-      window.addEventListener('resize', onResize);
-
-      cleanupFn = () => {
-        cancelAnimationFrame(raf);
-        window.removeEventListener('resize', onResize);
-        if (mount.contains(renderer.domElement)) mount.removeChild(renderer.domElement);
-        renderer.dispose();
-      };
-    });
-
-    return () => cleanupFn();
-  }, []);
-
-  return (
-    <div ref={mountRef} style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }} />
-  );
 }
 
 function DepthText({ children, gold = false, style = {} }) {
@@ -260,509 +45,6 @@ function DepthText({ children, gold = false, style = {} }) {
         }}>{children}</span>
       ))}
       <span style={{ position: 'relative', display: 'block' }}>{children}</span>
-    </div>
-  );
-}
-
-function ClickSpark({ children, sparkColor = '#C9A84C', sparkSize = 10, sparkRadius = 15, sparkCount = 8, duration = 400 }) {
-  const containerRef = useRef(null);
-  const sparksRef = useRef([]);
-  const canvasRef = useRef(null);
-  const rafRef = useRef(null);
-
-  useEffect(() => {
-    const canvas = document.createElement('canvas');
-    canvas.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:99999;';
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    document.body.appendChild(canvas);
-    canvasRef.current = canvas;
-
-    const handleResize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-    window.addEventListener('resize', handleResize);
-
-    const ctx = canvas.getContext('2d');
-
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const now = performance.now();
-      sparksRef.current = sparksRef.current.filter(spark => now - spark.startTime < duration);
-
-      sparksRef.current.forEach(spark => {
-        const elapsed = now - spark.startTime;
-        const progress = elapsed / duration;
-        const eased = 1 - Math.pow(progress, 2);
-
-        spark.points.forEach(pt => {
-          const x = spark.x + pt.vx * sparkRadius * progress * 8;
-          const y = spark.y + pt.vy * sparkRadius * progress * 8 + 0.5 * 0.15 * progress * progress * 1000;
-          ctx.beginPath();
-          ctx.arc(x, y, sparkSize * eased * 0.5, 0, Math.PI * 2);
-          const alpha = eased * 0.9;
-          ctx.fillStyle = sparkColor.startsWith('#')
-            ? sparkColor + Math.round(alpha * 255).toString(16).padStart(2, '0')
-            : sparkColor;
-          ctx.globalAlpha = alpha;
-          ctx.fill();
-          ctx.globalAlpha = 1;
-        });
-      });
-
-      rafRef.current = requestAnimationFrame(draw);
-    };
-
-    rafRef.current = requestAnimationFrame(draw);
-
-    return () => {
-      cancelAnimationFrame(rafRef.current);
-      window.removeEventListener('resize', handleResize);
-      if (document.body.contains(canvas)) document.body.removeChild(canvas);
-    };
-  }, [sparkColor, sparkSize, sparkRadius, sparkCount, duration]);
-
-  const handleClick = useCallback((e) => {
-    const points = Array.from({ length: sparkCount }, (_, i) => {
-      const angle = (i / sparkCount) * Math.PI * 2;
-      return { vx: Math.cos(angle), vy: Math.sin(angle) };
-    });
-    sparksRef.current.push({ x: e.clientX, y: e.clientY, startTime: performance.now(), points });
-  }, [sparkCount]);
-
-  return (
-    <div ref={containerRef} onClick={handleClick} style={{ display: 'contents' }}>
-      {children}
-    </div>
-  );
-}
-
-function Antigravity({ count = 300, color = '#C9A84C', magnetRadius = 120, waveSpeed = 0.4, waveAmplitude = 1 }) {
-  const canvasRef = useRef(null);
-  const mouseRef = useRef({ x: null, y: null });
-  const particlesRef = useRef([]);
-  const rafRef = useRef(null);
-  const tRef = useRef(0);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-
-    const resize = () => {
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
-      initParticles();
-    };
-
-    const initParticles = () => {
-      particlesRef.current = Array.from({ length: count }, (_, i) => {
-        const angle = (i / count) * Math.PI * 2;
-        const ringR = Math.min(canvas.width, canvas.height) * 0.3;
-        return {
-          ox: Math.cos(angle) * ringR,
-          oy: Math.sin(angle) * ringR * 0.5 + (Math.random() - 0.5) * 80,
-          x: (Math.random() - 0.5) * canvas.width * 0.8,
-          y: (Math.random() - 0.5) * canvas.height * 0.8,
-          vx: 0,
-          vy: 0,
-          wave: Math.random() * Math.PI * 2,
-        };
-      });
-    };
-
-    resize();
-    window.addEventListener('resize', resize);
-
-    const onMouseMove = (e) => {
-      const rect = canvas.getBoundingClientRect();
-      mouseRef.current = {
-        x: e.clientX - rect.left - canvas.width / 2,
-        y: e.clientY - rect.top - canvas.height / 2,
-      };
-    };
-    const onMouseLeave = () => { mouseRef.current = { x: null, y: null }; };
-
-    canvas.addEventListener('mousemove', onMouseMove);
-    canvas.addEventListener('mouseleave', onMouseLeave);
-
-    const loop = () => {
-      tRef.current += 0.016;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      const W = canvas.width, H = canvas.height;
-      const { x: mx, y: my } = mouseRef.current;
-
-      particlesRef.current.forEach(p => {
-        const wave = Math.sin(tRef.current * waveSpeed + p.wave) * waveAmplitude;
-        const tx = p.ox + wave;
-        const ty = p.oy + Math.cos(tRef.current * waveSpeed * 0.75 + p.wave) * waveAmplitude * 0.8;
-        let fx = tx, fy = ty;
-
-        if (mx !== null) {
-          const dx = p.x - mx, dy = p.y - my;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < magnetRadius) {
-            const rep = (magnetRadius - dist) / magnetRadius;
-            fx += dx * rep * 10;
-            fy += dy * rep * 10;
-          }
-        }
-
-        p.vx += (fx - p.x) * 0.05;
-        p.vy += (fy - p.y) * 0.05;
-        p.vx *= 0.88;
-        p.vy *= 0.88;
-        p.x += p.vx;
-        p.y += p.vy;
-
-        const sx = p.x + W / 2, sy = p.y + H / 2;
-        const distFromMouse = mx !== null ? Math.sqrt((p.x - mx) ** 2 + (p.y - my) ** 2) : 999;
-        const brightness = distFromMouse < magnetRadius ? (1 - distFromMouse / magnetRadius) * 0.6 : 0;
-
-        ctx.beginPath();
-        ctx.arc(sx, sy, 1.5 + brightness, 0, Math.PI * 2);
-        ctx.fillStyle = color;
-        ctx.globalAlpha = 0.4 + brightness * 0.55;
-        ctx.fill();
-        ctx.globalAlpha = 1;
-      });
-
-      ctx.strokeStyle = 'rgba(201,168,76,0.06)';
-      ctx.lineWidth = 0.5;
-      const pts = particlesRef.current;
-      for (let i = 0; i < pts.length; i += 3) {
-        const ni = (i + 1) % pts.length;
-        const a = pts[i], b = pts[ni];
-        const dx = a.x - b.x, dy = a.y - b.y;
-        if (Math.sqrt(dx * dx + dy * dy) < 60) {
-          ctx.beginPath();
-          ctx.moveTo(a.x + W / 2, a.y + H / 2);
-          ctx.lineTo(b.x + W / 2, b.y + H / 2);
-          ctx.stroke();
-        }
-      }
-
-      rafRef.current = requestAnimationFrame(loop);
-    };
-
-    rafRef.current = requestAnimationFrame(loop);
-
-    return () => {
-      cancelAnimationFrame(rafRef.current);
-      window.removeEventListener('resize', resize);
-      canvas.removeEventListener('mousemove', onMouseMove);
-      canvas.removeEventListener('mouseleave', onMouseLeave);
-    };
-  }, [count, color, magnetRadius, waveSpeed, waveAmplitude]);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      style={{ width: '100%', height: '100%', display: 'block' }}
-    />
-  );
-}
-
-function Ballpit({ count = 100, gravity = 0.01, friction = 0.9975, wallBounce = 0.95, followCursor = false, goldRatio = 0.35 }) {
-  const canvasRef = useRef(null);
-  const ballsRef = useRef([]);
-  const mouseRef = useRef({ x: -9999, y: -9999 });
-  const rafRef = useRef(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-
-    const resize = () => {
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
-      initBalls();
-    };
-
-    const initBalls = () => {
-      const W = canvas.width, H = canvas.height;
-      ballsRef.current = Array.from({ length: count }, (_, i) => {
-        const isGold = i / count < goldRatio;
-        const r = 6 + Math.random() * 14;
-        return {
-          x: r + Math.random() * (W - r * 2),
-          y: r + Math.random() * (H * 0.5),
-          vx: (Math.random() - 0.5) * 3,
-          vy: Math.random() * 2,
-          r,
-          isGold,
-          opacity: 0.5 + Math.random() * 0.5,
-        };
-      });
-    };
-
-    resize();
-    window.addEventListener('resize', resize);
-
-    const onMouseMove = (e) => {
-      const rect = canvas.getBoundingClientRect();
-      mouseRef.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-    };
-    canvas.addEventListener('mousemove', onMouseMove);
-
-    const loop = () => {
-      const W = canvas.width, H = canvas.height;
-      ctx.clearRect(0, 0, W, H);
-
-      ballsRef.current.forEach(b => {
-        b.vy += gravity;
-        b.vx *= friction;
-        b.vy *= friction;
-
-        if (followCursor) {
-          const dx = mouseRef.current.x - b.x;
-          const dy = mouseRef.current.y - b.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 100) {
-            b.vx += (dx / dist) * 0.3;
-            b.vy += (dy / dist) * 0.3;
-          }
-        }
-
-        b.x += b.vx;
-        b.y += b.vy;
-
-        if (b.x - b.r < 0) { b.x = b.r; b.vx *= -wallBounce; }
-        if (b.x + b.r > W) { b.x = W - b.r; b.vx *= -wallBounce; }
-        if (b.y - b.r < 0) { b.y = b.r; b.vy *= -wallBounce; }
-        if (b.y + b.r > H) { b.y = H - b.r; b.vy *= -wallBounce; }
-
-        ctx.beginPath();
-        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-
-        if (b.isGold) {
-          const grad = ctx.createRadialGradient(b.x - b.r * 0.3, b.y - b.r * 0.3, b.r * 0.1, b.x, b.y, b.r);
-          grad.addColorStop(0, `rgba(237,208,112,${b.opacity})`);
-          grad.addColorStop(0.5, `rgba(201,168,76,${b.opacity})`);
-          grad.addColorStop(1, `rgba(100,65,0,${b.opacity})`);
-          ctx.fillStyle = grad;
-        } else {
-          const v = 20 + Math.floor(Math.random() * 2) * 8;
-          ctx.fillStyle = `rgba(${v},${v},${v},${b.opacity * 0.7})`;
-        }
-
-        ctx.fill();
-        ctx.strokeStyle = b.isGold ? `rgba(201,168,76,${b.opacity * 0.4})` : `rgba(60,60,60,${b.opacity * 0.3})`;
-        ctx.lineWidth = 0.5;
-        ctx.stroke();
-      });
-
-      ballsRef.current.forEach((a, i) => {
-        for (let j = i + 1; j < ballsRef.current.length; j++) {
-          const b = ballsRef.current[j];
-          const dx = b.x - a.x, dy = b.y - a.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          const minDist = a.r + b.r;
-          if (dist < minDist && dist > 0) {
-            const nx = dx / dist, ny = dy / dist;
-            const overlap = minDist - dist;
-            a.x -= nx * overlap * 0.5;
-            a.y -= ny * overlap * 0.5;
-            b.x += nx * overlap * 0.5;
-            b.y += ny * overlap * 0.5;
-            const dvx = b.vx - a.vx, dvy = b.vy - a.vy;
-            const dot = dvx * nx + dvy * ny;
-            if (dot < 0) {
-              const impulse = dot * wallBounce;
-              a.vx += impulse * nx;
-              a.vy += impulse * ny;
-              b.vx -= impulse * nx;
-              b.vy -= impulse * ny;
-            }
-          }
-        }
-      });
-
-      rafRef.current = requestAnimationFrame(loop);
-    };
-
-    rafRef.current = requestAnimationFrame(loop);
-
-    return () => {
-      cancelAnimationFrame(rafRef.current);
-      window.removeEventListener('resize', resize);
-      canvas.removeEventListener('mousemove', onMouseMove);
-    };
-  }, [count, gravity, friction, wallBounce, followCursor, goldRatio]);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      style={{ width: '100%', height: '100%', display: 'block' }}
-    />
-  );
-}
-
-function BounceCards({ images = [], transformStyles = [], containerWidth = 500, containerHeight = 250, animationDelay = 1, animationStagger = 0.08, enableHover = true }) {
-  const [ready, setReady] = useState(false);
-  const [hovered, setHovered] = useState(null);
-
-  useEffect(() => {
-    const t = setTimeout(() => setReady(true), animationDelay * 1000);
-    return () => clearTimeout(t);
-  }, [animationDelay]);
-
-  return (
-    <div style={{ position: 'relative', width: `${containerWidth}px`, height: `${containerHeight}px`, margin: '0 auto' }}>
-      {images.map((src, i) => {
-        const baseTransform = transformStyles[i] || '';
-        const isHovered = hovered === i;
-        return (
-          <div
-            key={i}
-            onMouseEnter={() => enableHover && setHovered(i)}
-            onMouseLeave={() => enableHover && setHovered(null)}
-            style={{
-              position: 'absolute',
-              left: '50%',
-              top: '50%',
-              width: '160px',
-              height: '110px',
-              marginLeft: '-80px',
-              marginTop: '-55px',
-              overflow: 'hidden',
-              border: '1px solid rgba(201,168,76,0.3)',
-              transform: ready
-                ? `${baseTransform}${isHovered ? ' scale(1.08)' : ''}`
-                : `${baseTransform} scale(0) translateY(80px)`,
-              opacity: ready ? 1 : 0,
-              transition: ready
-                ? `transform 0.6s cubic-bezier(0.34,1.56,0.64,1) ${i * animationStagger}s, opacity 0.4s ease ${i * animationStagger}s, box-shadow 0.3s`
-                : 'none',
-              boxShadow: isHovered
-                ? '0 20px 60px rgba(0,0,0,0.8), 0 0 30px rgba(201,168,76,0.2)'
-                : '0 8px 30px rgba(0,0,0,0.6)',
-              zIndex: isHovered ? 10 : i,
-            }}
-          >
-            <img
-              src={src}
-              alt=""
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                filter: 'grayscale(100%) contrast(1.1)',
-                display: 'block',
-              }}
-            />
-            <div style={{
-              position: 'absolute',
-              inset: 0,
-              background: 'linear-gradient(135deg, rgba(201,168,76,0.12) 0%, transparent 60%)',
-              mixBlendMode: 'overlay',
-            }} />
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function GooeyNav({ items = [], particleCount = 15, particleDistances = [90, 10], particleR = 100, initialActiveIndex = 0, animationTime = 600, timeVariance = 300, colors = [1, 2, 3, 1, 2, 3, 1, 4] }) {
-  const [activeIndex, setActiveIndex] = useState(initialActiveIndex);
-  const [particles, setParticles] = useState([]);
-  const containerRef = useRef(null);
-
-  const goldPalette = ['#C9A84C', '#EDD070', '#8B6914', '#F5E6C8'];
-
-  const triggerParticles = useCallback((index) => {
-    const newParticles = Array.from({ length: particleCount }, (_, i) => {
-      const angle = (i / particleCount) * Math.PI * 2;
-      const dist = particleDistances[0] + Math.random() * (particleDistances[1] - particleDistances[0]);
-      const variance = (Math.random() - 0.5) * timeVariance;
-      return {
-        id: Date.now() + i,
-        x: Math.cos(angle) * dist * 0.4,
-        y: Math.sin(angle) * dist * 0.2,
-        r: 3 + Math.random() * 5,
-        color: goldPalette[colors[i % colors.length] - 1] || goldPalette[0],
-        duration: animationTime + variance,
-        delay: Math.random() * 80,
-      };
-    });
-    setParticles(newParticles);
-    setTimeout(() => setParticles([]), animationTime + timeVariance + 200);
-  }, [particleCount, particleDistances, particleR, animationTime, timeVariance, colors]);
-
-  const handleClick = useCallback((index) => {
-    if (index === activeIndex) return;
-    triggerParticles(index);
-    setActiveIndex(index);
-  }, [activeIndex, triggerParticles]);
-
-  return (
-    <div
-      ref={containerRef}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0',
-        position: 'relative',
-        background: 'rgba(8,6,3,0.95)',
-        border: '1px solid rgba(201,168,76,0.15)',
-        backdropFilter: 'blur(20px)',
-        padding: '0.3rem',
-      }}
-    >
-      {items.map((item, i) => (
-        <div key={i} style={{ position: 'relative' }}>
-          <button
-            onClick={() => handleClick(i)}
-            style={{
-              padding: '0.9rem 2rem',
-              background: activeIndex === i ? '#C9A84C' : 'transparent',
-              color: activeIndex === i ? '#080604' : 'rgba(201,168,76,0.6)',
-              border: 'none',
-              fontFamily: 'Montserrat, sans-serif',
-              fontSize: '0.55rem',
-              fontWeight: activeIndex === i ? 500 : 300,
-              letterSpacing: '0.35em',
-              textTransform: 'uppercase',
-              cursor: 'none',
-              transition: 'all 0.4s cubic-bezier(0.16,1,0.3,1)',
-              position: 'relative',
-              zIndex: 1,
-            }}
-          >
-            {item.label}
-          </button>
-          {activeIndex === i && particles.map(p => (
-            <div
-              key={p.id}
-              style={{
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                width: `${p.r * 2}px`,
-                height: `${p.r * 2}px`,
-                borderRadius: '50%',
-                background: p.color,
-                transform: `translate(-50%, -50%) translate(${p.x}px, ${p.y}px) scale(0)`,
-                opacity: 0,
-                animation: `gooeyPop ${p.duration}ms cubic-bezier(0.16,1,0.3,1) ${p.delay}ms forwards`,
-                pointerEvents: 'none',
-                zIndex: 0,
-              }}
-            />
-          ))}
-        </div>
-      ))}
-      <style>{`
-        @keyframes gooeyPop {
-          0% { transform: translate(-50%,-50%) translate(0,0) scale(0); opacity: 0.9; }
-          60% { transform: translate(-50%,-50%) translate(var(--tx,0),var(--ty,0)) scale(1); opacity: 0.6; }
-          100% { transform: translate(-50%,-50%) translate(calc(var(--tx,0) * 1.4), calc(var(--ty,0) * 1.4)) scale(0); opacity: 0; }
-        }
-      `}</style>
     </div>
   );
 }
@@ -1111,7 +393,23 @@ export default function HomePage() {
     <ClickSpark sparkColor="#C9A84C" sparkSize={8} sparkRadius={18} sparkCount={10} duration={500}>
       <div style={{ paddingTop: '70px', background: '#040302', overflowX: 'hidden' }}>
 
-        <ThreeBackground scrollRef={scrollRef} mouseRef={mouseRef} />
+        <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none', opacity: 0.18 }}>
+          <LineWaves
+            speed={0.3}
+            innerLineCount={28}
+            outerLineCount={32}
+            warpIntensity={1}
+            rotation={-45}
+            edgeFadeWidth={0}
+            colorCycleSpeed={0.6}
+            brightness={0.35}
+            color1="#C9A84C"
+            color2="#8B6914"
+            color3="#F5E6C8"
+            enableMouseInteraction
+            mouseInfluence={1.5}
+          />
+        </div>
 
         <div style={{
           position: 'fixed', left: cursor.x, top: cursor.y,
@@ -1297,6 +595,41 @@ export default function HomePage() {
           <Marquee />
         </div>
 
+        <section style={{
+          position: 'relative', zIndex: 2,
+          height: '500px',
+          overflow: 'hidden',
+          borderBottom: '1px solid rgba(201,168,76,0.1)',
+        }}>
+          <Ribbons
+            baseThickness={30}
+            colors={['#C9A84C']}
+            speedMultiplier={0.4}
+            maxAge={500}
+            enableFade={false}
+            enableShaderEffect={false}
+          />
+          <div style={{
+            position: 'absolute', inset: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexDirection: 'column', gap: '1rem',
+            pointerEvents: 'none',
+            background: 'linear-gradient(180deg, rgba(4,3,2,0.5) 0%, rgba(4,3,2,0.2) 50%, rgba(4,3,2,0.5) 100%)',
+          }}>
+            <p style={{
+              fontSize: '0.52rem', color: 'rgba(201,168,76,0.6)',
+              letterSpacing: '0.7em', textTransform: 'uppercase',
+              fontFamily: 'Montserrat, sans-serif',
+            }}>Est. South Africa</p>
+            <h2 style={{
+              fontFamily: 'Cormorant Garamond, serif',
+              fontSize: 'clamp(2rem, 5vw, 4rem)', fontWeight: 300,
+              color: 'rgba(255,255,255,0.12)',
+              fontStyle: 'italic', letterSpacing: '0.08em',
+            }}>Move in Gold</h2>
+          </div>
+        </section>
+
         <section
           ref={antigravRef}
           style={{
@@ -1331,10 +664,20 @@ export default function HomePage() {
           <div style={{ width: '100%', height: '400px', position: 'relative' }}>
             <Antigravity
               count={300}
-              magnetRadius={120}
+              magnetRadius={6}
+              ringRadius={7}
               waveSpeed={0.4}
               waveAmplitude={1}
+              particleSize={1.5}
+              lerpSpeed={0.05}
               color="#C9A84C"
+              autoAnimate
+              particleVariance={1}
+              rotationSpeed={0}
+              depthFactor={1}
+              pulseSpeed={3}
+              particleShape="capsule"
+              fieldStrength={10}
             />
           </div>
         </section>

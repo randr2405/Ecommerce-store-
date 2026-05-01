@@ -19,8 +19,8 @@ function useCursor() {
   useEffect(() => {
     let raf;
     const loop = () => {
-      trailRef.current.x += (posRef.current.x - trailRef.current.x) * 0.1;
-      trailRef.current.y += (posRef.current.y - trailRef.current.y) * 0.1;
+      trailRef.current.x += (posRef.current.x - trailRef.current.x) * 0.35;
+      trailRef.current.y += (posRef.current.y - trailRef.current.y) * 0.35;
       setTrail({ x: trailRef.current.x, y: trailRef.current.y });
       raf = requestAnimationFrame(loop);
     };
@@ -473,6 +473,7 @@ export default function ShopPage() {
 
   /* Filter + sort */
   const filtered = products
+    .filter(p => p.stock !== 0)
     .filter(p => activeCategory === 'All' || p.category === activeCategory)
     .sort((a, b) => {
       if (sortBy === 'price-asc')  return Number(a.price) - Number(b.price);

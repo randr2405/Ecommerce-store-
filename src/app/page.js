@@ -1,5 +1,9 @@
 'use client';
 
+import { Canvas, useThree, useFrame } from '@react-three/fiber';
+import * as THREE from 'three';
+import { Renderer, Triangle, Program, Mesh } from 'ogl';
+
 import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import gsap from 'gsap';

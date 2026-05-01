@@ -84,11 +84,11 @@ function CategoryCard3D({ cat, index, sectionProgress }) {
       >
         <div style={{
           border: '1px solid',
-          borderColor: hovered ? 'rgba(201,168,76,0.9)' : 'rgba(201,168,76,0.15)',
+          borderColor: hovered ? 'rgba(82,39,255,0.7)' : 'rgba(82,39,255,0.12)',
           padding: '4rem 2.8rem',
           background: hovered
-            ? 'linear-gradient(145deg, rgba(201,168,76,0.1) 0%, rgba(201,168,76,0.03) 100%)'
-            : 'rgba(6,5,4,0.92)',
+            ? 'linear-gradient(145deg, rgba(82,39,255,0.08) 0%, rgba(82,39,255,0.02) 100%)'
+            : 'rgba(6,5,10,0.94)',
           backdropFilter: 'blur(18px)',
           cursor: 'pointer',
           position: 'relative',
@@ -105,13 +105,13 @@ function CategoryCard3D({ cat, index, sectionProgress }) {
             ? 'border-color 0.25s, background 0.25s, box-shadow 0.25s, transform 0.07s ease'
             : 'border-color 0.5s, background 0.5s, box-shadow 0.5s',
           boxShadow: hovered
-            ? `0 40px 80px rgba(0,0,0,0.7), 0 0 60px rgba(201,168,76,0.18), inset 0 1px 0 rgba(201,168,76,0.2)`
+            ? `0 40px 80px rgba(0,0,0,0.7), 0 0 60px rgba(82,39,255,0.15), inset 0 1px 0 rgba(82,39,255,0.15)`
             : '0 10px 40px rgba(0,0,0,0.5)',
           willChange: 'transform',
         }}>
           <div style={{
             position: 'absolute', inset: 0,
-            backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(201,168,76,0.008) 2px, rgba(201,168,76,0.008) 3px)',
+            backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(82,39,255,0.006) 2px, rgba(82,39,255,0.006) 3px)',
             pointerEvents: 'none',
           }} />
 
@@ -120,10 +120,10 @@ function CategoryCard3D({ cat, index, sectionProgress }) {
               position: 'absolute', [v]: 0, [h]: 0,
               width: hovered ? '36px' : '14px',
               height: hovered ? '36px' : '14px',
-              borderTop: v === 'top' ? '1px solid #C9A84C' : 'none',
-              borderBottom: v === 'bottom' ? '1px solid #C9A84C' : 'none',
-              borderLeft: h === 'left' ? '1px solid #C9A84C' : 'none',
-              borderRight: h === 'right' ? '1px solid #C9A84C' : 'none',
+              borderTop: v === 'top' ? '1px solid rgba(201,168,76,0.8)' : 'none',
+              borderBottom: v === 'bottom' ? '1px solid rgba(201,168,76,0.8)' : 'none',
+              borderLeft: h === 'left' ? '1px solid rgba(201,168,76,0.8)' : 'none',
+              borderRight: h === 'right' ? '1px solid rgba(201,168,76,0.8)' : 'none',
               transition: 'all 0.5s cubic-bezier(0.16,1,0.3,1)',
             }} />
           ))}
@@ -138,7 +138,7 @@ function CategoryCard3D({ cat, index, sectionProgress }) {
           <p style={{
             fontFamily: 'Cormorant Garamond, serif',
             fontSize: '0.65rem',
-            color: hovered ? '#C9A84C' : 'rgba(201,168,76,0.25)',
+            color: hovered ? '#C9A84C' : 'rgba(82,39,255,0.3)',
             letterSpacing: '0.3em',
             marginBottom: '2rem',
             transition: 'color 0.4s',
@@ -149,7 +149,7 @@ function CategoryCard3D({ cat, index, sectionProgress }) {
             transform: hovered ? 'scale(1.2) rotate(-10deg) translateZ(30px)' : 'scale(1) rotate(0) translateZ(0)',
             transformStyle: 'preserve-3d',
             transition: 'transform 0.55s cubic-bezier(0.16,1,0.3,1)',
-            filter: hovered ? 'drop-shadow(0 0 20px rgba(201,168,76,0.6))' : 'none',
+            filter: hovered ? 'drop-shadow(0 0 20px rgba(82,39,255,0.5))' : 'none',
           }}>{cat.icon}</span>
 
           <h3 style={{
@@ -161,7 +161,7 @@ function CategoryCard3D({ cat, index, sectionProgress }) {
             transition: 'color 0.3s, text-shadow 0.3s',
           }}>{cat.label}</h3>
 
-          <p style={{ fontSize: '0.63rem', color: '#555', letterSpacing: '0.12em', lineHeight: 2 }}>
+          <p style={{ fontSize: '0.63rem', color: '#444', letterSpacing: '0.12em', lineHeight: 2 }}>
             {cat.desc}
           </p>
 
@@ -200,19 +200,19 @@ function ValueCard3D({ value, index, sectionProgress }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        background: hovered ? 'rgba(201,168,76,0.05)' : 'rgba(5,5,4,0.92)',
+        background: hovered ? 'rgba(82,39,255,0.04)' : 'rgba(5,4,10,0.94)',
         padding: '4rem 2.2rem',
         textAlign: 'center',
         position: 'relative', overflow: 'hidden',
         backdropFilter: 'blur(12px)',
         border: '1px solid',
-        borderColor: hovered ? 'rgba(201,168,76,0.3)' : 'rgba(201,168,76,0.06)',
+        borderColor: hovered ? 'rgba(82,39,255,0.25)' : 'rgba(82,39,255,0.07)',
         transform: `translateY(${entryY}px) rotateX(${entryR}deg) translateZ(${depths[index]}px)`,
         opacity: cardP,
         transition: hovered
           ? 'background 0.4s, border-color 0.4s, box-shadow 0.3s'
           : 'background 0.4s, border-color 0.4s',
-        boxShadow: hovered ? `0 30px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(201,168,76,0.12)` : 'none',
+        boxShadow: hovered ? `0 30px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(82,39,255,0.1)` : 'none',
         willChange: 'transform, opacity',
       }}
     >
@@ -220,7 +220,7 @@ function ValueCard3D({ value, index, sectionProgress }) {
         position: 'absolute', top: '-1rem', right: '1.2rem',
         fontFamily: 'Cormorant Garamond, serif',
         fontSize: '6rem', fontWeight: 300,
-        color: hovered ? 'rgba(201,168,76,0.12)' : 'rgba(201,168,76,0.04)',
+        color: hovered ? 'rgba(201,168,76,0.1)' : 'rgba(201,168,76,0.03)',
         transition: 'color 0.4s',
         userSelect: 'none', pointerEvents: 'none',
       }}>{romans[index]}</div>
@@ -242,7 +242,7 @@ function ValueCard3D({ value, index, sectionProgress }) {
         transition: 'color 0.3s, text-shadow 0.3s',
       }}>{value.title}</h3>
 
-      <p style={{ fontSize: '0.64rem', color: '#666', lineHeight: 2.1, letterSpacing: '0.07em' }}>
+      <p style={{ fontSize: '0.64rem', color: '#555', lineHeight: 2.1, letterSpacing: '0.07em' }}>
         {value.desc}
       </p>
     </div>
@@ -253,11 +253,11 @@ function Marquee() {
   const items = ['Premium Quality', '✦', 'South African Brand', '✦', 'Sport & Lifestyle', '✦', 'All Ages', '✦', 'Free Delivery', '✦', '118 Pieces', '✦'];
   return (
     <div style={{
-      borderTop: '1px solid rgba(201,168,76,0.18)',
-      borderBottom: '1px solid rgba(201,168,76,0.18)',
+      borderTop: '1px solid rgba(82,39,255,0.15)',
+      borderBottom: '1px solid rgba(82,39,255,0.15)',
       padding: '1.3rem 0',
       overflow: 'hidden',
-      background: 'rgba(4,3,2,0.97)',
+      background: 'rgba(4,3,10,0.98)',
       backdropFilter: 'blur(10px)',
       position: 'relative', zIndex: 2,
     }}>
@@ -265,7 +265,7 @@ function Marquee() {
         {[...items, ...items].map((t, i) => (
           <span key={i} style={{
             fontSize: '0.53rem',
-            color: t === '✦' ? '#C9A84C' : '#4A4030',
+            color: t === '✦' ? '#C9A84C' : 'rgba(82,39,255,0.4)',
             letterSpacing: '0.42em', textTransform: 'uppercase',
             whiteSpace: 'nowrap', fontFamily: 'Montserrat, sans-serif',
           }}>{t}</span>
@@ -292,6 +292,7 @@ export default function HomePage() {
   const [ballpitRef,     ballpitScroll]     = useElementScroll();
   const [brandRef,       brandScroll]       = useElementScroll();
   const [valuesRef,      valuesScroll]      = useElementScroll();
+  const [ribbonRef,      ribbonScroll]      = useElementScroll();
 
   useEffect(() => {
     let raf;
@@ -367,19 +368,19 @@ export default function HomePage() {
   ];
 
   const bounceImages = [
-    'https://picsum.photos/400/300?grayscale&random=10',
-    'https://picsum.photos/400/300?grayscale&random=11',
-    'https://picsum.photos/400/300?grayscale&random=12',
-    'https://picsum.photos/400/300?grayscale&random=13',
-    'https://picsum.photos/400/300?grayscale&random=14',
+    'https://picsum.photos/400/400?grayscale&random=10',
+    'https://picsum.photos/500/500?grayscale&random=11',
+    'https://picsum.photos/600/600?grayscale&random=12',
+    'https://picsum.photos/700/700?grayscale&random=13',
+    'https://picsum.photos/300/300?grayscale&random=14',
   ];
 
   const bounceTransforms = [
-    'rotate(8deg) translateX(-180px)',
-    'rotate(3deg) translateX(-90px)',
-    'rotate(-2deg) translateX(0px)',
-    'rotate(-5deg) translateX(90px)',
-    'rotate(4deg) translateX(180px)',
+    'rotate(5deg) translate(-150px)',
+    'rotate(0deg) translate(-70px)',
+    'rotate(-5deg)',
+    'rotate(5deg) translate(70px)',
+    'rotate(-5deg) translate(150px)',
   ];
 
   const heroDepth   = heroScroll * 80;
@@ -390,31 +391,33 @@ export default function HomePage() {
   const brandScale = 0.85 + brandScroll * 0.28;
 
   return (
-    <ClickSpark sparkColor="#C9A84C" sparkSize={8} sparkRadius={18} sparkCount={10} duration={500}>
-      <div style={{ paddingTop: '70px', background: '#040302', overflowX: 'hidden' }}>
+    <ClickSpark sparkColor="#ffffff" sparkSize={10} sparkRadius={15} sparkCount={8} duration={400}>
+      <div style={{ paddingTop: '70px', background: '#04030a', overflowX: 'hidden' }}>
 
-        <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none', opacity: 0.18 }}>
+        {/* Hero background: white LineWaves */}
+        <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none', opacity: 0.14 }}>
           <LineWaves
             speed={0.3}
-            innerLineCount={28}
-            outerLineCount={32}
+            innerLineCount={32}
+            outerLineCount={36}
             warpIntensity={1}
             rotation={-45}
             edgeFadeWidth={0}
-            colorCycleSpeed={0.6}
-            brightness={0.35}
-            color1="#C9A84C"
-            color2="#8B6914"
-            color3="#F5E6C8"
+            colorCycleSpeed={1}
+            brightness={0.2}
+            color1="#ffffff"
+            color2="#ffffff"
+            color3="#ffffff"
             enableMouseInteraction
-            mouseInfluence={1.5}
+            mouseInfluence={2}
           />
         </div>
 
+        {/* Custom cursor */}
         <div style={{
           position: 'fixed', left: cursor.x, top: cursor.y,
           width: cursorHover ? '5px' : '8px', height: cursorHover ? '5px' : '8px',
-          background: '#C9A84C', borderRadius: '50%',
+          background: '#ffffff', borderRadius: '50%',
           pointerEvents: 'none', zIndex: 9999,
           transform: 'translate(-50%,-50%)',
           opacity: cursorVisible ? 1 : 0,
@@ -424,14 +427,15 @@ export default function HomePage() {
         <div style={{
           position: 'fixed', left: cursorTrail.x, top: cursorTrail.y,
           width: cursorHover ? '55px' : '38px', height: cursorHover ? '55px' : '38px',
-          border: '1px solid rgba(201,168,76,0.6)',
+          border: '1px solid rgba(255,255,255,0.4)',
           borderRadius: '50%',
           pointerEvents: 'none', zIndex: 9998,
           transform: 'translate(-50%,-50%)',
-          opacity: cursorVisible ? 0.8 : 0,
+          opacity: cursorVisible ? 0.7 : 0,
           transition: 'opacity 0.3s, width 0.4s cubic-bezier(0.16,1,0.3,1), height 0.4s cubic-bezier(0.16,1,0.3,1)',
         }} />
 
+        {/* ─── HERO ─── */}
         <section
           ref={heroRef}
           style={{
@@ -444,25 +448,27 @@ export default function HomePage() {
             perspectiveOrigin: '50% 50%',
           }}
         >
+          {/* perspective grid floor */}
           <div style={{
             position: 'absolute', inset: 0,
             backgroundImage: `
-              linear-gradient(rgba(201,168,76,0.04) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(201,168,76,0.04) 1px, transparent 1px)
+              linear-gradient(rgba(82,39,255,0.05) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(82,39,255,0.05) 1px, transparent 1px)
             `,
             backgroundSize: '90px 90px',
             transform: `perspective(800px) rotateX(${55 + heroScroll * 15}deg) translateZ(-80px) scale(2.2)`,
             transformOrigin: '50% 100%',
-            opacity: 0.6,
+            opacity: 0.5,
             zIndex: 1,
             pointerEvents: 'none',
           }} />
 
+          {/* radial bloom */}
           <div style={{
             position: 'absolute', top: '50%', left: '50%',
             transform: 'translate(-50%,-50%)',
             width: '900px', height: '900px', borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(201,168,76,0.07) 0%, rgba(201,168,76,0.02) 35%, transparent 65%)',
+            background: 'radial-gradient(circle, rgba(82,39,255,0.08) 0%, rgba(82,39,255,0.02) 35%, transparent 65%)',
             pointerEvents: 'none', zIndex: 1,
             animation: 'rrBloom 4s ease-in-out infinite alternate',
           }} />
@@ -482,13 +488,13 @@ export default function HomePage() {
               transform: heroVisible ? 'none' : 'translateY(24px)',
               transition: 'opacity 1s ease 0.2s, transform 1s ease 0.2s',
             }}>
-              <div style={{ width: '40px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C)' }} />
+              <div style={{ width: '40px', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(82,39,255,0.7))' }} />
               <p style={{
-                fontSize: '0.58rem', color: '#C9A84C',
+                fontSize: '0.58rem', color: 'rgba(82,39,255,0.7)',
                 letterSpacing: '0.55em', textTransform: 'uppercase',
                 fontFamily: 'Montserrat, sans-serif', fontWeight: 300,
               }}>Premium Sport &amp; Lifestyle</p>
-              <div style={{ width: '40px', height: '1px', background: 'linear-gradient(90deg, #C9A84C, transparent)' }} />
+              <div style={{ width: '40px', height: '1px', background: 'linear-gradient(90deg, rgba(82,39,255,0.7), transparent)' }} />
             </div>
 
             <div style={{ transformStyle: 'preserve-3d', perspective: '800px', marginBottom: '2rem' }}>
@@ -534,7 +540,7 @@ export default function HomePage() {
             }} />
 
             <p style={{
-              fontSize: '0.7rem', color: 'rgba(255,255,255,0.35)',
+              fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)',
               letterSpacing: '0.4em', textTransform: 'uppercase',
               marginBottom: '4rem',
               fontFamily: 'Montserrat, sans-serif', fontWeight: 200,
@@ -562,12 +568,12 @@ export default function HomePage() {
               opacity: heroVisible ? 0.6 : 0,
               transition: 'opacity 1s ease 2.2s',
             }}>
-              <p style={{ fontSize: '0.44rem', color: '#C9A84C', letterSpacing: '0.5em', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif' }}>
+              <p style={{ fontSize: '0.44rem', color: 'rgba(82,39,255,0.7)', letterSpacing: '0.5em', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif' }}>
                 Scroll
               </p>
               <div style={{
                 width: '1px', height: '70px',
-                background: 'linear-gradient(180deg, #C9A84C, transparent)',
+                background: 'linear-gradient(180deg, rgba(82,39,255,0.7), transparent)',
                 animation: 'rrScrollPulse 2s ease-in-out infinite',
               }} />
             </div>
@@ -583,7 +589,7 @@ export default function HomePage() {
               <div style={{
                 width: `${380 + i * 220}px`, height: `${380 + i * 220}px`,
                 borderRadius: '50%',
-                border: `1px solid rgba(201,168,76,${0.07 - i * 0.012})`,
+                border: `1px solid rgba(82,39,255,${0.07 - i * 0.012})`,
                 animation: `rrRingPulse ${3.5 + i * 0.9}s ease-in-out infinite alternate`,
                 animationDelay: `${i * 0.7}s`,
               }} />
@@ -591,20 +597,25 @@ export default function HomePage() {
           ))}
         </section>
 
+        {/* ─── MARQUEE ─── */}
         <div style={{ position: 'relative', zIndex: 2 }}>
           <Marquee />
         </div>
 
-        <section style={{
-          position: 'relative', zIndex: 2,
-          height: '500px',
-          overflow: 'hidden',
-          borderBottom: '1px solid rgba(201,168,76,0.1)',
-        }}>
+        {/* ─── RIBBON INTERLUDE — "Move in Gold" ─── */}
+        <section
+          ref={ribbonRef}
+          style={{
+            position: 'relative', zIndex: 2,
+            height: '500px',
+            overflow: 'hidden',
+            borderBottom: '1px solid rgba(82,39,255,0.1)',
+          }}
+        >
           <Ribbons
             baseThickness={30}
-            colors={['#C9A84C']}
-            speedMultiplier={0.4}
+            colors={['#5227FF']}
+            speedMultiplier={0.5}
             maxAge={500}
             enableFade={false}
             enableShaderEffect={false}
@@ -614,28 +625,32 @@ export default function HomePage() {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             flexDirection: 'column', gap: '1rem',
             pointerEvents: 'none',
-            background: 'linear-gradient(180deg, rgba(4,3,2,0.5) 0%, rgba(4,3,2,0.2) 50%, rgba(4,3,2,0.5) 100%)',
+            background: 'linear-gradient(180deg, rgba(4,3,10,0.55) 0%, rgba(4,3,10,0.15) 50%, rgba(4,3,10,0.55) 100%)',
           }}>
             <p style={{
-              fontSize: '0.52rem', color: 'rgba(201,168,76,0.6)',
+              fontSize: '0.52rem', color: 'rgba(82,39,255,0.55)',
               letterSpacing: '0.7em', textTransform: 'uppercase',
               fontFamily: 'Montserrat, sans-serif',
+              opacity: Math.min(1, ribbonScroll * 3),
+              transform: `translateY(${Math.max(0, (0.4 - ribbonScroll) * 30)}px)`,
             }}>Est. South Africa</p>
             <h2 style={{
               fontFamily: 'Cormorant Garamond, serif',
               fontSize: 'clamp(2rem, 5vw, 4rem)', fontWeight: 300,
-              color: 'rgba(255,255,255,0.12)',
+              color: 'rgba(255,255,255,0.1)',
               fontStyle: 'italic', letterSpacing: '0.08em',
+              opacity: Math.min(1, ribbonScroll * 3),
             }}>Move in Gold</h2>
           </div>
         </section>
 
+        {/* ─── ANTIGRAVITY — "Crafted with intention" ─── */}
         <section
           ref={antigravRef}
           style={{
             padding: '9rem 2rem',
             textAlign: 'center',
-            background: 'rgba(5,4,3,0.98)',
+            background: 'rgba(4,3,10,0.99)',
             position: 'relative', zIndex: 2,
             overflow: 'hidden',
           }}
@@ -645,7 +660,7 @@ export default function HomePage() {
             opacity: Math.min(1, antigravScroll * 3),
             transform: `translateY(${Math.max(0, (0.4 - antigravScroll) * 60)}px)`,
           }}>
-            <p style={{ fontSize: '0.55rem', color: '#C9A84C', letterSpacing: '0.6em', textTransform: 'uppercase', marginBottom: '1.2rem', fontFamily: 'Montserrat, sans-serif' }}>
+            <p style={{ fontSize: '0.55rem', color: 'rgba(82,39,255,0.65)', letterSpacing: '0.6em', textTransform: 'uppercase', marginBottom: '1.2rem', fontFamily: 'Montserrat, sans-serif' }}>
               The Experience
             </p>
             <h2 style={{
@@ -655,8 +670,8 @@ export default function HomePage() {
             }}>
               Crafted with <span style={{ color: '#C9A84C', fontStyle: 'italic' }}>intention</span>
             </h2>
-            <div style={{ width: '70px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: '1.8rem auto 0' }} />
-            <p style={{ fontSize: '0.63rem', color: 'rgba(255,255,255,0.25)', letterSpacing: '0.15em', lineHeight: 2, marginTop: '2rem' }}>
+            <div style={{ width: '70px', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(82,39,255,0.6), transparent)', margin: '1.8rem auto 0' }} />
+            <p style={{ fontSize: '0.63rem', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.15em', lineHeight: 2, marginTop: '2rem' }}>
               Move your cursor through the field. Every detail responds with intention.
             </p>
           </div>
@@ -670,7 +685,7 @@ export default function HomePage() {
               waveAmplitude={1}
               particleSize={1.5}
               lerpSpeed={0.05}
-              color="#C9A84C"
+              color="#5227FF"
               autoAnimate
               particleVariance={1}
               rotationSpeed={0}
@@ -682,6 +697,7 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* ─── COLLECTIONS ─── */}
         <section
           ref={collectionsRef}
           style={{
@@ -697,27 +713,33 @@ export default function HomePage() {
             transform: `translateY(${Math.max(0, (0.5 - collectionsScroll) * 70)}px)`,
             opacity: Math.min(1, collectionsScroll * 3.5),
           }}>
-            <p style={{ fontSize: '0.55rem', color: '#C9A84C', letterSpacing: '0.6em', textTransform: 'uppercase', marginBottom: '1.2rem', fontFamily: 'Montserrat, sans-serif' }}>
+            <p style={{ fontSize: '0.55rem', color: 'rgba(82,39,255,0.65)', letterSpacing: '0.6em', textTransform: 'uppercase', marginBottom: '1.2rem', fontFamily: 'Montserrat, sans-serif' }}>
               Browse
             </p>
             <h2 style={{
               fontFamily: 'Cormorant Garamond, serif',
               fontSize: 'clamp(2.8rem, 7vw, 5.5rem)', fontWeight: 300,
               color: '#FFFFFF',
-              textShadow: '0 0 60px rgba(255,255,255,0.08)',
+              textShadow: '0 0 60px rgba(255,255,255,0.06)',
             }}>Our Collections</h2>
             <div style={{ width: '70px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: '1.8rem auto 0' }} />
           </div>
 
-          <div style={{ marginBottom: '6rem' }}>
+          {/* BounceCards preview above the grid */}
+          <div style={{
+            display: 'flex', justifyContent: 'center',
+            marginBottom: '7rem',
+            opacity: Math.min(1, collectionsScroll * 2.5),
+          }}>
             <BounceCards
               images={bounceImages}
-              containerWidth={700}
-              containerHeight={260}
+              containerWidth={500}
+              containerHeight={250}
               animationDelay={0.3}
-              animationStagger={0.1}
+              animationStagger={0.08}
+              easeType="elastic.out(1, 0.5)"
               transformStyles={bounceTransforms}
-              enableHover={true}
+              enableHover={false}
             />
           </div>
 
@@ -725,7 +747,7 @@ export default function HomePage() {
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
             gap: '2px',
-            background: 'rgba(201,168,76,0.06)',
+            background: 'rgba(82,39,255,0.05)',
             transformStyle: 'preserve-3d',
           }}>
             {categories.map((cat, i) => (
@@ -734,14 +756,15 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* ─── BALLPIT — "118 Pieces" ─── */}
         <section
           ref={ballpitRef}
           style={{
             overflow: 'hidden',
             position: 'relative', zIndex: 2,
-            background: 'rgba(4,3,2,0.99)',
-            borderTop: '1px solid rgba(201,168,76,0.1)',
-            borderBottom: '1px solid rgba(201,168,76,0.1)',
+            background: 'rgba(4,3,10,0.99)',
+            borderTop: '1px solid rgba(82,39,255,0.08)',
+            borderBottom: '1px solid rgba(82,39,255,0.08)',
           }}
         >
           <div style={{
@@ -749,35 +772,36 @@ export default function HomePage() {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <div style={{ textAlign: 'center' }}>
-              <p style={{ fontSize: '0.55rem', color: '#C9A84C', letterSpacing: '0.6em', textTransform: 'uppercase', marginBottom: '0.8rem', fontFamily: 'Montserrat, sans-serif', opacity: 0.7 }}>
+              <p style={{ fontSize: '0.55rem', color: 'rgba(82,39,255,0.5)', letterSpacing: '0.6em', textTransform: 'uppercase', marginBottom: '0.8rem', fontFamily: 'Montserrat, sans-serif', opacity: Math.min(1, ballpitScroll * 3) }}>
                 118 Pieces
               </p>
               <h2 style={{
                 fontFamily: 'Cormorant Garamond, serif',
                 fontSize: 'clamp(3rem, 8vw, 6rem)', fontWeight: 300,
-                color: 'rgba(255,255,255,0.08)', fontStyle: 'italic',
+                color: 'rgba(255,255,255,0.06)', fontStyle: 'italic',
+                opacity: Math.min(1, ballpitScroll * 2.5),
               }}>Premium</h2>
             </div>
           </div>
-          <div style={{ position: 'relative', minHeight: '420px', maxHeight: '420px', width: '100%' }}>
+          <div style={{ position: 'relative', minHeight: '500px', maxHeight: '500px', width: '100%' }}>
             <Ballpit
-              count={110}
-              gravity={0.012}
+              count={100}
+              gravity={0.01}
               friction={0.9975}
               wallBounce={0.95}
               followCursor={false}
-              goldRatio={0.3}
             />
           </div>
         </section>
 
+        {/* ─── BRAND STATEMENT ─── */}
         <section
           ref={brandRef}
           style={{
-            background: 'rgba(6,5,3,0.95)',
+            background: 'rgba(4,3,10,0.97)',
             backdropFilter: 'blur(24px)',
-            borderTop: '1px solid rgba(201,168,76,0.12)',
-            borderBottom: '1px solid rgba(201,168,76,0.12)',
+            borderTop: '1px solid rgba(82,39,255,0.1)',
+            borderBottom: '1px solid rgba(82,39,255,0.1)',
             padding: '11rem 2rem',
             textAlign: 'center',
             position: 'relative', zIndex: 2,
@@ -790,7 +814,7 @@ export default function HomePage() {
             fontFamily: 'Cormorant Garamond, serif',
             fontSize: 'clamp(10rem, 28vw, 24rem)',
             color: 'transparent',
-            WebkitTextStroke: '1px rgba(201,168,76,0.05)',
+            WebkitTextStroke: '1px rgba(82,39,255,0.04)',
             userSelect: 'none', pointerEvents: 'none',
             whiteSpace: 'nowrap', fontWeight: 300,
             transform: `translate(-50%,-50%) rotateX(${brandTilt}deg) scale(${brandScale})`,
@@ -804,7 +828,7 @@ export default function HomePage() {
             opacity: Math.min(1, brandScroll * 3),
             willChange: 'transform, opacity',
           }}>
-            <p style={{ fontSize: '0.55rem', color: '#C9A84C', letterSpacing: '0.6em', textTransform: 'uppercase', marginBottom: '2.2rem', fontFamily: 'Montserrat, sans-serif' }}>
+            <p style={{ fontSize: '0.55rem', color: 'rgba(82,39,255,0.65)', letterSpacing: '0.6em', textTransform: 'uppercase', marginBottom: '2.2rem', fontFamily: 'Montserrat, sans-serif' }}>
               Our Mission
             </p>
 
@@ -813,12 +837,12 @@ export default function HomePage() {
               fontSize: 'clamp(2rem, 5vw, 3.8rem)',
               fontWeight: 300, fontStyle: 'italic',
               color: '#FFFFFF', lineHeight: 1.65,
-              textShadow: '0 0 80px rgba(255,255,255,0.06)',
+              textShadow: '0 0 80px rgba(255,255,255,0.04)',
             }}>
               "Premium clothing that combines{' '}
               <span style={{
                 color: '#C9A84C', fontStyle: 'normal',
-                textShadow: '0 0 40px rgba(201,168,76,0.4)',
+                textShadow: '0 0 40px rgba(201,168,76,0.35)',
               }}>elegance with comfort</span>,
               designed for the modern individual who lives without compromise."
             </h2>
@@ -828,21 +852,30 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* ─── GOOEY NAVIGATION ─── */}
         <section style={{
-          padding: '9rem 2rem',
+          padding: '9rem 2rem 8rem',
           textAlign: 'center',
-          background: '#040302',
+          background: '#04030a',
           position: 'relative', zIndex: 2,
+          overflow: 'hidden',
         }}>
-          <p style={{ fontSize: '0.55rem', color: '#C9A84C', letterSpacing: '0.6em', textTransform: 'uppercase', marginBottom: '1.5rem', fontFamily: 'Montserrat, sans-serif' }}>
+          <div style={{
+            position: 'absolute', top: '50%', left: '50%',
+            transform: 'translate(-50%,-50%)',
+            width: '600px', height: '600px', borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(82,39,255,0.06) 0%, transparent 70%)',
+            pointerEvents: 'none',
+          }} />
+          <p style={{ fontSize: '0.55rem', color: 'rgba(82,39,255,0.6)', letterSpacing: '0.6em', textTransform: 'uppercase', marginBottom: '1.5rem', fontFamily: 'Montserrat, sans-serif', position: 'relative', zIndex: 1 }}>
             Navigate
           </p>
           <h2 style={{
             fontFamily: 'Cormorant Garamond, serif',
             fontSize: 'clamp(2.8rem, 6vw, 4.5rem)', fontWeight: 300, color: '#FFFFFF',
-            marginBottom: '4rem',
+            marginBottom: '4rem', position: 'relative', zIndex: 1,
           }}>Explore R&amp;R</h2>
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', position: 'relative', zIndex: 1 }}>
             <GooeyNav
               items={navItems}
               particleCount={15}
@@ -856,6 +889,7 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* ─── VALUES ─── */}
         <section
           ref={valuesRef}
           style={{
@@ -870,13 +904,13 @@ export default function HomePage() {
             transform: `translateY(${Math.max(0, (0.4 - valuesScroll) * 70)}px)`,
             opacity: Math.min(1, valuesScroll * 3.5),
           }}>
-            <p style={{ fontSize: '0.55rem', color: '#C9A84C', letterSpacing: '0.6em', textTransform: 'uppercase', marginBottom: '1.2rem', fontFamily: 'Montserrat, sans-serif' }}>
+            <p style={{ fontSize: '0.55rem', color: 'rgba(82,39,255,0.65)', letterSpacing: '0.6em', textTransform: 'uppercase', marginBottom: '1.2rem', fontFamily: 'Montserrat, sans-serif' }}>
               What We Stand For
             </p>
             <h2 style={{
               fontFamily: 'Cormorant Garamond, serif',
               fontSize: 'clamp(2.8rem, 7vw, 5.5rem)', fontWeight: 300, color: '#FFFFFF',
-              textShadow: '0 0 60px rgba(255,255,255,0.08)',
+              textShadow: '0 0 60px rgba(255,255,255,0.06)',
             }}>Our Values</h2>
             <div style={{ width: '70px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: '1.8rem auto 0' }} />
           </div>
@@ -885,7 +919,7 @@ export default function HomePage() {
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
             gap: '2px',
-            background: 'rgba(201,168,76,0.05)',
+            background: 'rgba(82,39,255,0.04)',
             transformStyle: 'preserve-3d',
           }}>
             {values.map((v, i) => (
@@ -894,12 +928,13 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* ─── CTA ─── */}
         <section style={{
           padding: '14rem 2rem',
           textAlign: 'center',
-          background: 'linear-gradient(180deg, rgba(4,3,2,0.97) 0%, rgba(8,6,3,0.99) 100%)',
+          background: 'linear-gradient(180deg, rgba(4,3,10,0.97) 0%, rgba(6,4,18,0.99) 100%)',
           backdropFilter: 'blur(20px)',
-          borderTop: '1px solid rgba(201,168,76,0.12)',
+          borderTop: '1px solid rgba(82,39,255,0.1)',
           position: 'relative', zIndex: 2,
           overflow: 'hidden',
           perspective: '1200px',
@@ -909,7 +944,7 @@ export default function HomePage() {
               position: 'absolute', top: '50%', left: '50%',
               width: `${i * 20}vw`, height: `${i * 20}vw`,
               borderRadius: '50%',
-              border: `1px solid rgba(201,168,76,${0.09 - i * 0.01})`,
+              border: `1px solid rgba(82,39,255,${0.08 - i * 0.01})`,
               transform: `translate(-50%, -50%) translateZ(${-i * 100}px)`,
               animation: `rrRingPulse ${2.5 + i * 0.6}s ease-in-out infinite alternate`,
               animationDelay: `${i * 0.4}s`,
@@ -919,7 +954,7 @@ export default function HomePage() {
 
           <div style={{ position: 'relative', zIndex: 1 }}>
             <p style={{
-              fontSize: '0.55rem', color: '#C9A84C',
+              fontSize: '0.55rem', color: 'rgba(82,39,255,0.6)',
               letterSpacing: '0.6em', textTransform: 'uppercase',
               marginBottom: '2rem',
               fontFamily: 'Montserrat, sans-serif',
@@ -933,7 +968,7 @@ export default function HomePage() {
             }}>
               <span style={{
                 color: '#FFFFFF',
-                textShadow: '0 0 80px rgba(255,255,255,0.1)',
+                textShadow: '0 0 80px rgba(255,255,255,0.08)',
                 display: 'block',
               }}>Ready to</span>
               <span style={{
@@ -943,7 +978,7 @@ export default function HomePage() {
               }}>elevate</span>
               <span style={{
                 color: '#FFFFFF',
-                textShadow: '0 0 80px rgba(255,255,255,0.1)',
+                textShadow: '0 0 80px rgba(255,255,255,0.08)',
                 display: 'block',
               }}>your wardrobe?</span>
             </h2>
@@ -967,12 +1002,12 @@ export default function HomePage() {
             50%     { opacity: 0.1; transform: scaleY(0.2); }
           }
           @keyframes rrRingPulse {
-            from { opacity: 0.12; transform: translate(-50%,-50%) scale(0.96); }
-            to   { opacity: 0.6;  transform: translate(-50%,-50%) scale(1.04); }
+            from { opacity: 0.1; transform: translate(-50%,-50%) scale(0.96); }
+            to   { opacity: 0.5; transform: translate(-50%,-50%) scale(1.04); }
           }
           @keyframes rrBloom {
-            from { opacity: 0.6; transform: translate(-50%,-50%) scale(0.95); }
-            to   { opacity: 1.0; transform: translate(-50%,-50%) scale(1.05); }
+            from { opacity: 0.5; transform: translate(-50%,-50%) scale(0.95); }
+            to   { opacity: 0.9; transform: translate(-50%,-50%) scale(1.05); }
           }
 
           .rr-btn-primary {
@@ -986,7 +1021,7 @@ export default function HomePage() {
             text-decoration: none;
             position: relative; overflow: hidden;
             transition: transform 0.35s cubic-bezier(0.16,1,0.3,1), box-shadow 0.35s;
-            box-shadow: 0 8px 40px rgba(201,168,76,0.2);
+            box-shadow: 0 8px 40px rgba(201,168,76,0.18);
           }
           .rr-btn-primary::before {
             content: '';
@@ -998,14 +1033,13 @@ export default function HomePage() {
           .rr-btn-primary:hover::before { transform: translateX(0); }
           .rr-btn-primary:hover {
             transform: translateY(-5px);
-            box-shadow: 0 25px 60px rgba(201,168,76,0.35);
+            box-shadow: 0 25px 60px rgba(201,168,76,0.3);
           }
-          .rr-btn-primary > * { position: relative; z-index: 1; }
 
           .rr-btn-outline {
             display: inline-block;
             padding: 1.15rem 3.2rem;
-            border: 1px solid rgba(201,168,76,0.55);
+            border: 1px solid rgba(201,168,76,0.45);
             color: #C9A84C;
             font-family: 'Montserrat', sans-serif;
             font-size: 0.57rem; font-weight: 300;
@@ -1017,7 +1051,7 @@ export default function HomePage() {
           .rr-btn-outline::before {
             content: '';
             position: absolute; inset: 0;
-            background: rgba(201,168,76,0.08);
+            background: rgba(201,168,76,0.07);
             transform: scaleX(0); transform-origin: left;
             transition: transform 0.55s cubic-bezier(0.16,1,0.3,1);
           }
@@ -1025,7 +1059,7 @@ export default function HomePage() {
           .rr-btn-outline:hover {
             border-color: #C9A84C;
             transform: translateY(-5px);
-            box-shadow: 0 20px 50px rgba(201,168,76,0.15);
+            box-shadow: 0 20px 50px rgba(201,168,76,0.12);
           }
         `}</style>
       </div>

@@ -12,7 +12,7 @@ module.exports = {
         foreground: "var(--foreground)",
         border: "var(--border)",
         input: "var(--input)",
-        ring: "var(--ring)",
+        ring: "oklch(var(--ring) / <alpha-value>)",
         primary: {
           DEFAULT: "var(--primary)",
           foreground: "var(--primary-foreground)",

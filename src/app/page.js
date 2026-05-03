@@ -301,68 +301,6 @@ function GooeyNav({ items, initialActiveIndex = 0 }) {
   );
 }
 
-function Ribbons({ baseThickness = 30, colors = ['#C9A84C'], speedMultiplier = 0.5, maxAge = 500 }) {
-  const canvasRef = useRef(null);
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    let w = canvas.width = window.innerWidth;
-    let h = canvas.height = window.innerHeight;
-    let mouse = { x: w / 2, y: h / 2 };
-    let points = [];
-    let raf;
-    const onMove = (e) => { mouse.x = e.clientX; mouse.y = e.clientY; };
-    window.addEventListener('mousemove', onMove);
-    const onResize = () => { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; };
-    window.addEventListener('resize', onResize);
-    let t = 0;
-    const animate = () => {
-      raf = requestAnimationFrame(animate);
-      t += speedMultiplier * 0.01;
-      points.push({ x: mouse.x, y: mouse.y, age: 0 });
-      points = points.filter(p => p.age < maxAge);
-      points.forEach(p => p.age++);
-      ctx.clearRect(0, 0, w, h);
-      if (points.length > 2) {
-        colors.forEach((color, ci) => {
-          const offset = ci * 8;
-          ctx.beginPath();
-          ctx.moveTo(points[0].x + offset, points[0].y + offset);
-          for (let i = 1; i < points.length - 1; i++) {
-            const mx = (points[i].x + points[i + 1].x) / 2 + offset;
-            const my = (points[i].y + points[i + 1].y) / 2 + offset;
-            ctx.quadraticCurveTo(points[i].x + offset, points[i].y + offset, mx, my);
-          }
-          const gradient = ctx.createLinearGradient(points[0].x, points[0].y, points[points.length - 1].x, points[points.length - 1].y);
-          gradient.addColorStop(0, 'transparent');
-          gradient.addColorStop(0.3, color + '99');
-          gradient.addColorStop(1, color + '22');
-          ctx.strokeStyle = gradient;
-          ctx.lineWidth = baseThickness * (1 - ci * 0.15);
-          ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-          ctx.stroke();
-        });
-      }
-      ctx.beginPath();
-      for (let i = 0; i < 3; i++) {
-        const px = mouse.x + Math.sin(t * 2.3 + i * 2.1) * 40;
-        const py = mouse.y + Math.cos(t * 1.7 + i * 1.5) * 25;
-        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
-      }
-      ctx.strokeStyle = colors[0] + '44';
-      ctx.lineWidth = baseThickness * 0.4;
-      ctx.stroke();
-    };
-    animate();
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('resize', onResize);
-    };
-  }, [baseThickness, colors, speedMultiplier, maxAge]);
-  return <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />;
-}
 
 function AntigravityInner({ count = 300, magnetRadius = 6, ringRadius = 7, waveSpeed = 0.4, waveAmplitude = 1, particleSize = 1.5, lerpSpeed = 0.05, color = '#C9A84C', autoAnimate = false, particleVariance = 1, rotationSpeed = 0, depthFactor = 1, pulseSpeed = 3, particleShape = 'capsule', fieldStrength = 10 }) {
   const meshRef = useRef(null);
@@ -563,113 +501,6 @@ function LiquidChrome({ baseColor = [0.1, 0.1, 0.1], speed = 0.2, amplitude = 0.
   return <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }} />;
 }
 
-function parseHSL(hslStr) {
-  const match = hslStr.match(/([\d.]+)\s*([\d.]+)%?\s*([\d.]+)%?/);
-  if (!match) return { h: 40, s: 80, l: 80 };
-  return { h: parseFloat(match[1]), s: parseFloat(match[2]), l: parseFloat(match[3]) };
-}
-function buildGlowVars(glowColor, intensity) {
-  const { h, s, l } = parseHSL(glowColor);
-  const base = `${h}deg ${s}% ${l}%`;
-  const opacities = [100, 60, 50, 40, 30, 20, 10];
-  const keys = ['', '-60', '-50', '-40', '-30', '-20', '-10'];
-  const vars = {};
-  for (let i = 0; i < opacities.length; i++) {
-    vars[`--glow-color${keys[i]}`] = `hsl(${base} / ${Math.min(opacities[i] * intensity, 100)}%)`;
-  }
-  return vars;
-}
-const GRADIENT_POSITIONS = ['80% 55%', '69% 34%', '8% 6%', '41% 38%', '86% 85%', '82% 18%', '51% 4%'];
-const GRADIENT_KEYS = ['--gradient-one', '--gradient-two', '--gradient-three', '--gradient-four', '--gradient-five', '--gradient-six', '--gradient-seven'];
-const COLOR_MAP = [0, 1, 2, 0, 1, 2, 1];
-function buildGradientVars(colors) {
-  const vars = {};
-  for (let i = 0; i < 7; i++) {
-    const c = colors[Math.min(COLOR_MAP[i], colors.length - 1)];
-    vars[GRADIENT_KEYS[i]] = `radial-gradient(at ${GRADIENT_POSITIONS[i]}, ${c} 0px, transparent 50%)`;
-  }
-  vars['--gradient-base'] = `linear-gradient(${colors[0]} 0 100%)`;
-  return vars;
-}
-function easeOutCubic(x) { return 1 - Math.pow(1 - x, 3); }
-function easeInCubic(x) { return x * x * x; }
-function animateValue({ start = 0, end = 100, duration = 1000, delay = 0, ease = easeOutCubic, onUpdate, onEnd }) {
-  const t0 = performance.now() + delay;
-  function tick() {
-    const elapsed = performance.now() - t0;
-    const t = Math.min(elapsed / duration, 1);
-    onUpdate(start + (end - start) * ease(t));
-    if (t < 1) requestAnimationFrame(tick);
-    else if (onEnd) onEnd();
-  }
-  setTimeout(() => requestAnimationFrame(tick), delay);
-}
-
-function BorderGlow({ children, className = '', edgeSensitivity = 30, glowColor = '40 80 80', backgroundColor = '#120F17', borderRadius = 28, glowRadius = 40, glowIntensity = 1.0, coneSpread = 25, animated = false, colors = ['#c084fc', '#f472b6', '#38bdf8'], fillOpacity = 0.5 }) {
-  const cardRef = useRef(null);
-  const getCenterOfElement = useCallback((el) => {
-    const { width, height } = el.getBoundingClientRect();
-    return [width / 2, height / 2];
-  }, []);
-  const getEdgeProximity = useCallback((el, x, y) => {
-    const [cx, cy] = getCenterOfElement(el);
-    const dx = x - cx; const dy = y - cy;
-    let kx = Infinity; let ky = Infinity;
-    if (dx !== 0) kx = cx / Math.abs(dx);
-    if (dy !== 0) ky = cy / Math.abs(dy);
-    return Math.min(Math.max(1 / Math.min(kx, ky), 0), 1);
-  }, [getCenterOfElement]);
-  const getCursorAngle = useCallback((el, x, y) => {
-    const [cx, cy] = getCenterOfElement(el);
-    const dx = x - cx; const dy = y - cy;
-    if (dx === 0 && dy === 0) return 0;
-    let degrees = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
-    if (degrees < 0) degrees += 360;
-    return degrees;
-  }, [getCenterOfElement]);
-  const handlePointerMove = useCallback((e) => {
-    const card = cardRef.current;
-    if (!card) return;
-    const rect = card.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    card.style.setProperty('--edge-proximity', `${(getEdgeProximity(card, x, y) * 100).toFixed(3)}`);
-    card.style.setProperty('--cursor-angle', `${getCursorAngle(card, x, y).toFixed(3)}deg`);
-  }, [getEdgeProximity, getCursorAngle]);
-  useEffect(() => {
-    if (!animated || !cardRef.current) return;
-    const card = cardRef.current;
-    const angleStart = 110; const angleEnd = 465;
-    card.classList.add('sweep-active');
-    card.style.setProperty('--cursor-angle', `${angleStart}deg`);
-    animateValue({ duration: 500, onUpdate: v => card.style.setProperty('--edge-proximity', v) });
-    animateValue({ ease: easeInCubic, duration: 1500, end: 50, onUpdate: v => { card.style.setProperty('--cursor-angle', `${(angleEnd - angleStart) * (v / 100) + angleStart}deg`); } });
-    animateValue({ ease: easeOutCubic, delay: 1500, duration: 2250, start: 50, end: 100, onUpdate: v => { card.style.setProperty('--cursor-angle', `${(angleEnd - angleStart) * (v / 100) + angleStart}deg`); } });
-    animateValue({ ease: easeInCubic, delay: 2500, duration: 1500, start: 100, end: 0, onUpdate: v => card.style.setProperty('--edge-proximity', v), onEnd: () => card.classList.remove('sweep-active') });
-  }, [animated]);
-  const glowVars = buildGlowVars(glowColor, glowIntensity);
-  return (
-    <div
-      ref={cardRef}
-      onPointerMove={handlePointerMove}
-      className={`border-glow-card ${className}`}
-      style={{
-        '--card-bg': backgroundColor,
-        '--edge-sensitivity': edgeSensitivity,
-        '--border-radius': `${borderRadius}px`,
-        '--glow-padding': `${glowRadius}px`,
-        '--cone-spread': coneSpread,
-        '--fill-opacity': fillOpacity,
-        ...glowVars,
-        ...buildGradientVars(colors),
-      }}
-    >
-      <span className="edge-light" />
-      <div className="border-glow-inner">{children}</div>
-    </div>
-  );
-}
-
 function Marquee() {
   const items = ['Premium Quality', '✦', 'South African Brand', '✦', 'Sport & Lifestyle', '✦', 'All Ages', '✦', 'Free Delivery', '✦', '118 Pieces', '✦'];
   return (
@@ -683,77 +514,120 @@ function Marquee() {
   );
 }
 
+// ─── CategoryCard: fully themed to dark gold, no BorderGlow ──────────────────
 function CategoryCard({ cat, index, sectionProgress }) {
   const [hovered, setHovered] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const cardRef = useRef(null);
+  const glowRef = useRef(null);
+
   const delay = index * 0.13;
   const cardProgress = Math.max(0, Math.min(1, (sectionProgress - 0.1 - delay) / 0.45));
   const enterY = (1 - cardProgress) * 80;
   const enterOp = Math.min(1, cardProgress * 1.2);
+
   const handleMouseMove = useCallback((e) => {
     const rect = cardRef.current?.getBoundingClientRect();
     if (!rect) return;
-    setMousePos({ x: (e.clientX - rect.left) / rect.width - 0.5, y: (e.clientY - rect.top) / rect.height - 0.5 });
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top) / rect.height;
+    setMousePos({ x: x - 0.5, y: y - 0.5 });
+    if (glowRef.current) {
+      glowRef.current.style.background = `radial-gradient(400px circle at ${x * 100}% ${y * 100}%, rgba(201,168,76,0.12) 0%, transparent 65%)`;
+    }
   }, []);
+
   const tiltX = hovered ? mousePos.y * -18 : 0;
   const tiltY = hovered ? mousePos.x * 22 : 0;
+
   return (
     <Link href={`/shop?category=${cat.label.toLowerCase()}`} style={{ textDecoration: 'none', display: 'block' }}>
-      <BorderGlow
-        edgeSensitivity={30}
-        glowColor="40 80 80"
-        backgroundColor="#120F17"
-        borderRadius={0}
-        glowRadius={40}
-        glowIntensity={1}
-        coneSpread={25}
-        colors={['#c084fc', '#f472b6', '#38bdf8']}
-        fillOpacity={0.5}
+      <div
+        ref={cardRef}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => { setHovered(false); setMousePos({ x: 0, y: 0 }); if (glowRef.current) glowRef.current.style.background = 'none'; }}
+        onMouseMove={handleMouseMove}
+        style={{
+          perspective: '900px',
+          transformStyle: 'preserve-3d',
+          transform: `translateY(${enterY}px) rotateY(${tiltY}deg) rotateX(${tiltX}deg) ${hovered ? 'translateZ(16px)' : ''}`,
+          opacity: enterOp,
+          transition: hovered
+            ? 'transform 0.07s ease, box-shadow 0.4s'
+            : 'transform 0.9s cubic-bezier(0.16,1,0.3,1), opacity 0.9s, box-shadow 0.4s',
+          willChange: 'transform',
+          position: 'relative',
+          overflow: 'hidden',
+          background: hovered
+            ? 'linear-gradient(135deg, rgba(12,9,4,0.98) 0%, rgba(20,14,5,0.98) 100%)'
+            : 'linear-gradient(135deg, rgba(8,6,3,0.97) 0%, rgba(12,9,4,0.97) 100%)',
+          boxShadow: hovered
+            ? '0 40px 80px rgba(0,0,0,0.7), 0 0 60px rgba(201,168,76,0.08), inset 0 1px 0 rgba(201,168,76,0.15)'
+            : '0 4px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(201,168,76,0.05)',
+          border: `1px solid ${hovered ? 'rgba(201,168,76,0.3)' : 'rgba(201,168,76,0.08)'}`,
+          padding: '3.5rem 2.4rem',
+          cursor: 'pointer',
+        }}
       >
-        <div
-          ref={cardRef}
-          onMouseEnter={() => setHovered(true)}
-          onMouseLeave={() => { setHovered(false); setMousePos({ x: 0, y: 0 }); }}
-          onMouseMove={handleMouseMove}
-          style={{ perspective: '900px' }}
-        >
+        {/* Mouse-follow glow */}
+        <div ref={glowRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none', transition: 'background 0.1s', zIndex: 0 }} />
+
+        {/* Subtle scan lines */}
+        <div style={{ position: 'absolute', inset: 0, backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(201,168,76,0.006) 2px, rgba(201,168,76,0.006) 3px)', pointerEvents: 'none', zIndex: 0 }} />
+
+        {/* Animated bottom line */}
+        <div style={{ position: 'absolute', bottom: 0, left: 0, height: '1px', width: hovered ? '100%' : '0%', background: 'linear-gradient(90deg, transparent, #C9A84C 30%, #EDD070 50%, #C9A84C 70%, transparent)', transition: 'width 0.7s cubic-bezier(0.16,1,0.3,1)', zIndex: 1 }} />
+
+        {/* Corner accents */}
+        {[['top', 'left'], ['top', 'right'], ['bottom', 'left'], ['bottom', 'right']].map(([v, h], ci) => (
+          <div key={ci} style={{
+            position: 'absolute', [v]: 0, [h]: 0,
+            width: hovered ? '32px' : '12px',
+            height: hovered ? '32px' : '12px',
+            borderTop: v === 'top' ? `1px solid ${hovered ? '#C9A84C' : 'rgba(201,168,76,0.3)'}` : 'none',
+            borderBottom: v === 'bottom' ? `1px solid ${hovered ? '#C9A84C' : 'rgba(201,168,76,0.3)'}` : 'none',
+            borderLeft: h === 'left' ? `1px solid ${hovered ? '#C9A84C' : 'rgba(201,168,76,0.3)'}` : 'none',
+            borderRight: h === 'right' ? `1px solid ${hovered ? '#C9A84C' : 'rgba(201,168,76,0.3)'}` : 'none',
+            transition: 'all 0.5s cubic-bezier(0.16,1,0.3,1)',
+            zIndex: 1,
+          }} />
+        ))}
+
+        {/* Content */}
+        <div style={{ position: 'relative', zIndex: 2 }}>
+          <p style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '0.6rem', color: hovered ? '#C9A84C' : 'rgba(201,168,76,0.22)', letterSpacing: '0.3em', marginBottom: '1.8rem', transition: 'color 0.4s' }}>
+            {String(index + 1).padStart(2, '0')}
+          </p>
+
+          <span style={{
+            fontSize: '3rem', display: 'block', marginBottom: '1.8rem',
+            transform: hovered ? 'scale(1.15) rotate(-8deg)' : 'scale(1)',
+            transition: 'transform 0.55s cubic-bezier(0.16,1,0.3,1)',
+            filter: hovered ? 'drop-shadow(0 0 16px rgba(201,168,76,0.5))' : 'none',
+          }}>{cat.icon}</span>
+
+          <h3 style={{
+            fontFamily: 'Cormorant Garamond, serif', fontSize: '1.95rem', fontWeight: 300,
+            color: hovered ? '#FFFFFF' : '#C8BC9E',
+            marginBottom: '0.7rem', transition: 'color 0.3s',
+            textShadow: hovered ? '0 0 40px rgba(255,255,255,0.18)' : 'none',
+          }}>{cat.label}</h3>
+
+          <p style={{ fontSize: '0.6rem', color: hovered ? 'rgba(201,168,76,0.5)' : 'rgba(100,90,70,0.8)', letterSpacing: '0.1em', lineHeight: 2, transition: 'color 0.3s' }}>
+            {cat.desc}
+          </p>
+
           <div style={{
-            padding: '3.5rem 2.4rem',
-            background: 'transparent',
-            cursor: 'pointer', position: 'relative', overflow: 'hidden',
-            transformStyle: 'preserve-3d',
-            transform: `translateY(${enterY}px) rotateY(${tiltY}deg) rotateX(${tiltX}deg) ${hovered ? 'translateZ(16px)' : ''}`,
-            opacity: enterOp,
-            transition: hovered
-              ? 'transform 0.07s ease'
-              : 'transform 0.9s cubic-bezier(0.16,1,0.3,1), opacity 0.9s',
-            willChange: 'transform',
+            display: 'flex', alignItems: 'center', gap: '0.6rem', marginTop: '2rem',
+            opacity: hovered ? 1 : 0,
+            transform: hovered ? 'translateX(0)' : 'translateX(-14px)',
+            transition: 'all 0.45s cubic-bezier(0.16,1,0.3,1)',
           }}>
-            <div style={{ position: 'absolute', inset: 0, backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(201,168,76,0.006) 2px, rgba(201,168,76,0.006) 3px)', pointerEvents: 'none' }} />
-            {[['top','left'],['top','right'],['bottom','left'],['bottom','right']].map(([v,h], ci) => (
-              <div key={ci} style={{
-                position: 'absolute', [v]: 0, [h]: 0,
-                width: hovered ? '32px' : '12px', height: hovered ? '32px' : '12px',
-                borderTop: v === 'top' ? '1px solid #C9A84C' : 'none',
-                borderBottom: v === 'bottom' ? '1px solid #C9A84C' : 'none',
-                borderLeft: h === 'left' ? '1px solid #C9A84C' : 'none',
-                borderRight: h === 'right' ? '1px solid #C9A84C' : 'none',
-                transition: 'all 0.5s cubic-bezier(0.16,1,0.3,1)',
-              }} />
-            ))}
-            <div style={{ position: 'absolute', bottom: 0, left: 0, height: '1px', width: hovered ? '100%' : '0%', background: 'linear-gradient(90deg, transparent, #C9A84C 30%, #C9A84C 70%, transparent)', transition: 'width 0.7s cubic-bezier(0.16,1,0.3,1)' }} />
-            <p style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '0.6rem', color: hovered ? '#C9A84C' : 'rgba(201,168,76,0.22)', letterSpacing: '0.3em', marginBottom: '1.8rem', transition: 'color 0.4s' }}>{String(index + 1).padStart(2, '0')}</p>
-            <span style={{ fontSize: '3rem', display: 'block', marginBottom: '1.8rem', transform: hovered ? 'scale(1.15) rotate(-8deg)' : 'scale(1)', transition: 'transform 0.55s cubic-bezier(0.16,1,0.3,1)', filter: hovered ? 'drop-shadow(0 0 16px rgba(201,168,76,0.5))' : 'none' }}>{cat.icon}</span>
-            <h3 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.95rem', fontWeight: 300, color: hovered ? '#FFFFFF' : '#E8E0D0', marginBottom: '0.7rem', transition: 'color 0.3s', textShadow: hovered ? '0 0 40px rgba(255,255,255,0.18)' : 'none' }}>{cat.label}</h3>
-            <p style={{ fontSize: '0.6rem', color: '#555', letterSpacing: '0.1em', lineHeight: 2 }}>{cat.desc}</p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginTop: '2rem', opacity: hovered ? 1 : 0, transform: hovered ? 'translateX(0)' : 'translateX(-14px)', transition: 'all 0.45s cubic-bezier(0.16,1,0.3,1)' }}>
-              <div style={{ width: '22px', height: '1px', background: '#C9A84C' }} />
-              <span style={{ fontSize: '0.5rem', color: '#C9A84C', letterSpacing: '0.35em', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif' }}>Explore</span>
-            </div>
+            <div style={{ width: '22px', height: '1px', background: '#C9A84C' }} />
+            <span style={{ fontSize: '0.5rem', color: '#C9A84C', letterSpacing: '0.35em', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif' }}>Explore</span>
           </div>
         </div>
-      </BorderGlow>
+      </div>
     </Link>
   );
 }
@@ -893,9 +767,7 @@ export default function HomePage() {
         <GooeyNav items={navItems} initialActiveIndex={0} />
 
         <section ref={heroRef} style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '4rem 2rem', position: 'relative', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
-            <Ribbons baseThickness={28} colors={['#C9A84C', '#8B6914']} speedMultiplier={0.5} maxAge={500} />
-          </div>
+          
           <div style={{ position: 'absolute', inset: 0, zIndex: 1 }}>
             <AntigravityCanvas
               count={300}
@@ -1103,57 +975,6 @@ export default function HomePage() {
               opacity: 0;
             }
           }
-
-          .border-glow-card {
-            position: relative;
-            border-radius: var(--border-radius, 28px);
-            background: var(--card-bg, #120F17);
-            overflow: hidden;
-          }
-          .border-glow-card .edge-light {
-            position: absolute;
-            inset: calc(var(--glow-padding, 40px) * -1);
-            border-radius: inherit;
-            opacity: calc(var(--edge-proximity, 0) / var(--edge-sensitivity, 30));
-            background:
-              conic-gradient(
-                from calc(var(--cursor-angle, 0deg) - var(--cone-spread, 25) * 1deg),
-                transparent 0deg,
-                var(--glow-color-10) 2deg,
-                var(--glow-color-20) 5deg,
-                var(--glow-color-30) 10deg,
-                var(--glow-color-40) 18deg,
-                var(--glow-color-50) 28deg,
-                var(--glow-color-60) 38deg,
-                var(--glow-color) 50deg,
-                var(--glow-color-60) 62deg,
-                var(--glow-color-50) 72deg,
-                var(--glow-color-40) 82deg,
-                var(--glow-color-30) 90deg,
-                var(--glow-color-20) 95deg,
-                var(--glow-color-10) 98deg,
-                transparent calc(var(--cone-spread, 25) * 2deg + 2deg)
-              );
-            pointer-events: none;
-            z-index: 0;
-            transition: opacity 0.1s ease;
-          }
-          .border-glow-inner {
-            position: relative;
-            z-index: 1;
-            border-radius: inherit;
-            background:
-              var(--gradient-base),
-              var(--gradient-one),
-              var(--gradient-two),
-              var(--gradient-three),
-              var(--gradient-four),
-              var(--gradient-five),
-              var(--gradient-six),
-              var(--gradient-seven);
-            opacity: var(--fill-opacity, 0.5);
-          }
-          .border-glow-inner > * { opacity: calc(1 / var(--fill-opacity, 0.5)); }
 
           .rr-btn-primary {
             display: inline-block;

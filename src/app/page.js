@@ -634,28 +634,124 @@ function CategoryCard({ cat, index, sectionProgress }) {
 
 function ValueCard({ value, index, sectionProgress }) {
   const [hovered, setHovered] = useState(false);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const cardRef = useRef(null);
+  const glowRef = useRef(null);
   const romans = ['I', 'II', 'III', 'IV'];
-  const delay = index * 0.15;
+  const icons = ['◈', '◆', '◉', '◇'];
+
+  const delay = index * 0.13;
   const cardP = Math.max(0, Math.min(1, (sectionProgress - 0.08 - delay) / 0.5));
-  const entryY = (1 - cardP) * 100;
+  const entryY = (1 - cardP) * 80;
+
+  const handleMouseMove = useCallback((e) => {
+    const rect = cardRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top) / rect.height;
+    setMousePos({ x: x - 0.5, y: y - 0.5 });
+    if (glowRef.current) {
+      glowRef.current.style.background = `radial-gradient(350px circle at ${x * 100}% ${y * 100}%, rgba(201,168,76,0.11) 0%, transparent 65%)`;
+    }
+  }, []);
+
+  const tiltX = hovered ? mousePos.y * -14 : 0;
+  const tiltY = hovered ? mousePos.x * 18 : 0;
+
   return (
     <div
+      ref={cardRef}
       onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseLeave={() => { setHovered(false); setMousePos({ x: 0, y: 0 }); if (glowRef.current) glowRef.current.style.background = 'none'; }}
+      onMouseMove={handleMouseMove}
       style={{
-        background: hovered ? 'rgba(201,168,76,0.05)' : 'rgba(5,5,4,0.94)',
-        padding: '3.8rem 2rem', textAlign: 'center',
-        position: 'relative', overflow: 'hidden', backdropFilter: 'blur(12px)',
-        border: '1px solid', borderColor: hovered ? 'rgba(201,168,76,0.28)' : 'rgba(201,168,76,0.06)',
-        transform: `translateY(${entryY}px)`, opacity: cardP,
-        transition: hovered ? 'background 0.4s, border-color 0.4s, box-shadow 0.3s' : 'background 0.4s, border-color 0.4s, transform 0.9s cubic-bezier(0.16,1,0.3,1), opacity 0.9s',
-        boxShadow: hovered ? '0 30px 80px rgba(0,0,0,0.6)' : 'none', willChange: 'transform, opacity',
+        perspective: '900px',
+        transformStyle: 'preserve-3d',
+        transform: `translateY(${entryY}px) rotateY(${tiltY}deg) rotateX(${tiltX}deg) ${hovered ? 'translateZ(14px)' : ''}`,
+        opacity: cardP,
+        transition: hovered
+          ? 'transform 0.07s ease, box-shadow 0.4s'
+          : 'transform 0.9s cubic-bezier(0.16,1,0.3,1), opacity 0.9s, box-shadow 0.4s',
+        willChange: 'transform',
+        position: 'relative',
+        overflow: 'hidden',
+        textAlign: 'center',
+        background: hovered
+          ? 'linear-gradient(135deg, rgba(14,10,4,0.96) 0%, rgba(22,16,5,0.96) 100%)'
+          : 'linear-gradient(135deg, rgba(6,5,2,0.85) 0%, rgba(10,8,3,0.85) 100%)',
+        backdropFilter: 'blur(16px)',
+        boxShadow: hovered
+          ? '0 40px 80px rgba(0,0,0,0.8), 0 0 60px rgba(201,168,76,0.07), inset 0 1px 0 rgba(201,168,76,0.12)'
+          : '0 4px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(201,168,76,0.04)',
+        border: `1px solid ${hovered ? 'rgba(201,168,76,0.28)' : 'rgba(201,168,76,0.07)'}`,
+        padding: '3.8rem 2.2rem',
+        cursor: 'default',
       }}
     >
-      <div style={{ position: 'absolute', top: '-1rem', right: '1.2rem', fontFamily: 'Cormorant Garamond, serif', fontSize: '5.5rem', fontWeight: 300, color: hovered ? 'rgba(201,168,76,0.1)' : 'rgba(201,168,76,0.03)', transition: 'color 0.4s', userSelect: 'none', pointerEvents: 'none' }}>{romans[index]}</div>
-      <div style={{ width: hovered ? '55px' : '18px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: '0 auto 1.8rem', transition: 'width 0.55s cubic-bezier(0.16,1,0.3,1)' }} />
-      <h3 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.5rem', fontWeight: 300, color: hovered ? '#FFFFFF' : '#C9A84C', marginBottom: '1rem', transition: 'color 0.3s' }}>{value.title}</h3>
-      <p style={{ fontSize: '0.62rem', color: '#666', lineHeight: 2.1, letterSpacing: '0.06em' }}>{value.desc}</p>
+      {/* Mouse-follow glow */}
+      <div ref={glowRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0 }} />
+
+      {/* Scan lines */}
+      <div style={{ position: 'absolute', inset: 0, backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(201,168,76,0.005) 2px, rgba(201,168,76,0.005) 3px)', pointerEvents: 'none', zIndex: 0 }} />
+
+      {/* Animated bottom sweep */}
+      <div style={{ position: 'absolute', bottom: 0, left: 0, height: '1px', width: hovered ? '100%' : '0%', background: 'linear-gradient(90deg, transparent, #C9A84C 30%, #EDD070 50%, #C9A84C 70%, transparent)', transition: 'width 0.7s cubic-bezier(0.16,1,0.3,1)', zIndex: 1 }} />
+
+      {/* Corner accents */}
+      {[['top', 'left'], ['top', 'right'], ['bottom', 'left'], ['bottom', 'right']].map(([v, h], ci) => (
+        <div key={ci} style={{
+          position: 'absolute', [v]: 0, [h]: 0,
+          width: hovered ? '28px' : '10px',
+          height: hovered ? '28px' : '10px',
+          borderTop: v === 'top' ? `1px solid ${hovered ? '#C9A84C' : 'rgba(201,168,76,0.25)'}` : 'none',
+          borderBottom: v === 'bottom' ? `1px solid ${hovered ? '#C9A84C' : 'rgba(201,168,76,0.25)'}` : 'none',
+          borderLeft: h === 'left' ? `1px solid ${hovered ? '#C9A84C' : 'rgba(201,168,76,0.25)'}` : 'none',
+          borderRight: h === 'right' ? `1px solid ${hovered ? '#C9A84C' : 'rgba(201,168,76,0.25)'}` : 'none',
+          transition: 'all 0.5s cubic-bezier(0.16,1,0.3,1)',
+          zIndex: 1,
+        }} />
+      ))}
+
+      {/* Ghost roman numeral */}
+      <div style={{ position: 'absolute', top: '-1rem', right: '1rem', fontFamily: 'Cormorant Garamond, serif', fontSize: '5.5rem', fontWeight: 300, color: hovered ? 'rgba(201,168,76,0.09)' : 'rgba(201,168,76,0.03)', transition: 'color 0.5s', userSelect: 'none', pointerEvents: 'none', zIndex: 0 }}>{romans[index]}</div>
+
+      {/* Content */}
+      <div style={{ position: 'relative', zIndex: 2 }}>
+        {/* Icon */}
+        <div style={{
+          fontSize: '1.6rem', color: hovered ? '#C9A84C' : 'rgba(201,168,76,0.3)',
+          marginBottom: '1.6rem',
+          transform: hovered ? 'scale(1.2) rotate(15deg)' : 'scale(1) rotate(0deg)',
+          transition: 'all 0.55s cubic-bezier(0.16,1,0.3,1)',
+          filter: hovered ? 'drop-shadow(0 0 12px rgba(201,168,76,0.6))' : 'none',
+          display: 'block',
+        }}>{icons[index]}</div>
+
+        {/* Expanding line */}
+        <div style={{ width: hovered ? '55px' : '18px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: '0 auto 1.8rem', transition: 'width 0.55s cubic-bezier(0.16,1,0.3,1)' }} />
+
+        <h3 style={{
+          fontFamily: 'Cormorant Garamond, serif', fontSize: '1.6rem', fontWeight: 300,
+          color: hovered ? '#FFFFFF' : '#C8BC9E',
+          marginBottom: '1rem', transition: 'color 0.3s',
+          textShadow: hovered ? '0 0 40px rgba(255,255,255,0.15)' : 'none',
+          letterSpacing: '0.02em',
+        }}>{value.title}</h3>
+
+        <p style={{ fontSize: '0.62rem', color: hovered ? 'rgba(201,168,76,0.45)' : 'rgba(100,90,70,0.75)', lineHeight: 2.1, letterSpacing: '0.06em', transition: 'color 0.3s' }}>{value.desc}</p>
+
+        {/* Explore nudge */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem', marginTop: '1.8rem',
+          opacity: hovered ? 1 : 0,
+          transform: hovered ? 'translateY(0)' : 'translateY(8px)',
+          transition: 'all 0.45s cubic-bezier(0.16,1,0.3,1)',
+        }}>
+          <div style={{ width: '16px', height: '1px', background: '#C9A84C' }} />
+          <span style={{ fontSize: '0.46rem', color: '#C9A84C', letterSpacing: '0.38em', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif' }}>Our Commitment</span>
+          <div style={{ width: '16px', height: '1px', background: '#C9A84C' }} />
+        </div>
+      </div>
     </div>
   );
 }
@@ -852,21 +948,23 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section style={{ position: 'relative', zIndex: 2, background: '#040302', overflow: 'hidden', height: '340px' }}>
-          <LineWaves speed={0.3} innerLineCount={32} warpIntensity={1} color1="#C9A84C" color2="#8B6914" brightness={0.2} enableMouseInteraction mouseInfluence={2} />
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 1 }}>
-            <p style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(1.6rem, 4vw, 3rem)', fontWeight: 300, fontStyle: 'italic', color: 'rgba(255,255,255,0.7)', textShadow: '0 0 60px rgba(201,168,76,0.3)' }}>Movement. Style. Identity.</p>
+        <section ref={valuesRef} style={{ position: 'relative', zIndex: 2, overflow: 'hidden', borderTop: '1px solid rgba(201,168,76,0.1)', borderBottom: '1px solid rgba(201,168,76,0.1)' }}>
+          {/* Wave canvas background */}
+          <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+            <LineWaves speed={0.3} innerLineCount={40} warpIntensity={1.1} color1="#C9A84C" color2="#8B6914" brightness={0.18} enableMouseInteraction mouseInfluence={1.8} />
           </div>
-        </section>
+          {/* Dark overlay so cards read clearly */}
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(4,3,2,0.72)', zIndex: 1, pointerEvents: 'none' }} />
 
-        <section ref={valuesRef} style={{ padding: '11rem 4rem', maxWidth: '1300px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
-          <div style={{ textAlign: 'center', marginBottom: '6rem', transform: `translateY(${Math.max(0, (0.4 - valuesScroll) * 60)}px)`, opacity: Math.min(1, valuesScroll * 3.5) }}>
-            <p style={{ fontSize: '0.55rem', color: '#C9A84C', letterSpacing: '0.6em', textTransform: 'uppercase', marginBottom: '1.2rem', fontFamily: 'Montserrat, sans-serif' }}>What We Stand For</p>
-            <h2 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(2.8rem, 7vw, 5.5rem)', fontWeight: 300, color: '#FFFFFF', textShadow: '0 0 60px rgba(255,255,255,0.07)' }}>Our Values</h2>
-            <div style={{ width: '70px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: '1.8rem auto 0' }} />
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '2px', background: 'rgba(201,168,76,0.05)' }}>
-            {values.map((v, i) => <ValueCard key={v.title} value={v} index={i} sectionProgress={valuesScroll} />)}
+          <div style={{ position: 'relative', zIndex: 2, padding: '11rem 4rem', maxWidth: '1300px', margin: '0 auto' }}>
+            <div style={{ textAlign: 'center', marginBottom: '6rem', transform: `translateY(${Math.max(0, (0.4 - valuesScroll) * 60)}px)`, opacity: Math.min(1, valuesScroll * 3.5) }}>
+              <p style={{ fontSize: '0.55rem', color: '#C9A84C', letterSpacing: '0.6em', textTransform: 'uppercase', marginBottom: '1.2rem', fontFamily: 'Montserrat, sans-serif' }}>What We Stand For</p>
+              <h2 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(2.8rem, 7vw, 5.5rem)', fontWeight: 300, color: '#FFFFFF', textShadow: '0 0 60px rgba(255,255,255,0.07)' }}>Our Values</h2>
+              <div style={{ width: '70px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: '1.8rem auto 0' }} />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '2px', background: 'rgba(201,168,76,0.05)' }}>
+              {values.map((v, i) => <ValueCard key={v.title} value={v} index={i} sectionProgress={valuesScroll} />)}
+            </div>
           </div>
         </section>
 

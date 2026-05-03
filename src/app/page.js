@@ -1,11 +1,11 @@
 'use client';
 
-import { Canvas, useThree, useFrame } from '@react-three/fiber';
-import * as THREE from 'three';
-import { Renderer, Triangle, Program, Mesh } from 'ogl';
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import gsap from 'gsap';
+import { Canvas, useThree, useFrame } from '@react-three/fiber';
+import * as THREE from 'three';
+import { Renderer, Triangle, Program, Mesh } from 'ogl';
 
 function useElementScroll() {
   const ref = useRef(null);
@@ -171,11 +171,11 @@ function Ribbons({ baseThickness = 30, colors = ['#C9A84C'], speedMultiplier = 0
 function AntigravityInner({ count = 300, magnetRadius = 6, ringRadius = 7, waveSpeed = 0.4, waveAmplitude = 1, particleSize = 1.5, lerpSpeed = 0.05, color = '#5227FF', autoAnimate = false, particleVariance = 1, rotationSpeed = 0, depthFactor = 1, pulseSpeed = 3, particleShape = 'capsule', fieldStrength = 10 }) {
   const meshRef = useRef(null);
   const { viewport } = useThree();
-  const dummy = React.useMemo(() => new THREE.Object3D(), []);
+  const dummy = useMemo(() => new THREE.Object3D(), []);
   const lastMousePos = useRef({ x: 0, y: 0 });
   const lastMouseMoveTime = useRef(0);
   const virtualMouse = useRef({ x: 0, y: 0 });
-  const particles = React.useMemo(() => {
+  const particles = useMemo(() => {
     const temp = [];
     const width = viewport.width || 100;
     const height = viewport.height || 100;

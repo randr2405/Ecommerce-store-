@@ -948,31 +948,26 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ── Values: wave header ── */}
-        <div ref={valuesRef} style={{ position: 'relative', zIndex: 2, overflow: 'hidden', height: '340px', borderTop: '1px solid rgba(201,168,76,0.1)' }}>
-          <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
-            <LineWaves speed={0.3} innerLineCount={40} warpIntensity={1.1} color1="#C9A84C" color2="#8B6914" brightness={0.18} enableMouseInteraction mouseInfluence={1.8} />
-          </div>
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(4,3,2,0.68)', zIndex: 1, pointerEvents: 'none' }} />
-          <div style={{ position: 'relative', zIndex: 2, height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', transform: `translateY(${Math.max(0, (0.4 - valuesScroll) * 60)}px)`, opacity: Math.min(1, valuesScroll * 3.5) }}>
+        {/* ── Values: plain dark header (matches collections style) ── */}
+        <section ref={valuesRef} style={{ padding: '11rem 4rem 10rem', maxWidth: '1300px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
+          <div style={{ textAlign: 'center', marginBottom: '7rem', transform: `translateY(${Math.max(0, (0.5 - valuesScroll) * 60)}px)`, opacity: Math.min(1, valuesScroll * 3.5) }}>
             <p style={{ fontSize: '0.55rem', color: '#C9A84C', letterSpacing: '0.6em', textTransform: 'uppercase', marginBottom: '1.2rem', fontFamily: 'Montserrat, sans-serif' }}>What We Stand For</p>
             <h2 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(2.8rem, 7vw, 5.5rem)', fontWeight: 300, color: '#FFFFFF', textShadow: '0 0 60px rgba(255,255,255,0.07)' }}>Our Values</h2>
             <div style={{ width: '70px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: '1.8rem auto 0' }} />
           </div>
-        </div>
-
-        {/* ── Values: cards grid (clean dark, like collections) ── */}
-        <section style={{ padding: '0 4rem 10rem', maxWidth: '1300px', margin: '0 auto', position: 'relative', zIndex: 2, borderBottom: '1px solid rgba(201,168,76,0.1)' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '2px', background: 'rgba(201,168,76,0.05)', marginTop: '-1px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '2px', background: 'rgba(201,168,76,0.05)' }}>
             {values.map((v, i) => <ValueCard key={v.title} value={v} index={i} sectionProgress={valuesScroll} />)}
           </div>
         </section>
 
-        <section style={{ padding: '14rem 2rem', textAlign: 'center', background: 'linear-gradient(180deg, rgba(4,3,2,0.97) 0%, rgba(8,6,3,0.99) 100%)', backdropFilter: 'blur(20px)', borderTop: '1px solid rgba(201,168,76,0.1)', position: 'relative', zIndex: 2, overflow: 'hidden' }}>
-          {[1,2,3,4,5].map(i => (
-            <div key={i} style={{ position: 'absolute', top: '50%', left: '50%', width: `${i * 20}vw`, height: `${i * 20}vw`, borderRadius: '50%', border: `1px solid rgba(201,168,76,${0.08 - i * 0.01})`, transform: 'translate(-50%, -50%)', animation: `rrRingPulse ${2.5 + i * 0.6}s ease-in-out infinite alternate`, animationDelay: `${i * 0.4}s`, pointerEvents: 'none' }} />
-          ))}
-          <div style={{ position: 'relative', zIndex: 1 }}>
+        <section style={{ padding: '14rem 2rem', textAlign: 'center', borderTop: '1px solid rgba(201,168,76,0.1)', position: 'relative', zIndex: 2, overflow: 'hidden' }}>
+          {/* Wave canvas background */}
+          <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+            <LineWaves speed={0.3} innerLineCount={40} warpIntensity={1.1} color1="#C9A84C" color2="#8B6914" brightness={0.18} enableMouseInteraction mouseInfluence={1.8} />
+          </div>
+          {/* Dark overlay */}
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(4,3,2,0.78)', zIndex: 1, pointerEvents: 'none' }} />
+          <div style={{ position: 'relative', zIndex: 2 }}>
             <p style={{ fontSize: '0.55rem', color: '#C9A84C', letterSpacing: '0.6em', textTransform: 'uppercase', marginBottom: '2rem', fontFamily: 'Montserrat, sans-serif' }}>118 premium pieces — available now</p>
             <h2 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(3rem, 9vw, 7.5rem)', fontWeight: 300, lineHeight: 1.05, marginBottom: '4rem' }}>
               <span style={{ color: '#FFFFFF', textShadow: '0 0 80px rgba(255,255,255,0.08)', display: 'block' }}>Ready to</span>

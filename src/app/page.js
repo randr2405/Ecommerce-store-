@@ -757,15 +757,24 @@ function ValueCard({ value, index, sectionProgress }) {
 }
 
 function LineWaves({ speed = 0.3, innerLineCount = 32, warpIntensity = 1, color1 = '#C9A84C', color2 = '#8B6914', brightness = 0.2, enableMouseInteraction = true, mouseInfluence = 2 }) {
+  const wrapperRef = useRef(null);
   const canvasRef = useRef(null);
   useEffect(() => {
+    const wrapper = wrapperRef.current;
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || !wrapper) return;
     const ctx = canvas.getContext('2d');
-    let w = canvas.width = canvas.offsetWidth;
-    let h = canvas.height = canvas.offsetHeight;
-    let mouse = { x: w / 2, y: h / 2 };
+    let w = 0; let h = 0;
+    let mouse = { x: 0, y: 0 };
     let raf; let t = 0;
+    const setSize = () => {
+      w = canvas.width = wrapper.offsetWidth || window.innerWidth;
+      h = canvas.height = wrapper.offsetHeight || window.innerHeight;
+      mouse = { x: w / 2, y: h / 2 };
+    };
+    setSize();
+    const ro = new ResizeObserver(setSize);
+    ro.observe(wrapper);
     const onMove = (e) => {
       if (!enableMouseInteraction) return;
       const rect = canvas.getBoundingClientRect();
@@ -773,8 +782,11 @@ function LineWaves({ speed = 0.3, innerLineCount = 32, warpIntensity = 1, color1
       mouse.y = e.clientY - rect.top;
     };
     window.addEventListener('mousemove', onMove);
+    const r1v = parseInt(color1.slice(1,3),16); const g1v = parseInt(color1.slice(3,5),16); const b1v = parseInt(color1.slice(5,7),16);
+    const r2v = parseInt(color2.slice(1,3),16); const g2v = parseInt(color2.slice(3,5),16); const b2v = parseInt(color2.slice(5,7),16);
     const animate = () => {
       raf = requestAnimationFrame(animate);
+      if (!w || !h) return;
       t += speed * 0.016;
       ctx.clearRect(0, 0, w, h);
       for (let li = 0; li < innerLineCount; li++) {
@@ -792,22 +804,22 @@ function LineWaves({ speed = 0.3, innerLineCount = 32, warpIntensity = 1, color1
         }
         const alpha = brightness * (0.4 + Math.sin(t + li * 0.3) * 0.3 + mousePull * 0.5);
         const colorMix = (Math.sin(t * 0.5 + li * 0.1) + 1) / 2;
-        const r1 = parseInt(color1.slice(1, 3), 16); const g1 = parseInt(color1.slice(3, 5), 16); const b1 = parseInt(color1.slice(5, 7), 16);
-        const r2 = parseInt(color2.slice(1, 3), 16); const g2 = parseInt(color2.slice(3, 5), 16); const b2 = parseInt(color2.slice(5, 7), 16);
-        const r = Math.round(r1 + (r2 - r1) * colorMix);
-        const g = Math.round(g1 + (g2 - g1) * colorMix);
-        const b = Math.round(b1 + (b2 - b1) * colorMix);
+        const r = Math.round(r1v + (r2v - r1v) * colorMix);
+        const g = Math.round(g1v + (g2v - g1v) * colorMix);
+        const b = Math.round(b1v + (b2v - b1v) * colorMix);
         ctx.strokeStyle = `rgba(${r},${g},${b},${Math.min(1, alpha)})`;
         ctx.lineWidth = 1;
         ctx.stroke();
       }
     };
     animate();
-    const onResize = () => { w = canvas.width = canvas.offsetWidth; h = canvas.height = canvas.offsetHeight; };
-    window.addEventListener('resize', onResize);
-    return () => { cancelAnimationFrame(raf); window.removeEventListener('mousemove', onMove); window.removeEventListener('resize', onResize); };
+    return () => { cancelAnimationFrame(raf); ro.disconnect(); window.removeEventListener('mousemove', onMove); };
   }, [speed, innerLineCount, warpIntensity, color1, color2, brightness, enableMouseInteraction, mouseInfluence]);
-  return <canvas ref={canvasRef} style={{ width: '100%', height: '100%', display: 'block' }} />;
+  return (
+    <div ref={wrapperRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+      <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: '100%' }} />
+    </div>
+  );
 }
 
 export default function HomePage() {

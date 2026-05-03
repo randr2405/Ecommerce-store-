@@ -975,10 +975,10 @@ export default function HomePage() {
         <section style={{ padding: '14rem 2rem', textAlign: 'center', borderTop: '1px solid rgba(201,168,76,0.1)', position: 'relative', zIndex: 2, overflow: 'hidden' }}>
           {/* Wave canvas background */}
           <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
-            <LineWaves speed={0.3} innerLineCount={40} warpIntensity={1.1} color1="#C9A84C" color2="#8B6914" brightness={0.18} enableMouseInteraction mouseInfluence={1.8} />
+            <LineWaves speed={0.3} innerLineCount={40} warpIntensity={1.1} color1="#C9A84C" color2="#8B6914" bbrightness={0.45} enableMouseInteraction mouseInfluence={1.8} />
           </div>
           {/* Dark overlay */}
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(4,3,2,0.78)', zIndex: 1, pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(4,3,2,0.45)', zIndex: 1, pointerEvents: 'none' }} />
           <div style={{ position: 'relative', zIndex: 2 }}>
             <p style={{ fontSize: '0.55rem', color: '#C9A84C', letterSpacing: '0.6em', textTransform: 'uppercase', marginBottom: '2rem', fontFamily: 'Montserrat, sans-serif' }}>118 premium pieces — available now</p>
             <h2 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(3rem, 9vw, 7.5rem)', fontWeight: 300, lineHeight: 1.05, marginBottom: '4rem' }}>

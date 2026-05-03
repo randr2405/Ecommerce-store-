@@ -20,16 +20,24 @@ function useElementScroll() {
       ticking = false;
     };
     const onScroll = () => {
-      if (!ticking) {
-        requestAnimationFrame(update);
-        ticking = true;
-      }
+      if (!ticking) { requestAnimationFrame(update); ticking = true; }
     };
     window.addEventListener('scroll', onScroll, { passive: true });
     update();
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
   return [ref, p];
+}
+
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth <= 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+  return isMobile;
 }
 
 function ClickSpark({ children, sparkColor = '#C9A84C', sparkSize = 8, sparkRadius = 14, sparkCount = 8, duration = 400 }) {
@@ -89,26 +97,21 @@ function TargetCursor({ targetSelector = 'a, button', spinDuration = 2, hideDefa
     if (isMobile || !cursorRef.current) return;
     const originalCursor = document.body.style.cursor;
     if (hideDefaultCursor) document.body.style.cursor = 'none';
-
     const cursor = cursorRef.current;
     cornersRef.current = cursor.querySelectorAll('.tc-corner');
     let activeTarget = null;
     let currentLeaveHandler = null;
     let resumeTimeout = null;
-
     const cleanupTarget = target => {
       if (currentLeaveHandler) target.removeEventListener('mouseleave', currentLeaveHandler);
       currentLeaveHandler = null;
     };
-
     gsap.set(cursor, { xPercent: -50, yPercent: -50, x: window.innerWidth / 2, y: window.innerHeight / 2 });
-
     const createSpinTimeline = () => {
       if (spinTl.current) spinTl.current.kill();
       spinTl.current = gsap.timeline({ repeat: -1 }).to(cursor, { rotation: '+=360', duration: spinDuration, ease: 'none' });
     };
     createSpinTimeline();
-
     const tickerFn = () => {
       if (!targetCornerPositionsRef.current || !cursorRef.current || !cornersRef.current) return;
       const strength = activeStrengthRef.current;
@@ -127,10 +130,8 @@ function TargetCursor({ targetSelector = 'a, button', spinDuration = 2, hideDefa
       });
     };
     tickerFnRef.current = tickerFn;
-
     const moveHandler = e => moveCursor(e.clientX, e.clientY);
     window.addEventListener('mousemove', moveHandler);
-
     const scrollHandler = () => {
       if (!activeTarget || !cursorRef.current) return;
       const mouseX = gsap.getProperty(cursorRef.current, 'x');
@@ -140,7 +141,6 @@ function TargetCursor({ targetSelector = 'a, button', spinDuration = 2, hideDefa
       if (!stillOver && currentLeaveHandler) currentLeaveHandler();
     };
     window.addEventListener('scroll', scrollHandler, { passive: true });
-
     const mouseDownHandler = () => {
       if (!dotRef.current) return;
       gsap.to(dotRef.current, { scale: 0.7, duration: 0.3 });
@@ -153,7 +153,6 @@ function TargetCursor({ targetSelector = 'a, button', spinDuration = 2, hideDefa
     };
     window.addEventListener('mousedown', mouseDownHandler);
     window.addEventListener('mouseup', mouseUpHandler);
-
     const enterHandler = e => {
       let current = e.target;
       let target = null;
@@ -165,33 +164,28 @@ function TargetCursor({ targetSelector = 'a, button', spinDuration = 2, hideDefa
       if (activeTarget === target) return;
       if (activeTarget) cleanupTarget(activeTarget);
       if (resumeTimeout) { clearTimeout(resumeTimeout); resumeTimeout = null; }
-
       activeTarget = target;
       const corners = Array.from(cornersRef.current);
       corners.forEach(corner => gsap.killTweensOf(corner));
       gsap.killTweensOf(cursorRef.current, 'rotation');
       spinTl.current?.pause();
       gsap.set(cursorRef.current, { rotation: 0 });
-
       const rect = target.getBoundingClientRect();
       const { borderWidth, cornerSize } = constants;
       const cursorX = gsap.getProperty(cursorRef.current, 'x');
       const cursorY = gsap.getProperty(cursorRef.current, 'y');
-
       targetCornerPositionsRef.current = [
         { x: rect.left - borderWidth, y: rect.top - borderWidth },
         { x: rect.right + borderWidth - cornerSize, y: rect.top - borderWidth },
         { x: rect.right + borderWidth - cornerSize, y: rect.bottom + borderWidth - cornerSize },
         { x: rect.left - borderWidth, y: rect.bottom + borderWidth - cornerSize },
       ];
-
       isActiveRef.current = true;
       gsap.ticker.add(tickerFnRef.current);
       gsap.to(activeStrengthRef, { current: 1, duration: hoverDuration, ease: 'power2.out' });
       corners.forEach((corner, i) => {
         gsap.to(corner, { x: targetCornerPositionsRef.current[i].x - cursorX, y: targetCornerPositionsRef.current[i].y - cursorY, duration: 0.2, ease: 'power2.out' });
       });
-
       const leaveHandler = () => {
         gsap.ticker.remove(tickerFnRef.current);
         isActiveRef.current = false;
@@ -226,7 +220,6 @@ function TargetCursor({ targetSelector = 'a, button', spinDuration = 2, hideDefa
       target.addEventListener('mouseleave', leaveHandler);
     };
     window.addEventListener('mouseover', enterHandler, { passive: true });
-
     return () => {
       if (tickerFnRef.current) gsap.ticker.remove(tickerFnRef.current);
       window.removeEventListener('mousemove', moveHandler);
@@ -256,9 +249,64 @@ function TargetCursor({ targetSelector = 'a, button', spinDuration = 2, hideDefa
   );
 }
 
+function MobileNav({ items }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          background: 'none', border: 'none', cursor: 'pointer',
+          display: 'flex', flexDirection: 'column', gap: '5px', padding: '4px',
+        }}
+        aria-label="Toggle menu"
+      >
+        {[0, 1, 2].map(i => (
+          <span key={i} style={{
+            display: 'block', width: '22px', height: '1px', background: '#C9A84C',
+            transition: 'all 0.3s',
+            transform: open
+              ? i === 0 ? 'rotate(45deg) translate(4px, 4px)'
+                : i === 2 ? 'rotate(-45deg) translate(4px, -4px)'
+                : 'scaleX(0)'
+              : 'none',
+            opacity: open && i === 1 ? 0 : 1,
+          }} />
+        ))}
+      </button>
+      {open && (
+        <div style={{
+          position: 'fixed', top: '60px', left: 0, right: 0,
+          background: 'rgba(4,3,2,0.98)', backdropFilter: 'blur(20px)',
+          borderBottom: '1px solid rgba(201,168,76,0.12)',
+          padding: '1.5rem 0', zIndex: 999,
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0',
+        }}>
+          {items.map((item) => (
+            <Link key={item.label} href={item.href} onClick={() => setOpen(false)} style={{
+              width: '100%', textAlign: 'center', padding: '1rem 2rem',
+              fontSize: '0.65rem', fontFamily: 'Montserrat, sans-serif',
+              fontWeight: 300, letterSpacing: '0.3em', textTransform: 'uppercase',
+              color: 'rgba(201,168,76,0.8)', textDecoration: 'none',
+              borderBottom: '1px solid rgba(201,168,76,0.06)',
+            }}>{item.label}</Link>
+          ))}
+          <Link href="/shop" onClick={() => setOpen(false)} style={{
+            marginTop: '1rem',
+            fontSize: '0.6rem', fontFamily: 'Montserrat, sans-serif', fontWeight: 400,
+            letterSpacing: '0.3em', textTransform: 'uppercase', color: '#C9A84C', textDecoration: 'none',
+            border: '1px solid rgba(201,168,76,0.4)', padding: '0.6rem 1.5rem',
+          }}>Shop</Link>
+        </div>
+      )}
+    </>
+  );
+}
+
 function GooeyNav({ items, initialActiveIndex = 0 }) {
   const [active, setActive] = useState(initialActiveIndex);
   const [particles, setParticles] = useState([]);
+  const isMobile = useIsMobile();
   const colors = ['#C9A84C', '#8B6914', '#EDD070', '#A07828'];
   const handleClick = (index) => {
     if (index === active) return;
@@ -272,39 +320,45 @@ function GooeyNav({ items, initialActiveIndex = 0 }) {
   };
   return (
     <nav style={{
-      position: 'fixed', top: 0, left: 0, right: 0, height: '70px',
+      position: 'fixed', top: 0, left: 0, right: 0, height: '60px',
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: '0 3rem', background: 'rgba(4,3,2,0.92)',
+      padding: '0 1.5rem', background: 'rgba(4,3,2,0.92)',
       backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(201,168,76,0.12)', zIndex: 1000,
     }}>
-      <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.5rem', fontWeight: 300, color: '#C9A84C', letterSpacing: '0.08em' }}>R&amp;R</div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', position: 'relative' }}>
-        {items.map((item, i) => (
-          <Link key={item.label} href={item.href} onClick={() => handleClick(i)} style={{
-            position: 'relative', padding: '0.6rem 1.2rem', fontSize: '0.52rem',
-            fontFamily: 'Montserrat, sans-serif', fontWeight: active === i ? 500 : 300,
-            letterSpacing: '0.3em', textTransform: 'uppercase',
-            color: active === i ? '#080604' : 'rgba(201,168,76,0.6)', textDecoration: 'none',
-            transition: 'color 0.3s', zIndex: 1,
-          }}>
-            {active === i && <span style={{ position: 'absolute', inset: 0, background: '#C9A84C', borderRadius: '2px', zIndex: -1, animation: 'navPillIn 0.35s cubic-bezier(0.16,1,0.3,1)' }} />}
-            {item.label}
-            {active === i && particles.map(p => (
-              <span key={p.id} style={{
-                position: 'absolute', left: '50%', top: '50%',
-                width: p.size, height: p.size, borderRadius: '50%', background: p.color,
-                transform: `translate(${p.x}px, ${p.y}px)`,
-                animation: 'particlePop 0.6s ease-out forwards', pointerEvents: 'none', zIndex: 10,
-              }} />
+      <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.4rem', fontWeight: 300, color: '#C9A84C', letterSpacing: '0.08em' }}>R&amp;R</div>
+      {isMobile ? (
+        <MobileNav items={items} />
+      ) : (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', position: 'relative' }}>
+            {items.map((item, i) => (
+              <Link key={item.label} href={item.href} onClick={() => handleClick(i)} style={{
+                position: 'relative', padding: '0.6rem 1.2rem', fontSize: '0.52rem',
+                fontFamily: 'Montserrat, sans-serif', fontWeight: active === i ? 500 : 300,
+                letterSpacing: '0.3em', textTransform: 'uppercase',
+                color: active === i ? '#080604' : 'rgba(201,168,76,0.6)', textDecoration: 'none',
+                transition: 'color 0.3s', zIndex: 1,
+              }}>
+                {active === i && <span style={{ position: 'absolute', inset: 0, background: '#C9A84C', borderRadius: '2px', zIndex: -1, animation: 'navPillIn 0.35s cubic-bezier(0.16,1,0.3,1)' }} />}
+                {item.label}
+                {active === i && particles.map(p => (
+                  <span key={p.id} style={{
+                    position: 'absolute', left: '50%', top: '50%',
+                    width: p.size, height: p.size, borderRadius: '50%', background: p.color,
+                    transform: `translate(${p.x}px, ${p.y}px)`,
+                    animation: 'particlePop 0.6s ease-out forwards', pointerEvents: 'none', zIndex: 10,
+                  }} />
+                ))}
+              </Link>
             ))}
-          </Link>
-        ))}
-      </div>
-      <Link href="/shop" style={{
-        fontSize: '0.48rem', fontFamily: 'Montserrat, sans-serif', fontWeight: 400,
-        letterSpacing: '0.3em', textTransform: 'uppercase', color: '#C9A84C', textDecoration: 'none',
-        border: '1px solid rgba(201,168,76,0.4)', padding: '0.5rem 1.1rem', transition: 'all 0.3s',
-      }}>Shop</Link>
+          </div>
+          <Link href="/shop" style={{
+            fontSize: '0.48rem', fontFamily: 'Montserrat, sans-serif', fontWeight: 400,
+            letterSpacing: '0.3em', textTransform: 'uppercase', color: '#C9A84C', textDecoration: 'none',
+            border: '1px solid rgba(201,168,76,0.4)', padding: '0.5rem 1.1rem', transition: 'all 0.3s',
+          }}>Shop</Link>
+        </>
+      )}
     </nav>
   );
 }
@@ -409,6 +463,7 @@ function AntigravityCanvas(props) {
 
 function LiquidChrome({ baseColor = [0.1, 0.1, 0.1], speed = 0.2, amplitude = 0.3, frequencyX = 3, frequencyY = 3, interactive = true }) {
   const containerRef = useRef(null);
+  const isMobile = useIsMobile();
   useEffect(() => {
     if (!containerRef.current) return;
     const container = containerRef.current;
@@ -488,7 +543,7 @@ function LiquidChrome({ baseColor = [0.1, 0.1, 0.1], speed = 0.2, amplitude = 0.
       program.uniforms.uMouse.value[0] = (event.clientX - rect.left) / rect.width;
       program.uniforms.uMouse.value[1] = 1 - (event.clientY - rect.top) / rect.height;
     }
-    if (interactive) container.addEventListener('mousemove', handleMouseMove);
+    if (interactive && !isMobile) container.addEventListener('mousemove', handleMouseMove);
     let animationId;
     function update(t) {
       animationId = requestAnimationFrame(update);
@@ -500,11 +555,11 @@ function LiquidChrome({ baseColor = [0.1, 0.1, 0.1], speed = 0.2, amplitude = 0.
     return () => {
       cancelAnimationFrame(animationId);
       window.removeEventListener('resize', resize);
-      if (interactive) container.removeEventListener('mousemove', handleMouseMove);
+      if (interactive && !isMobile) container.removeEventListener('mousemove', handleMouseMove);
       if (gl.canvas.parentElement) gl.canvas.parentElement.removeChild(gl.canvas);
       gl.getExtension('WEBGL_lose_context')?.loseContext();
     };
-  }, [baseColor, speed, amplitude, frequencyX, frequencyY, interactive]);
+  }, [baseColor, speed, amplitude, frequencyX, frequencyY, interactive, isMobile]);
   return <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }} />;
 }
 
@@ -526,6 +581,7 @@ function CategoryCard({ cat, index, sectionProgress }) {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const cardRef = useRef(null);
   const glowRef = useRef(null);
+  const isMobile = useIsMobile();
 
   const delay = index * 0.13;
   const cardProgress = Math.max(0, Math.min(1, (sectionProgress - 0.1 - delay) / 0.45));
@@ -533,6 +589,7 @@ function CategoryCard({ cat, index, sectionProgress }) {
   const enterOp = Math.min(1, cardProgress * 1.2);
 
   const handleMouseMove = useCallback((e) => {
+    if (isMobile) return;
     const rect = cardRef.current?.getBoundingClientRect();
     if (!rect) return;
     const x = (e.clientX - rect.left) / rect.width;
@@ -541,17 +598,17 @@ function CategoryCard({ cat, index, sectionProgress }) {
     if (glowRef.current) {
       glowRef.current.style.background = `radial-gradient(400px circle at ${x * 100}% ${y * 100}%, rgba(201,168,76,0.12) 0%, transparent 65%)`;
     }
-  }, []);
+  }, [isMobile]);
 
-  const tiltX = hovered ? mousePos.y * -18 : 0;
-  const tiltY = hovered ? mousePos.x * 22 : 0;
+  const tiltX = (!isMobile && hovered) ? mousePos.y * -18 : 0;
+  const tiltY = (!isMobile && hovered) ? mousePos.x * 22 : 0;
 
   return (
     <Link href={`/shop?category=${cat.label.toLowerCase()}`} style={{ textDecoration: 'none', display: 'block' }}>
       <div
         ref={cardRef}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => { setHovered(false); setMousePos({ x: 0, y: 0 }); if (glowRef.current) glowRef.current.style.background = 'none'; }}
+        onMouseEnter={() => !isMobile && setHovered(true)}
+        onMouseLeave={() => { if (isMobile) return; setHovered(false); setMousePos({ x: 0, y: 0 }); if (glowRef.current) glowRef.current.style.background = 'none'; }}
         onMouseMove={handleMouseMove}
         style={{
           perspective: '900px',
@@ -571,8 +628,9 @@ function CategoryCard({ cat, index, sectionProgress }) {
             ? '0 40px 80px rgba(0,0,0,0.7), 0 0 60px rgba(201,168,76,0.08), inset 0 1px 0 rgba(201,168,76,0.15)'
             : '0 4px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(201,168,76,0.05)',
           border: `1px solid ${hovered ? 'rgba(201,168,76,0.3)' : 'rgba(201,168,76,0.08)'}`,
-          padding: '3.5rem 2.4rem',
+          padding: isMobile ? '2rem 1.5rem' : '3.5rem 2.4rem',
           cursor: 'pointer',
+          minHeight: isMobile ? 'auto' : undefined,
         }}
       >
         <div ref={glowRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none', transition: 'background 0.1s', zIndex: 0 }} />
@@ -592,17 +650,17 @@ function CategoryCard({ cat, index, sectionProgress }) {
           }} />
         ))}
         <div style={{ position: 'relative', zIndex: 2 }}>
-          <p style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '0.6rem', color: hovered ? '#C9A84C' : 'rgba(201,168,76,0.22)', letterSpacing: '0.3em', marginBottom: '1.8rem', transition: 'color 0.4s' }}>
+          <p style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '0.6rem', color: hovered ? '#C9A84C' : 'rgba(201,168,76,0.22)', letterSpacing: '0.3em', marginBottom: isMobile ? '1rem' : '1.8rem', transition: 'color 0.4s' }}>
             {String(index + 1).padStart(2, '0')}
           </p>
           <span style={{
-            fontSize: '3rem', display: 'block', marginBottom: '1.8rem',
+            fontSize: isMobile ? '2rem' : '3rem', display: 'block', marginBottom: isMobile ? '1rem' : '1.8rem',
             transform: hovered ? 'scale(1.15) rotate(-8deg)' : 'scale(1)',
             transition: 'transform 0.55s cubic-bezier(0.16,1,0.3,1)',
             filter: hovered ? 'drop-shadow(0 0 16px rgba(201,168,76,0.5))' : 'none',
           }}>{cat.icon}</span>
           <h3 style={{
-            fontFamily: 'Cormorant Garamond, serif', fontSize: '1.95rem', fontWeight: 300,
+            fontFamily: 'Cormorant Garamond, serif', fontSize: isMobile ? '1.4rem' : '1.95rem', fontWeight: 300,
             color: hovered ? '#FFFFFF' : '#C8BC9E',
             marginBottom: '0.7rem', transition: 'color 0.3s',
             textShadow: hovered ? '0 0 40px rgba(255,255,255,0.18)' : 'none',
@@ -611,9 +669,9 @@ function CategoryCard({ cat, index, sectionProgress }) {
             {cat.desc}
           </p>
           <div style={{
-            display: 'flex', alignItems: 'center', gap: '0.6rem', marginTop: '2rem',
-            opacity: hovered ? 1 : 0,
-            transform: hovered ? 'translateX(0)' : 'translateX(-14px)',
+            display: 'flex', alignItems: 'center', gap: '0.6rem', marginTop: isMobile ? '1.2rem' : '2rem',
+            opacity: isMobile ? 1 : hovered ? 1 : 0,
+            transform: isMobile ? 'none' : hovered ? 'translateX(0)' : 'translateX(-14px)',
             transition: 'all 0.45s cubic-bezier(0.16,1,0.3,1)',
           }}>
             <div style={{ width: '22px', height: '1px', background: '#C9A84C' }} />
@@ -630,6 +688,7 @@ function ValueCard({ value, index, sectionProgress }) {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const cardRef = useRef(null);
   const glowRef = useRef(null);
+  const isMobile = useIsMobile();
   const romans = ['I', 'II', 'III', 'IV'];
   const icons = ['◈', '◆', '◉', '◇'];
 
@@ -638,6 +697,7 @@ function ValueCard({ value, index, sectionProgress }) {
   const entryY = (1 - cardP) * 80;
 
   const handleMouseMove = useCallback((e) => {
+    if (isMobile) return;
     const rect = cardRef.current?.getBoundingClientRect();
     if (!rect) return;
     const x = (e.clientX - rect.left) / rect.width;
@@ -646,16 +706,16 @@ function ValueCard({ value, index, sectionProgress }) {
     if (glowRef.current) {
       glowRef.current.style.background = `radial-gradient(350px circle at ${x * 100}% ${y * 100}%, rgba(201,168,76,0.11) 0%, transparent 65%)`;
     }
-  }, []);
+  }, [isMobile]);
 
-  const tiltX = hovered ? mousePos.y * -14 : 0;
-  const tiltY = hovered ? mousePos.x * 18 : 0;
+  const tiltX = (!isMobile && hovered) ? mousePos.y * -14 : 0;
+  const tiltY = (!isMobile && hovered) ? mousePos.x * 18 : 0;
 
   return (
     <div
       ref={cardRef}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => { setHovered(false); setMousePos({ x: 0, y: 0 }); if (glowRef.current) glowRef.current.style.background = 'none'; }}
+      onMouseEnter={() => !isMobile && setHovered(true)}
+      onMouseLeave={() => { if (isMobile) return; setHovered(false); setMousePos({ x: 0, y: 0 }); if (glowRef.current) glowRef.current.style.background = 'none'; }}
       onMouseMove={handleMouseMove}
       style={{
         perspective: '900px',
@@ -677,7 +737,7 @@ function ValueCard({ value, index, sectionProgress }) {
           ? '0 40px 80px rgba(0,0,0,0.8), 0 0 60px rgba(201,168,76,0.07), inset 0 1px 0 rgba(201,168,76,0.12)'
           : '0 4px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(201,168,76,0.04)',
         border: `1px solid ${hovered ? 'rgba(201,168,76,0.28)' : 'rgba(201,168,76,0.07)'}`,
-        padding: '3.8rem 2.2rem',
+        padding: isMobile ? '2.5rem 1.5rem' : '3.8rem 2.2rem',
         cursor: 'default',
       }}
     >
@@ -697,7 +757,7 @@ function ValueCard({ value, index, sectionProgress }) {
           zIndex: 1,
         }} />
       ))}
-      <div style={{ position: 'absolute', top: '-1rem', right: '1rem', fontFamily: 'Cormorant Garamond, serif', fontSize: '5.5rem', fontWeight: 300, color: hovered ? 'rgba(201,168,76,0.09)' : 'rgba(201,168,76,0.03)', transition: 'color 0.5s', userSelect: 'none', pointerEvents: 'none', zIndex: 0 }}>{romans[index]}</div>
+      <div style={{ position: 'absolute', top: '-1rem', right: '1rem', fontFamily: 'Cormorant Garamond, serif', fontSize: isMobile ? '4rem' : '5.5rem', fontWeight: 300, color: hovered ? 'rgba(201,168,76,0.09)' : 'rgba(201,168,76,0.03)', transition: 'color 0.5s', userSelect: 'none', pointerEvents: 'none', zIndex: 0 }}>{romans[index]}</div>
       <div style={{ position: 'relative', zIndex: 2 }}>
         <div style={{
           fontSize: '1.6rem', color: hovered ? '#C9A84C' : 'rgba(201,168,76,0.3)',
@@ -709,7 +769,7 @@ function ValueCard({ value, index, sectionProgress }) {
         }}>{icons[index]}</div>
         <div style={{ width: hovered ? '55px' : '18px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: '0 auto 1.8rem', transition: 'width 0.55s cubic-bezier(0.16,1,0.3,1)' }} />
         <h3 style={{
-          fontFamily: 'Cormorant Garamond, serif', fontSize: '1.6rem', fontWeight: 300,
+          fontFamily: 'Cormorant Garamond, serif', fontSize: isMobile ? '1.4rem' : '1.6rem', fontWeight: 300,
           color: hovered ? '#FFFFFF' : '#C8BC9E',
           marginBottom: '1rem', transition: 'color 0.3s',
           textShadow: hovered ? '0 0 40px rgba(255,255,255,0.15)' : 'none',
@@ -718,8 +778,8 @@ function ValueCard({ value, index, sectionProgress }) {
         <p style={{ fontSize: '0.62rem', color: hovered ? 'rgba(201,168,76,0.45)' : 'rgba(100,90,70,0.75)', lineHeight: 2.1, letterSpacing: '0.06em', transition: 'color 0.3s' }}>{value.desc}</p>
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem', marginTop: '1.8rem',
-          opacity: hovered ? 1 : 0,
-          transform: hovered ? 'translateY(0)' : 'translateY(8px)',
+          opacity: isMobile ? 1 : hovered ? 1 : 0,
+          transform: isMobile ? 'none' : hovered ? 'translateY(0)' : 'translateY(8px)',
           transition: 'all 0.45s cubic-bezier(0.16,1,0.3,1)',
         }}>
           <div style={{ width: '16px', height: '1px', background: '#C9A84C' }} />
@@ -734,6 +794,7 @@ function ValueCard({ value, index, sectionProgress }) {
 function LineWaves({ speed = 0.3, innerLineCount = 32, warpIntensity = 1, color1 = '#C9A84C', color2 = '#8B6914', brightness = 0.2, enableMouseInteraction = true, mouseInfluence = 2 }) {
   const wrapperRef = useRef(null);
   const canvasRef = useRef(null);
+  const isMobile = useIsMobile();
   useEffect(() => {
     const wrapper = wrapperRef.current;
     const canvas = canvasRef.current;
@@ -751,7 +812,7 @@ function LineWaves({ speed = 0.3, innerLineCount = 32, warpIntensity = 1, color1
     const ro = new ResizeObserver(setSize);
     ro.observe(wrapper);
     const onMove = (e) => {
-      if (!enableMouseInteraction) return;
+      if (!enableMouseInteraction || isMobile) return;
       const rect = canvas.getBoundingClientRect();
       mouse.x = e.clientX - rect.left;
       mouse.y = e.clientY - rect.top;
@@ -768,7 +829,7 @@ function LineWaves({ speed = 0.3, innerLineCount = 32, warpIntensity = 1, color1
         const progress = li / innerLineCount;
         const y = progress * h;
         const mouseDistY = Math.abs(mouse.y - y) / h;
-        const mousePull = enableMouseInteraction ? (1 - Math.min(1, mouseDistY * 3)) * mouseInfluence : 0;
+        const mousePull = (enableMouseInteraction && !isMobile) ? (1 - Math.min(1, mouseDistY * 3)) * mouseInfluence : 0;
         ctx.beginPath();
         for (let x = 0; x <= w; x += 3) {
           const warp = Math.sin(x * 0.01 + t + li * 0.18) * 18 * warpIntensity
@@ -789,7 +850,7 @@ function LineWaves({ speed = 0.3, innerLineCount = 32, warpIntensity = 1, color1
     };
     animate();
     return () => { cancelAnimationFrame(raf); ro.disconnect(); window.removeEventListener('mousemove', onMove); };
-  }, [speed, innerLineCount, warpIntensity, color1, color2, brightness, enableMouseInteraction, mouseInfluence]);
+  }, [speed, innerLineCount, warpIntensity, color1, color2, brightness, enableMouseInteraction, mouseInfluence, isMobile]);
   return (
     <div ref={wrapperRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
       <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: '100%' }} />
@@ -803,6 +864,7 @@ export default function HomePage() {
   const [collectionsRef, collectionsScroll] = useElementScroll();
   const [brandRef, brandScroll] = useElementScroll();
   const [valuesRef, valuesScroll] = useElementScroll();
+  const isMobile = useIsMobile();
 
   const navItems = [
     { label: 'Home', href: '/' },
@@ -837,22 +899,24 @@ export default function HomePage() {
 
   return (
     <ClickSpark sparkColor="#C9A84C" sparkSize={7} sparkRadius={14} sparkCount={8} duration={400}>
-      <div style={{ paddingTop: '70px', background: '#040302', overflowX: 'hidden' }}>
+      <div style={{ paddingTop: '60px', background: '#040302', overflowX: 'hidden' }}>
 
-        <TargetCursor
-          targetSelector="a, button"
-          spinDuration={2.4}
-          hideDefaultCursor={true}
-          hoverDuration={0.18}
-          parallaxOn={true}
-        />
+        {!isMobile && (
+          <TargetCursor
+            targetSelector="a, button"
+            spinDuration={2.4}
+            hideDefaultCursor={true}
+            hoverDuration={0.18}
+            parallaxOn={true}
+          />
+        )}
 
         <GooeyNav items={navItems} initialActiveIndex={0} />
 
-        <section ref={heroRef} style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '4rem 2rem', position: 'relative', overflow: 'hidden' }}>
+        <section ref={heroRef} style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: isMobile ? '2rem 1rem' : '4rem 2rem', position: 'relative', overflow: 'hidden' }}>
           <div style={{ position: 'absolute', inset: 0, zIndex: 1 }}>
             <AntigravityCanvas
-              count={120}
+              count={isMobile ? 60 : 120}
               magnetRadius={6}
               ringRadius={7}
               waveSpeed={0.4}
@@ -870,14 +934,14 @@ export default function HomePage() {
             />
           </div>
           <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(201,168,76,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(201,168,76,0.03) 1px, transparent 1px)', backgroundSize: '88px 88px', transform: `perspective(800px) rotateX(${55 + heroScroll * 14}deg) translateZ(-80px) scale(2.2)`, transformOrigin: '50% 100%', opacity: 0.5, zIndex: 2, pointerEvents: 'none' }} />
-          <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: '800px', height: '800px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(201,168,76,0.06) 0%, rgba(201,168,76,0.015) 40%, transparent 65%)', pointerEvents: 'none', zIndex: 2, animation: 'rrBloom 4s ease-in-out infinite alternate' }} />
-          <div style={{ maxWidth: '960px', position: 'relative', zIndex: 3, transform: `translateY(${heroTranslateY}px)`, opacity: heroOpacity, willChange: 'transform, opacity', backfaceVisibility: 'hidden', background: 'radial-gradient(ellipse 85% 100% at 50% 50%, rgba(4,3,2,0.88) 0%, rgba(4,3,2,0.65) 58%, transparent 100%)', padding: '3rem 5rem', borderRadius: '50%' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1.2rem', marginBottom: '3rem', opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'none' : 'translateY(20px)', transition: 'opacity 1s ease 0.2s, transform 1s ease 0.2s' }}>
-              <div style={{ width: '38px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C)' }} />
-              <p style={{ fontSize: '0.57rem', color: '#C9A84C', letterSpacing: '0.55em', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif', fontWeight: 300 }}>Premium Sport &amp; Lifestyle</p>
-              <div style={{ width: '38px', height: '1px', background: 'linear-gradient(90deg, #C9A84C, transparent)' }} />
+          <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: isMobile ? '320px' : '800px', height: isMobile ? '320px' : '800px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(201,168,76,0.06) 0%, rgba(201,168,76,0.015) 40%, transparent 65%)', pointerEvents: 'none', zIndex: 2, animation: 'rrBloom 4s ease-in-out infinite alternate' }} />
+          <div style={{ maxWidth: '960px', width: '100%', position: 'relative', zIndex: 3, transform: `translateY(${heroTranslateY}px)`, opacity: heroOpacity, willChange: 'transform, opacity', backfaceVisibility: 'hidden', background: 'radial-gradient(ellipse 85% 100% at 50% 50%, rgba(4,3,2,0.88) 0%, rgba(4,3,2,0.65) 58%, transparent 100%)', padding: isMobile ? '2rem 1.5rem' : '3rem 5rem', borderRadius: '50%' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.8rem', marginBottom: isMobile ? '1.5rem' : '3rem', opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'none' : 'translateY(20px)', transition: 'opacity 1s ease 0.2s, transform 1s ease 0.2s' }}>
+              <div style={{ width: isMobile ? '20px' : '38px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C)' }} />
+              <p style={{ fontSize: isMobile ? '0.45rem' : '0.57rem', color: '#C9A84C', letterSpacing: isMobile ? '0.3em' : '0.55em', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif', fontWeight: 300 }}>Premium Sport &amp; Lifestyle</p>
+              <div style={{ width: isMobile ? '20px' : '38px', height: '1px', background: 'linear-gradient(90deg, #C9A84C, transparent)' }} />
             </div>
-            <div style={{ marginBottom: '2rem' }}>
+            <div style={{ marginBottom: '1.5rem' }}>
               {[
                 { text: 'R&R', gold: true, delay: 0.35 },
                 { text: 'Sport &', gold: false, delay: 0.52 },
@@ -885,83 +949,87 @@ export default function HomePage() {
               ].map((word, i) => (
                 <div key={i} style={{ overflow: 'hidden', lineHeight: 1.02 }}>
                   <div style={{ opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'none' : 'translateY(100%)', transition: `opacity 1.2s cubic-bezier(0.16,1,0.3,1) ${word.delay}s, transform 1.2s cubic-bezier(0.16,1,0.3,1) ${word.delay}s` }}>
-                    <span style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(4rem, 12vw, 10rem)', fontWeight: word.gold ? 300 : 400, color: word.gold ? '#C9A84C' : '#FFFFFF', display: 'block', letterSpacing: word.gold ? '-0.02em' : '-0.01em', textShadow: word.gold ? '0 0 80px rgba(201,168,76,0.7), 0 0 160px rgba(201,168,76,0.4)' : '0 0 8px rgba(0,0,0,1), 0 0 16px rgba(0,0,0,1), 0 0 28px rgba(0,0,0,1), 0 0 50px rgba(0,0,0,0.9)', lineHeight: 1.02 }} dangerouslySetInnerHTML={{ __html: word.text }} />
+                    <span style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: isMobile ? 'clamp(3rem, 18vw, 5rem)' : 'clamp(4rem, 12vw, 10rem)', fontWeight: word.gold ? 300 : 400, color: word.gold ? '#C9A84C' : '#FFFFFF', display: 'block', letterSpacing: word.gold ? '-0.02em' : '-0.01em', textShadow: word.gold ? '0 0 80px rgba(201,168,76,0.7), 0 0 160px rgba(201,168,76,0.4)' : '0 0 8px rgba(0,0,0,1), 0 0 16px rgba(0,0,0,1), 0 0 28px rgba(0,0,0,1), 0 0 50px rgba(0,0,0,0.9)', lineHeight: 1.02 }} dangerouslySetInnerHTML={{ __html: word.text }} />
                   </div>
                 </div>
               ))}
             </div>
-            <div style={{ width: heroVisible ? '130px' : '0px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: '2.8rem auto', transition: 'width 1.6s cubic-bezier(0.16,1,0.3,1) 0.9s' }} />
-            <p style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.75)', letterSpacing: '0.42em', textTransform: 'uppercase', marginBottom: '4rem', fontFamily: 'Montserrat, sans-serif', fontWeight: 200, opacity: heroVisible ? 1 : 0, transition: 'opacity 1s ease 1.2s' }}>Own the Look · Own the Moment</p>
-            <div style={{ display: 'flex', gap: '1.4rem', justifyContent: 'center', flexWrap: 'wrap', opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'none' : 'translateY(20px)', transition: 'opacity 1s ease 1.5s, transform 1s ease 1.5s' }}>
+            <div style={{ width: heroVisible ? isMobile ? '80px' : '130px' : '0px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: isMobile ? '1.5rem auto' : '2.8rem auto', transition: 'width 1.6s cubic-bezier(0.16,1,0.3,1) 0.9s' }} />
+            <p style={{ fontSize: isMobile ? '0.5rem' : '0.68rem', color: 'rgba(255,255,255,0.75)', letterSpacing: isMobile ? '0.25em' : '0.42em', textTransform: 'uppercase', marginBottom: isMobile ? '2rem' : '4rem', fontFamily: 'Montserrat, sans-serif', fontWeight: 200, opacity: heroVisible ? 1 : 0, transition: 'opacity 1s ease 1.2s' }}>Own the Look · Own the Moment</p>
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap', opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'none' : 'translateY(20px)', transition: 'opacity 1s ease 1.5s, transform 1s ease 1.5s' }}>
               <Link href="/shop" className="rr-btn-primary">Shop the Collection</Link>
               <Link href="/about" className="rr-btn-outline">Our Story</Link>
             </div>
-            <div style={{ marginTop: '5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.8rem', opacity: heroVisible ? 0.55 : 0, transition: 'opacity 1s ease 2.2s' }}>
-              <p style={{ fontSize: '0.44rem', color: '#C9A84C', letterSpacing: '0.5em', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif' }}>Scroll</p>
-              <div style={{ width: '1px', height: '60px', background: 'linear-gradient(180deg, #C9A84C, transparent)', animation: 'rrScrollPulse 2s ease-in-out infinite' }} />
-            </div>
+            {!isMobile && (
+              <div style={{ marginTop: '5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.8rem', opacity: heroVisible ? 0.55 : 0, transition: 'opacity 1s ease 2.2s' }}>
+                <p style={{ fontSize: '0.44rem', color: '#C9A84C', letterSpacing: '0.5em', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif' }}>Scroll</p>
+                <div style={{ width: '1px', height: '60px', background: 'linear-gradient(180deg, #C9A84C, transparent)', animation: 'rrScrollPulse 2s ease-in-out infinite' }} />
+              </div>
+            )}
           </div>
         </section>
 
         <div style={{ position: 'relative', zIndex: 2 }}><Marquee /></div>
 
-        <section ref={collectionsRef} style={{ padding: '11rem 4rem 10rem', maxWidth: '1380px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
-          <div style={{ textAlign: 'center', marginBottom: '7rem', transform: `translateZ(0) translateY(${Math.max(0, (0.5 - collectionsScroll) * 60)}px)`, opacity: Math.min(1, collectionsScroll * 3.5) }}>
+        <section ref={collectionsRef} style={{ padding: isMobile ? '5rem 1rem 4rem' : '11rem 4rem 10rem', maxWidth: '1380px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
+          <div style={{ textAlign: 'center', marginBottom: isMobile ? '3rem' : '7rem', transform: `translateZ(0) translateY(${Math.max(0, (0.5 - collectionsScroll) * 60)}px)`, opacity: Math.min(1, collectionsScroll * 3.5) }}>
             <p style={{ fontSize: '0.55rem', color: '#C9A84C', letterSpacing: '0.6em', textTransform: 'uppercase', marginBottom: '1.2rem', fontFamily: 'Montserrat, sans-serif' }}>Browse</p>
-            <h2 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(2.8rem, 7vw, 5.5rem)', fontWeight: 300, color: '#FFFFFF', textShadow: '0 0 60px rgba(255,255,255,0.07)' }}>Our Collections</h2>
+            <h2 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: isMobile ? 'clamp(2rem, 10vw, 3.5rem)' : 'clamp(2.8rem, 7vw, 5.5rem)', fontWeight: 300, color: '#FFFFFF', textShadow: '0 0 60px rgba(255,255,255,0.07)' }}>Our Collections</h2>
             <div style={{ width: '70px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: '1.8rem auto 0' }} />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2px', background: 'rgba(201,168,76,0.06)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2px', background: 'rgba(201,168,76,0.06)' }}>
             {categories.map((cat, i) => <CategoryCard key={cat.label} cat={cat} index={i} sectionProgress={collectionsScroll} />)}
           </div>
         </section>
 
-        <section ref={brandRef} style={{ backdropFilter: 'blur(24px)', borderTop: '1px solid rgba(201,168,76,0.1)', borderBottom: '1px solid rgba(201,168,76,0.1)', padding: '11rem 2rem', textAlign: 'center', position: 'relative', zIndex: 2, overflow: 'hidden', perspective: '1200px', minHeight: '600px' }}>
+        <section ref={brandRef} style={{ backdropFilter: 'blur(24px)', borderTop: '1px solid rgba(201,168,76,0.1)', borderBottom: '1px solid rgba(201,168,76,0.1)', padding: isMobile ? '6rem 1.5rem' : '11rem 2rem', textAlign: 'center', position: 'relative', zIndex: 2, overflow: 'hidden', perspective: '1200px', minHeight: isMobile ? '400px' : '600px' }}>
           <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
-            <LiquidChrome baseColor={[0.1, 0.1, 0.1]} speed={1} amplitude={0.6} interactive={true} />
+            <LiquidChrome baseColor={[0.1, 0.1, 0.1]} speed={1} amplitude={0.6} interactive={!isMobile} />
           </div>
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(4,3,2,0.55)', zIndex: 1, pointerEvents: 'none' }} />
-          <div style={{ position: 'absolute', top: '50%', left: '50%', fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(10rem, 28vw, 24rem)', color: 'transparent', WebkitTextStroke: '1px rgba(201,168,76,0.045)', userSelect: 'none', pointerEvents: 'none', whiteSpace: 'nowrap', fontWeight: 300, transform: `translate3d(-50%,-50%,0) rotateX(${brandTilt}deg) scale(${brandScale})`, willChange: 'transform', zIndex: 2 }}>R&amp;R</div>
-          <div style={{ maxWidth: '860px', margin: '0 auto', position: 'relative', zIndex: 3, transform: `rotateX(${brandTilt * 0.4}deg) scale(${0.94 + brandScroll * 0.09})`, opacity: Math.min(1, brandScroll * 3), willChange: 'transform, opacity', backfaceVisibility: 'hidden' }}>
+          {!isMobile && (
+            <div style={{ position: 'absolute', top: '50%', left: '50%', fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(10rem, 28vw, 24rem)', color: 'transparent', WebkitTextStroke: '1px rgba(201,168,76,0.045)', userSelect: 'none', pointerEvents: 'none', whiteSpace: 'nowrap', fontWeight: 300, transform: `translate3d(-50%,-50%,0) rotateX(${brandTilt}deg) scale(${brandScale})`, willChange: 'transform', zIndex: 2 }}>R&amp;R</div>
+          )}
+          <div style={{ maxWidth: '860px', margin: '0 auto', position: 'relative', zIndex: 3, transform: isMobile ? 'none' : `rotateX(${brandTilt * 0.4}deg) scale(${0.94 + brandScroll * 0.09})`, opacity: isMobile ? 1 : Math.min(1, brandScroll * 3), willChange: 'transform, opacity', backfaceVisibility: 'hidden' }}>
             <p style={{ fontSize: '0.55rem', color: '#C9A84C', letterSpacing: '0.6em', textTransform: 'uppercase', marginBottom: '2rem', fontFamily: 'Montserrat, sans-serif' }}>Our Mission</p>
-            <h2 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(2rem, 5vw, 3.7rem)', fontWeight: 300, fontStyle: 'italic', color: '#FFFFFF', lineHeight: 1.65, textShadow: '0 0 80px rgba(255,255,255,0.05)' }}>
+            <h2 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: isMobile ? 'clamp(1.4rem, 5vw, 2.2rem)' : 'clamp(2rem, 5vw, 3.7rem)', fontWeight: 300, fontStyle: 'italic', color: '#FFFFFF', lineHeight: 1.65, textShadow: '0 0 80px rgba(255,255,255,0.05)' }}>
               "Premium clothing that combines{' '}
               <span style={{ color: '#C9A84C', fontStyle: 'normal', textShadow: '0 0 40px rgba(201,168,76,0.4)' }}>elegance with comfort</span>,
               designed for the modern individual who lives without compromise."
             </h2>
-            <div style={{ width: '70px', height: '1px', background: '#C9A84C', margin: '3.5rem auto 3rem' }} />
+            <div style={{ width: '70px', height: '1px', background: '#C9A84C', margin: isMobile ? '2rem auto' : '3.5rem auto 3rem' }} />
             <Link href="/about" className="rr-btn-outline">Read Our Story</Link>
           </div>
         </section>
 
-        <section ref={valuesRef} style={{ padding: '11rem 4rem 10rem', maxWidth: '1300px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
-          <div style={{ textAlign: 'center', marginBottom: '7rem', transform: `translateZ(0) translateY(${Math.max(0, (0.5 - valuesScroll) * 60)}px)`, opacity: Math.min(1, valuesScroll * 3.5) }}>
+        <section ref={valuesRef} style={{ padding: isMobile ? '5rem 1rem 4rem' : '11rem 4rem 10rem', maxWidth: '1300px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
+          <div style={{ textAlign: 'center', marginBottom: isMobile ? '3rem' : '7rem', transform: `translateZ(0) translateY(${Math.max(0, (0.5 - valuesScroll) * 60)}px)`, opacity: Math.min(1, valuesScroll * 3.5) }}>
             <p style={{ fontSize: '0.55rem', color: '#C9A84C', letterSpacing: '0.6em', textTransform: 'uppercase', marginBottom: '1.2rem', fontFamily: 'Montserrat, sans-serif' }}>What We Stand For</p>
-            <h2 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(2.8rem, 7vw, 5.5rem)', fontWeight: 300, color: '#FFFFFF', textShadow: '0 0 60px rgba(255,255,255,0.07)' }}>Our Values</h2>
+            <h2 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: isMobile ? 'clamp(2rem, 10vw, 3.5rem)' : 'clamp(2.8rem, 7vw, 5.5rem)', fontWeight: 300, color: '#FFFFFF', textShadow: '0 0 60px rgba(255,255,255,0.07)' }}>Our Values</h2>
             <div style={{ width: '70px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: '1.8rem auto 0' }} />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '2px', background: 'rgba(201,168,76,0.05)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fit, minmax(240px, 1fr))', gap: '2px', background: 'rgba(201,168,76,0.05)' }}>
             {values.map((v, i) => <ValueCard key={v.title} value={v} index={i} sectionProgress={valuesScroll} />)}
           </div>
         </section>
 
-        <section style={{ padding: '14rem 2rem', textAlign: 'center', borderTop: '1px solid rgba(201,168,76,0.1)', position: 'relative', zIndex: 2, overflow: 'hidden' }}>
+        <section style={{ padding: isMobile ? '7rem 1.5rem' : '14rem 2rem', textAlign: 'center', borderTop: '1px solid rgba(201,168,76,0.1)', position: 'relative', zIndex: 2, overflow: 'hidden' }}>
           <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
             <LineWaves
               speed={0.3}
-              innerLineCount={50}
+              innerLineCount={isMobile ? 30 : 50}
               warpIntensity={1.6}
               color1="#C9A84C"
               color2="#8B6914"
               brightness={0.8}
-              enableMouseInteraction
+              enableMouseInteraction={!isMobile}
               mouseInfluence={2.5}
             />
           </div>
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(4,3,2,0.2)', zIndex: 1, pointerEvents: 'none' }} />
           <div style={{ position: 'relative', zIndex: 2 }}>
-            <p style={{ fontSize: '0.55rem', color: '#C9A84C', letterSpacing: '0.6em', textTransform: 'uppercase', marginBottom: '2rem', fontFamily: 'Montserrat, sans-serif' }}>118 premium pieces — available now</p>
-            <h2 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(3rem, 9vw, 7.5rem)', fontWeight: 300, lineHeight: 1.05, marginBottom: '4rem' }}>
+            <p style={{ fontSize: '0.55rem', color: '#C9A84C', letterSpacing: isMobile ? '0.2em' : '0.6em', textTransform: 'uppercase', marginBottom: '2rem', fontFamily: 'Montserrat, sans-serif' }}>118 premium pieces — available now</p>
+            <h2 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: isMobile ? 'clamp(2.5rem, 14vw, 5rem)' : 'clamp(3rem, 9vw, 7.5rem)', fontWeight: 300, lineHeight: 1.05, marginBottom: '3rem' }}>
               <span style={{ color: '#FFFFFF', textShadow: '0 0 80px rgba(255,255,255,0.08)', display: 'block' }}>Ready to</span>
               <span style={{ color: '#C9A84C', textShadow: '0 0 80px rgba(201,168,76,0.5), 0 0 160px rgba(201,168,76,0.2)', fontStyle: 'italic', display: 'block' }}>elevate</span>
               <span style={{ color: '#FFFFFF', textShadow: '0 0 80px rgba(255,255,255,0.08)', display: 'block' }}>your wardrobe?</span>
@@ -973,8 +1041,12 @@ export default function HomePage() {
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Montserrat:wght@200;300;400;500&display=swap');
 
-          * { cursor: none !important; }
+          @media (min-width: 769px) {
+            * { cursor: none !important; }
+          }
+
           html { scroll-behavior: smooth; }
+          *, *::before, *::after { box-sizing: border-box; }
 
           .tc-wrapper {
             position: fixed;
@@ -1043,7 +1115,7 @@ export default function HomePage() {
 
           .rr-btn-primary {
             display: inline-block;
-            padding: 1.15rem 3.2rem;
+            padding: 1rem 2.4rem;
             background: #C9A84C;
             color: #080604;
             font-family: 'Montserrat', sans-serif;
@@ -1053,6 +1125,7 @@ export default function HomePage() {
             position: relative; overflow: hidden;
             transition: transform 0.35s cubic-bezier(0.16,1,0.3,1), box-shadow 0.35s;
             box-shadow: 0 8px 40px rgba(201,168,76,0.2);
+            white-space: nowrap;
           }
           .rr-btn-primary::before {
             content: '';
@@ -1069,7 +1142,7 @@ export default function HomePage() {
 
           .rr-btn-outline {
             display: inline-block;
-            padding: 1.15rem 3.2rem;
+            padding: 1rem 2.4rem;
             border: 1px solid rgba(201,168,76,0.55);
             color: #C9A84C;
             font-family: 'Montserrat', sans-serif;
@@ -1078,6 +1151,7 @@ export default function HomePage() {
             text-decoration: none;
             position: relative; overflow: hidden;
             transition: border-color 0.4s, transform 0.35s cubic-bezier(0.16,1,0.3,1), box-shadow 0.35s;
+            white-space: nowrap;
           }
           .rr-btn-outline::before {
             content: '';
@@ -1091,6 +1165,22 @@ export default function HomePage() {
             border-color: #C9A84C;
             transform: translateY(-5px);
             box-shadow: 0 20px 50px rgba(201,168,76,0.15);
+          }
+
+          @media (max-width: 768px) {
+            .rr-btn-primary, .rr-btn-outline {
+              padding: 0.85rem 1.8rem;
+              font-size: 0.52rem;
+              letter-spacing: 0.25em;
+            }
+          }
+
+          @media (max-width: 480px) {
+            .rr-btn-primary, .rr-btn-outline {
+              padding: 0.75rem 1.4rem;
+              font-size: 0.48rem;
+              letter-spacing: 0.2em;
+            }
           }
         `}</style>
       </div>

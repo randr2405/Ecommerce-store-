@@ -301,6 +301,68 @@ function GooeyNav({ items, initialActiveIndex = 0 }) {
   );
 }
 
+function Ribbons({ baseThickness = 30, colors = ['#C9A84C'], speedMultiplier = 0.5, maxAge = 500 }) {
+  const canvasRef = useRef(null);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let w = canvas.width = window.innerWidth;
+    let h = canvas.height = window.innerHeight;
+    let mouse = { x: w / 2, y: h / 2 };
+    let points = [];
+    let raf;
+    const onMove = (e) => { mouse.x = e.clientX; mouse.y = e.clientY; };
+    window.addEventListener('mousemove', onMove);
+    const onResize = () => { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; };
+    window.addEventListener('resize', onResize);
+    let t = 0;
+    const animate = () => {
+      raf = requestAnimationFrame(animate);
+      t += speedMultiplier * 0.01;
+      points.push({ x: mouse.x, y: mouse.y, age: 0 });
+      points = points.filter(p => p.age < maxAge);
+      points.forEach(p => p.age++);
+      ctx.clearRect(0, 0, w, h);
+      if (points.length > 2) {
+        colors.forEach((color, ci) => {
+          const offset = ci * 8;
+          ctx.beginPath();
+          ctx.moveTo(points[0].x + offset, points[0].y + offset);
+          for (let i = 1; i < points.length - 1; i++) {
+            const mx = (points[i].x + points[i + 1].x) / 2 + offset;
+            const my = (points[i].y + points[i + 1].y) / 2 + offset;
+            ctx.quadraticCurveTo(points[i].x + offset, points[i].y + offset, mx, my);
+          }
+          const gradient = ctx.createLinearGradient(points[0].x, points[0].y, points[points.length - 1].x, points[points.length - 1].y);
+          gradient.addColorStop(0, 'transparent');
+          gradient.addColorStop(0.3, color + '99');
+          gradient.addColorStop(1, color + '22');
+          ctx.strokeStyle = gradient;
+          ctx.lineWidth = baseThickness * (1 - ci * 0.15);
+          ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+          ctx.stroke();
+        });
+      }
+      ctx.beginPath();
+      for (let i = 0; i < 3; i++) {
+        const px = mouse.x + Math.sin(t * 2.3 + i * 2.1) * 40;
+        const py = mouse.y + Math.cos(t * 1.7 + i * 1.5) * 25;
+        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.strokeStyle = colors[0] + '44';
+      ctx.lineWidth = baseThickness * 0.4;
+      ctx.stroke();
+    };
+    animate();
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('resize', onResize);
+    };
+  }, [baseThickness, colors, speedMultiplier, maxAge]);
+  return <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />;
+}
 
 function AntigravityInner({ count = 300, magnetRadius = 6, ringRadius = 7, waveSpeed = 0.4, waveAmplitude = 1, particleSize = 1.5, lerpSpeed = 0.05, color = '#C9A84C', autoAnimate = false, particleVariance = 1, rotationSpeed = 0, depthFactor = 1, pulseSpeed = 3, particleShape = 'capsule', fieldStrength = 10 }) {
   const meshRef = useRef(null);
@@ -831,7 +893,9 @@ export default function HomePage() {
         <GooeyNav items={navItems} initialActiveIndex={0} />
 
         <section ref={heroRef} style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '4rem 2rem', position: 'relative', overflow: 'hidden' }}>
-          
+          <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+            <Ribbons baseThickness={28} colors={['#C9A84C', '#8B6914']} speedMultiplier={0.5} maxAge={500} />
+          </div>
           <div style={{ position: 'absolute', inset: 0, zIndex: 1 }}>
             <AntigravityCanvas
               count={300}

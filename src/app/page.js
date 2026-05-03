@@ -52,6 +52,202 @@ function ClickSpark({ children, sparkColor = '#C9A84C', sparkSize = 8, sparkRadi
   );
 }
 
+function TargetCursor({ targetSelector = 'a, button', spinDuration = 2, hideDefaultCursor = true, hoverDuration = 0.2, parallaxOn = true }) {
+  const cursorRef = useRef(null);
+  const cornersRef = useRef(null);
+  const spinTl = useRef(null);
+  const dotRef = useRef(null);
+  const isActiveRef = useRef(false);
+  const targetCornerPositionsRef = useRef(null);
+  const tickerFnRef = useRef(null);
+  const activeStrengthRef = useRef(0);
+
+  const isMobile = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    const hasTouchScreen = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    const isSmallScreen = window.innerWidth <= 768;
+    const ua = navigator.userAgent || navigator.vendor || window.opera;
+    return (hasTouchScreen && isSmallScreen) || /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua.toLowerCase());
+  }, []);
+
+  const constants = useMemo(() => ({ borderWidth: 3, cornerSize: 12 }), []);
+
+  const moveCursor = useCallback((x, y) => {
+    if (!cursorRef.current) return;
+    gsap.to(cursorRef.current, { x, y, duration: 0.1, ease: 'power3.out' });
+  }, []);
+
+  useEffect(() => {
+    if (isMobile || !cursorRef.current) return;
+    const originalCursor = document.body.style.cursor;
+    if (hideDefaultCursor) document.body.style.cursor = 'none';
+
+    const cursor = cursorRef.current;
+    cornersRef.current = cursor.querySelectorAll('.tc-corner');
+    let activeTarget = null;
+    let currentLeaveHandler = null;
+    let resumeTimeout = null;
+
+    const cleanupTarget = target => {
+      if (currentLeaveHandler) target.removeEventListener('mouseleave', currentLeaveHandler);
+      currentLeaveHandler = null;
+    };
+
+    gsap.set(cursor, { xPercent: -50, yPercent: -50, x: window.innerWidth / 2, y: window.innerHeight / 2 });
+
+    const createSpinTimeline = () => {
+      if (spinTl.current) spinTl.current.kill();
+      spinTl.current = gsap.timeline({ repeat: -1 }).to(cursor, { rotation: '+=360', duration: spinDuration, ease: 'none' });
+    };
+    createSpinTimeline();
+
+    const tickerFn = () => {
+      if (!targetCornerPositionsRef.current || !cursorRef.current || !cornersRef.current) return;
+      const strength = activeStrengthRef.current;
+      if (strength === 0) return;
+      const cursorX = gsap.getProperty(cursorRef.current, 'x');
+      const cursorY = gsap.getProperty(cursorRef.current, 'y');
+      Array.from(cornersRef.current).forEach((corner, i) => {
+        const currentX = gsap.getProperty(corner, 'x');
+        const currentY = gsap.getProperty(corner, 'y');
+        const targetX = targetCornerPositionsRef.current[i].x - cursorX;
+        const targetY = targetCornerPositionsRef.current[i].y - cursorY;
+        const finalX = currentX + (targetX - currentX) * strength;
+        const finalY = currentY + (targetY - currentY) * strength;
+        const duration = strength >= 0.99 ? (parallaxOn ? 0.2 : 0) : 0.05;
+        gsap.to(corner, { x: finalX, y: finalY, duration, ease: duration === 0 ? 'none' : 'power1.out', overwrite: 'auto' });
+      });
+    };
+    tickerFnRef.current = tickerFn;
+
+    const moveHandler = e => moveCursor(e.clientX, e.clientY);
+    window.addEventListener('mousemove', moveHandler);
+
+    const scrollHandler = () => {
+      if (!activeTarget || !cursorRef.current) return;
+      const mouseX = gsap.getProperty(cursorRef.current, 'x');
+      const mouseY = gsap.getProperty(cursorRef.current, 'y');
+      const el = document.elementFromPoint(mouseX, mouseY);
+      const stillOver = el && (el === activeTarget || el.closest(targetSelector) === activeTarget);
+      if (!stillOver && currentLeaveHandler) currentLeaveHandler();
+    };
+    window.addEventListener('scroll', scrollHandler, { passive: true });
+
+    const mouseDownHandler = () => {
+      if (!dotRef.current) return;
+      gsap.to(dotRef.current, { scale: 0.7, duration: 0.3 });
+      gsap.to(cursorRef.current, { scale: 0.9, duration: 0.2 });
+    };
+    const mouseUpHandler = () => {
+      if (!dotRef.current) return;
+      gsap.to(dotRef.current, { scale: 1, duration: 0.3 });
+      gsap.to(cursorRef.current, { scale: 1, duration: 0.2 });
+    };
+    window.addEventListener('mousedown', mouseDownHandler);
+    window.addEventListener('mouseup', mouseUpHandler);
+
+    const enterHandler = e => {
+      let current = e.target;
+      let target = null;
+      while (current && current !== document.body) {
+        if (current.matches && current.matches(targetSelector)) { target = current; break; }
+        current = current.parentElement;
+      }
+      if (!target || !cursorRef.current || !cornersRef.current) return;
+      if (activeTarget === target) return;
+      if (activeTarget) cleanupTarget(activeTarget);
+      if (resumeTimeout) { clearTimeout(resumeTimeout); resumeTimeout = null; }
+
+      activeTarget = target;
+      const corners = Array.from(cornersRef.current);
+      corners.forEach(corner => gsap.killTweensOf(corner));
+      gsap.killTweensOf(cursorRef.current, 'rotation');
+      spinTl.current?.pause();
+      gsap.set(cursorRef.current, { rotation: 0 });
+
+      const rect = target.getBoundingClientRect();
+      const { borderWidth, cornerSize } = constants;
+      const cursorX = gsap.getProperty(cursorRef.current, 'x');
+      const cursorY = gsap.getProperty(cursorRef.current, 'y');
+
+      targetCornerPositionsRef.current = [
+        { x: rect.left - borderWidth, y: rect.top - borderWidth },
+        { x: rect.right + borderWidth - cornerSize, y: rect.top - borderWidth },
+        { x: rect.right + borderWidth - cornerSize, y: rect.bottom + borderWidth - cornerSize },
+        { x: rect.left - borderWidth, y: rect.bottom + borderWidth - cornerSize },
+      ];
+
+      isActiveRef.current = true;
+      gsap.ticker.add(tickerFnRef.current);
+      gsap.to(activeStrengthRef, { current: 1, duration: hoverDuration, ease: 'power2.out' });
+      corners.forEach((corner, i) => {
+        gsap.to(corner, { x: targetCornerPositionsRef.current[i].x - cursorX, y: targetCornerPositionsRef.current[i].y - cursorY, duration: 0.2, ease: 'power2.out' });
+      });
+
+      const leaveHandler = () => {
+        gsap.ticker.remove(tickerFnRef.current);
+        isActiveRef.current = false;
+        targetCornerPositionsRef.current = null;
+        gsap.set(activeStrengthRef, { current: 0, overwrite: true });
+        activeTarget = null;
+        if (cornersRef.current) {
+          const cs = Array.from(cornersRef.current);
+          gsap.killTweensOf(cs);
+          const { cornerSize } = constants;
+          const positions = [
+            { x: -cornerSize * 1.5, y: -cornerSize * 1.5 },
+            { x: cornerSize * 0.5, y: -cornerSize * 1.5 },
+            { x: cornerSize * 0.5, y: cornerSize * 0.5 },
+            { x: -cornerSize * 1.5, y: cornerSize * 0.5 },
+          ];
+          const tl = gsap.timeline();
+          cs.forEach((corner, idx) => tl.to(corner, { x: positions[idx].x, y: positions[idx].y, duration: 0.3, ease: 'power3.out' }, 0));
+        }
+        resumeTimeout = setTimeout(() => {
+          if (!activeTarget && cursorRef.current && spinTl.current) {
+            const norm = gsap.getProperty(cursorRef.current, 'rotation') % 360;
+            spinTl.current.kill();
+            spinTl.current = gsap.timeline({ repeat: -1 }).to(cursorRef.current, { rotation: '+=360', duration: spinDuration, ease: 'none' });
+            gsap.to(cursorRef.current, { rotation: norm + 360, duration: spinDuration * (1 - norm / 360), ease: 'none', onComplete: () => spinTl.current?.restart() });
+          }
+          resumeTimeout = null;
+        }, 50);
+        cleanupTarget(target);
+      };
+      currentLeaveHandler = leaveHandler;
+      target.addEventListener('mouseleave', leaveHandler);
+    };
+    window.addEventListener('mouseover', enterHandler, { passive: true });
+
+    return () => {
+      if (tickerFnRef.current) gsap.ticker.remove(tickerFnRef.current);
+      window.removeEventListener('mousemove', moveHandler);
+      window.removeEventListener('mouseover', enterHandler);
+      window.removeEventListener('scroll', scrollHandler);
+      window.removeEventListener('mousedown', mouseDownHandler);
+      window.removeEventListener('mouseup', mouseUpHandler);
+      if (activeTarget) cleanupTarget(activeTarget);
+      spinTl.current?.kill();
+      document.body.style.cursor = originalCursor;
+      isActiveRef.current = false;
+      targetCornerPositionsRef.current = null;
+      activeStrengthRef.current = 0;
+    };
+  }, [targetSelector, spinDuration, moveCursor, constants, hideDefaultCursor, isMobile, hoverDuration, parallaxOn]);
+
+  if (isMobile) return null;
+
+  return (
+    <div ref={cursorRef} className="tc-wrapper">
+      <div ref={dotRef} className="tc-dot" />
+      <div className="tc-corner tc-tl" />
+      <div className="tc-corner tc-tr" />
+      <div className="tc-corner tc-br" />
+      <div className="tc-corner tc-bl" />
+    </div>
+  );
+}
+
 function GooeyNav({ items, initialActiveIndex = 0 }) {
   const [active, setActive] = useState(initialActiveIndex);
   const [particles, setParticles] = useState([]);
@@ -168,7 +364,7 @@ function Ribbons({ baseThickness = 30, colors = ['#C9A84C'], speedMultiplier = 0
   return <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />;
 }
 
-function AntigravityInner({ count = 300, magnetRadius = 6, ringRadius = 7, waveSpeed = 0.4, waveAmplitude = 1, particleSize = 1.5, lerpSpeed = 0.05, color = '#5227FF', autoAnimate = false, particleVariance = 1, rotationSpeed = 0, depthFactor = 1, pulseSpeed = 3, particleShape = 'capsule', fieldStrength = 10 }) {
+function AntigravityInner({ count = 300, magnetRadius = 6, ringRadius = 7, waveSpeed = 0.4, waveAmplitude = 1, particleSize = 1.5, lerpSpeed = 0.05, color = '#C9A84C', autoAnimate = false, particleVariance = 1, rotationSpeed = 0, depthFactor = 1, pulseSpeed = 3, particleShape = 'capsule', fieldStrength = 10 }) {
   const meshRef = useRef(null);
   const { viewport } = useThree();
   const dummy = useMemo(() => new THREE.Object3D(), []);
@@ -474,66 +670,6 @@ function BorderGlow({ children, className = '', edgeSensitivity = 30, glowColor 
   );
 }
 
-function BlobCursor({ blobType = 'circle', fillColor = '#5227FF', trailCount = 3, sizes = [60, 125, 75], innerSizes = [20, 35, 25], innerColor = 'rgba(255,255,255,0.8)', opacities = [0.6, 0.6, 0.6], shadowColor = 'rgba(0,0,0,0.75)', shadowBlur = 5, shadowOffsetX = 10, shadowOffsetY = 10, filterId = 'blob', filterStdDeviation = 30, filterColorMatrixValues = '1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 35 -10', useFilter = true, fastDuration = 0.1, slowDuration = 0.5, fastEase = 'power3.out', slowEase = 'power1.out', zIndex = 100 }) {
-  const containerRef = useRef(null);
-  const blobsRef = useRef([]);
-  const updateOffset = useCallback(() => {
-    if (!containerRef.current) return { left: 0, top: 0 };
-    const rect = containerRef.current.getBoundingClientRect();
-    return { left: rect.left, top: rect.top };
-  }, []);
-  const handleMove = useCallback((e) => {
-    const { left, top } = updateOffset();
-    const x = 'clientX' in e ? e.clientX : e.touches[0].clientX;
-    const y = 'clientY' in e ? e.clientY : e.touches[0].clientY;
-    blobsRef.current.forEach((el, i) => {
-      if (!el) return;
-      const isLead = i === 0;
-      gsap.to(el, { x: x - left, y: y - top, duration: isLead ? fastDuration : slowDuration, ease: isLead ? fastEase : slowEase });
-    });
-  }, [updateOffset, fastDuration, slowDuration, fastEase, slowEase]);
-  useEffect(() => {
-    const onResize = () => updateOffset();
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, [updateOffset]);
-  return (
-    <div
-      ref={containerRef}
-      style={{ position: 'fixed', inset: 0, zIndex, pointerEvents: 'none', overflow: 'hidden' }}
-      onMouseMove={handleMove}
-      onTouchMove={handleMove}
-    >
-      {useFilter && (
-        <svg style={{ position: 'absolute', width: 0, height: 0 }}>
-          <filter id={filterId}>
-            <feGaussianBlur in="SourceGraphic" result="blur" stdDeviation={filterStdDeviation} />
-            <feColorMatrix in="blur" values={filterColorMatrixValues} />
-          </filter>
-        </svg>
-      )}
-      <div style={{ filter: useFilter ? `url(#${filterId})` : undefined, position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-        {Array.from({ length: trailCount }).map((_, i) => (
-          <div key={i} ref={el => (blobsRef.current[i] = el)} style={{
-            position: 'absolute', width: sizes[i], height: sizes[i],
-            borderRadius: blobType === 'circle' ? '50%' : '0%',
-            backgroundColor: fillColor, opacity: opacities[i],
-            boxShadow: `${shadowOffsetX}px ${shadowOffsetY}px ${shadowBlur}px 0 ${shadowColor}`,
-            transform: 'translate(-50%, -50%)',
-          }}>
-            <div style={{
-              position: 'absolute', width: innerSizes[i], height: innerSizes[i],
-              top: (sizes[i] - innerSizes[i]) / 2, left: (sizes[i] - innerSizes[i]) / 2,
-              backgroundColor: innerColor,
-              borderRadius: blobType === 'circle' ? '50%' : '0%',
-            }} />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function Marquee() {
   const items = ['Premium Quality', '✦', 'South African Brand', '✦', 'Sport & Lifestyle', '✦', 'All Ages', '✦', 'Free Delivery', '✦', '118 Pieces', '✦'];
   return (
@@ -746,23 +882,12 @@ export default function HomePage() {
     <ClickSpark sparkColor="#C9A84C" sparkSize={7} sparkRadius={14} sparkCount={8} duration={400}>
       <div style={{ paddingTop: '70px', background: '#040302', overflowX: 'hidden' }}>
 
-        <BlobCursor
-          blobType="circle"
-          fillColor="#5227FF"
-          trailCount={3}
-          sizes={[60, 125, 75]}
-          innerSizes={[20, 35, 25]}
-          innerColor="rgba(255,255,255,0.8)"
-          opacities={[0.6, 0.6, 0.6]}
-          shadowColor="rgba(0,0,0,0.75)"
-          shadowBlur={5}
-          shadowOffsetX={10}
-          shadowOffsetY={10}
-          filterStdDeviation={30}
-          useFilter={true}
-          fastDuration={0.1}
-          slowDuration={0.5}
-          zIndex={100}
+        <TargetCursor
+          targetSelector="a, button"
+          spinDuration={2.4}
+          hideDefaultCursor={true}
+          hoverDuration={0.18}
+          parallaxOn={true}
         />
 
         <GooeyNav items={navItems} initialActiveIndex={0} />
@@ -780,7 +905,7 @@ export default function HomePage() {
               waveAmplitude={1}
               particleSize={1.5}
               lerpSpeed={0.05}
-              color="#5227FF"
+              color="#C9A84C"
               autoAnimate
               particleVariance={1}
               rotationSpeed={0}
@@ -893,6 +1018,56 @@ export default function HomePage() {
 
           * { cursor: none !important; }
           html { scroll-behavior: smooth; }
+
+          .tc-wrapper {
+            position: fixed;
+            top: 0; left: 0;
+            width: 0; height: 0;
+            pointer-events: none;
+            z-index: 99999;
+            will-change: transform;
+          }
+
+          .tc-dot {
+            position: absolute;
+            width: 5px; height: 5px;
+            border-radius: 50%;
+            background: #C9A84C;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 8px rgba(201,168,76,0.8), 0 0 16px rgba(201,168,76,0.4);
+          }
+
+          .tc-corner {
+            position: absolute;
+            width: 12px; height: 12px;
+            border-color: #C9A84C;
+            border-style: solid;
+            border-width: 0;
+            will-change: transform;
+            filter: drop-shadow(0 0 4px rgba(201,168,76,0.6));
+          }
+
+          .tc-tl {
+            border-top-width: 2px;
+            border-left-width: 2px;
+            transform: translate(-18px, -18px);
+          }
+          .tc-tr {
+            border-top-width: 2px;
+            border-right-width: 2px;
+            transform: translate(6px, -18px);
+          }
+          .tc-br {
+            border-bottom-width: 2px;
+            border-right-width: 2px;
+            transform: translate(6px, 6px);
+          }
+          .tc-bl {
+            border-bottom-width: 2px;
+            border-left-width: 2px;
+            transform: translate(-18px, 6px);
+          }
 
           @keyframes rrMarquee {
             from { transform: translateX(0); }

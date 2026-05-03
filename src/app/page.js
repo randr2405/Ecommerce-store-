@@ -877,7 +877,7 @@ export default function HomePage() {
               ].map((word, i) => (
                 <div key={i} style={{ overflow: 'hidden', lineHeight: 1.02 }}>
                   <div style={{ opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'none' : 'translateY(100%)', transition: `opacity 1.2s cubic-bezier(0.16,1,0.3,1) ${word.delay}s, transform 1.2s cubic-bezier(0.16,1,0.3,1) ${word.delay}s` }}>
-                    <span style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(4rem, 12vw, 10rem)', fontWeight: 300, color: word.gold ? '#C9A84C' : '#FFFFFF', display: 'block', letterSpacing: word.gold ? '-0.02em' : '-0.01em', textShadow: word.gold ? '0 0 80px rgba(201,168,76,0.7), 0 0 160px rgba(201,168,76,0.4)' : '0 2px 4px rgba(0,0,0,0.95), 0 0 40px rgba(255,255,255,0.25)', lineHeight: 1.02 }} dangerouslySetInnerHTML={{ __html: word.text }} />
+                    <span style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(4rem, 12vw, 10rem)', fontWeight: word.gold ? 300 : 400, color: word.gold ? '#C9A84C' : '#FFFFFF', display: 'block', letterSpacing: word.gold ? '-0.02em' : '-0.01em', textShadow: word.gold ? '0 0 80px rgba(201,168,76,0.7), 0 0 160px rgba(201,168,76,0.4)' : '0 0 8px rgba(0,0,0,1), 0 0 16px rgba(0,0,0,1), 0 0 28px rgba(0,0,0,1), 0 0 50px rgba(0,0,0,0.9)', lineHeight: 1.02 }} dangerouslySetInnerHTML={{ __html: word.text }} />
                   </div>
                 </div>
               ))}

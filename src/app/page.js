@@ -301,7 +301,6 @@ function GooeyNav({ items, initialActiveIndex = 0 }) {
   );
 }
 
-
 function AntigravityInner({ count = 300, magnetRadius = 6, ringRadius = 7, waveSpeed = 0.4, waveAmplitude = 1, particleSize = 1.5, lerpSpeed = 0.05, color = '#C9A84C', autoAnimate = false, particleVariance = 1, rotationSpeed = 0, depthFactor = 1, pulseSpeed = 3, particleShape = 'capsule', fieldStrength = 10 }) {
   const meshRef = useRef(null);
   const { viewport } = useThree();
@@ -514,7 +513,6 @@ function Marquee() {
   );
 }
 
-// ─── CategoryCard: fully themed to dark gold, no BorderGlow ──────────────────
 function CategoryCard({ cat, index, sectionProgress }) {
   const [hovered, setHovered] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
@@ -569,16 +567,9 @@ function CategoryCard({ cat, index, sectionProgress }) {
           cursor: 'pointer',
         }}
       >
-        {/* Mouse-follow glow */}
         <div ref={glowRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none', transition: 'background 0.1s', zIndex: 0 }} />
-
-        {/* Subtle scan lines */}
         <div style={{ position: 'absolute', inset: 0, backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(201,168,76,0.006) 2px, rgba(201,168,76,0.006) 3px)', pointerEvents: 'none', zIndex: 0 }} />
-
-        {/* Animated bottom line */}
         <div style={{ position: 'absolute', bottom: 0, left: 0, height: '1px', width: hovered ? '100%' : '0%', background: 'linear-gradient(90deg, transparent, #C9A84C 30%, #EDD070 50%, #C9A84C 70%, transparent)', transition: 'width 0.7s cubic-bezier(0.16,1,0.3,1)', zIndex: 1 }} />
-
-        {/* Corner accents */}
         {[['top', 'left'], ['top', 'right'], ['bottom', 'left'], ['bottom', 'right']].map(([v, h], ci) => (
           <div key={ci} style={{
             position: 'absolute', [v]: 0, [h]: 0,
@@ -592,31 +583,25 @@ function CategoryCard({ cat, index, sectionProgress }) {
             zIndex: 1,
           }} />
         ))}
-
-        {/* Content */}
         <div style={{ position: 'relative', zIndex: 2 }}>
           <p style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '0.6rem', color: hovered ? '#C9A84C' : 'rgba(201,168,76,0.22)', letterSpacing: '0.3em', marginBottom: '1.8rem', transition: 'color 0.4s' }}>
             {String(index + 1).padStart(2, '0')}
           </p>
-
           <span style={{
             fontSize: '3rem', display: 'block', marginBottom: '1.8rem',
             transform: hovered ? 'scale(1.15) rotate(-8deg)' : 'scale(1)',
             transition: 'transform 0.55s cubic-bezier(0.16,1,0.3,1)',
             filter: hovered ? 'drop-shadow(0 0 16px rgba(201,168,76,0.5))' : 'none',
           }}>{cat.icon}</span>
-
           <h3 style={{
             fontFamily: 'Cormorant Garamond, serif', fontSize: '1.95rem', fontWeight: 300,
             color: hovered ? '#FFFFFF' : '#C8BC9E',
             marginBottom: '0.7rem', transition: 'color 0.3s',
             textShadow: hovered ? '0 0 40px rgba(255,255,255,0.18)' : 'none',
           }}>{cat.label}</h3>
-
           <p style={{ fontSize: '0.6rem', color: hovered ? 'rgba(201,168,76,0.5)' : 'rgba(100,90,70,0.8)', letterSpacing: '0.1em', lineHeight: 2, transition: 'color 0.3s' }}>
             {cat.desc}
           </p>
-
           <div style={{
             display: 'flex', alignItems: 'center', gap: '0.6rem', marginTop: '2rem',
             opacity: hovered ? 1 : 0,
@@ -688,16 +673,9 @@ function ValueCard({ value, index, sectionProgress }) {
         cursor: 'default',
       }}
     >
-      {/* Mouse-follow glow */}
       <div ref={glowRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0 }} />
-
-      {/* Scan lines */}
       <div style={{ position: 'absolute', inset: 0, backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(201,168,76,0.005) 2px, rgba(201,168,76,0.005) 3px)', pointerEvents: 'none', zIndex: 0 }} />
-
-      {/* Animated bottom sweep */}
       <div style={{ position: 'absolute', bottom: 0, left: 0, height: '1px', width: hovered ? '100%' : '0%', background: 'linear-gradient(90deg, transparent, #C9A84C 30%, #EDD070 50%, #C9A84C 70%, transparent)', transition: 'width 0.7s cubic-bezier(0.16,1,0.3,1)', zIndex: 1 }} />
-
-      {/* Corner accents */}
       {[['top', 'left'], ['top', 'right'], ['bottom', 'left'], ['bottom', 'right']].map(([v, h], ci) => (
         <div key={ci} style={{
           position: 'absolute', [v]: 0, [h]: 0,
@@ -711,13 +689,8 @@ function ValueCard({ value, index, sectionProgress }) {
           zIndex: 1,
         }} />
       ))}
-
-      {/* Ghost roman numeral */}
       <div style={{ position: 'absolute', top: '-1rem', right: '1rem', fontFamily: 'Cormorant Garamond, serif', fontSize: '5.5rem', fontWeight: 300, color: hovered ? 'rgba(201,168,76,0.09)' : 'rgba(201,168,76,0.03)', transition: 'color 0.5s', userSelect: 'none', pointerEvents: 'none', zIndex: 0 }}>{romans[index]}</div>
-
-      {/* Content */}
       <div style={{ position: 'relative', zIndex: 2 }}>
-        {/* Icon */}
         <div style={{
           fontSize: '1.6rem', color: hovered ? '#C9A84C' : 'rgba(201,168,76,0.3)',
           marginBottom: '1.6rem',
@@ -726,10 +699,7 @@ function ValueCard({ value, index, sectionProgress }) {
           filter: hovered ? 'drop-shadow(0 0 12px rgba(201,168,76,0.6))' : 'none',
           display: 'block',
         }}>{icons[index]}</div>
-
-        {/* Expanding line */}
         <div style={{ width: hovered ? '55px' : '18px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: '0 auto 1.8rem', transition: 'width 0.55s cubic-bezier(0.16,1,0.3,1)' }} />
-
         <h3 style={{
           fontFamily: 'Cormorant Garamond, serif', fontSize: '1.6rem', fontWeight: 300,
           color: hovered ? '#FFFFFF' : '#C8BC9E',
@@ -737,10 +707,7 @@ function ValueCard({ value, index, sectionProgress }) {
           textShadow: hovered ? '0 0 40px rgba(255,255,255,0.15)' : 'none',
           letterSpacing: '0.02em',
         }}>{value.title}</h3>
-
         <p style={{ fontSize: '0.62rem', color: hovered ? 'rgba(201,168,76,0.45)' : 'rgba(100,90,70,0.75)', lineHeight: 2.1, letterSpacing: '0.06em', transition: 'color 0.3s' }}>{value.desc}</p>
-
-        {/* Explore nudge */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem', marginTop: '1.8rem',
           opacity: hovered ? 1 : 0,
@@ -875,7 +842,6 @@ export default function HomePage() {
         <GooeyNav items={navItems} initialActiveIndex={0} />
 
         <section ref={heroRef} style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '4rem 2rem', position: 'relative', overflow: 'hidden' }}>
-          
           <div style={{ position: 'absolute', inset: 0, zIndex: 1 }}>
             <AntigravityCanvas
               count={300}
@@ -960,7 +926,6 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ── Values: plain dark header (matches collections style) ── */}
         <section ref={valuesRef} style={{ padding: '11rem 4rem 10rem', maxWidth: '1300px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
           <div style={{ textAlign: 'center', marginBottom: '7rem', transform: `translateY(${Math.max(0, (0.5 - valuesScroll) * 60)}px)`, opacity: Math.min(1, valuesScroll * 3.5) }}>
             <p style={{ fontSize: '0.55rem', color: '#C9A84C', letterSpacing: '0.6em', textTransform: 'uppercase', marginBottom: '1.2rem', fontFamily: 'Montserrat, sans-serif' }}>What We Stand For</p>
@@ -973,12 +938,19 @@ export default function HomePage() {
         </section>
 
         <section style={{ padding: '14rem 2rem', textAlign: 'center', borderTop: '1px solid rgba(201,168,76,0.1)', position: 'relative', zIndex: 2, overflow: 'hidden' }}>
-          {/* Wave canvas background */}
           <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
-            <LineWaves speed={0.3} innerLineCount={40} warpIntensity={1.1} color1="#C9A84C" color2="#8B6914" bbrightness={0.80} enableMouseInteraction mouseInfluence={1.8} />
+            <LineWaves
+              speed={0.3}
+              innerLineCount={50}
+              warpIntensity={1.6}
+              color1="#C9A84C"
+              color2="#8B6914"
+              brightness={0.8}
+              enableMouseInteraction
+              mouseInfluence={2.5}
+            />
           </div>
-          {/* Dark overlay */}
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(4,3,2,0.45)', zIndex: 1, pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(4,3,2,0.2)', zIndex: 1, pointerEvents: 'none' }} />
           <div style={{ position: 'relative', zIndex: 2 }}>
             <p style={{ fontSize: '0.55rem', color: '#C9A84C', letterSpacing: '0.6em', textTransform: 'uppercase', marginBottom: '2rem', fontFamily: 'Montserrat, sans-serif' }}>118 premium pieces — available now</p>
             <h2 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(3rem, 9vw, 7.5rem)', fontWeight: 300, lineHeight: 1.05, marginBottom: '4rem' }}>
@@ -1025,26 +997,10 @@ export default function HomePage() {
             filter: drop-shadow(0 0 4px rgba(201,168,76,0.6));
           }
 
-          .tc-tl {
-            border-top-width: 2px;
-            border-left-width: 2px;
-            transform: translate(-18px, -18px);
-          }
-          .tc-tr {
-            border-top-width: 2px;
-            border-right-width: 2px;
-            transform: translate(6px, -18px);
-          }
-          .tc-br {
-            border-bottom-width: 2px;
-            border-right-width: 2px;
-            transform: translate(6px, 6px);
-          }
-          .tc-bl {
-            border-bottom-width: 2px;
-            border-left-width: 2px;
-            transform: translate(-18px, 6px);
-          }
+          .tc-tl { border-top-width: 2px; border-left-width: 2px; transform: translate(-18px, -18px); }
+          .tc-tr { border-top-width: 2px; border-right-width: 2px; transform: translate(6px, -18px); }
+          .tc-br { border-bottom-width: 2px; border-right-width: 2px; transform: translate(6px, 6px); }
+          .tc-bl { border-bottom-width: 2px; border-left-width: 2px; transform: translate(-18px, 6px); }
 
           @keyframes rrMarquee {
             from { transform: translateX(0); }
@@ -1053,10 +1009,6 @@ export default function HomePage() {
           @keyframes rrScrollPulse {
             0%,100% { opacity: 0.8; transform: scaleY(1); }
             50%     { opacity: 0.1; transform: scaleY(0.2); }
-          }
-          @keyframes rrRingPulse {
-            from { opacity: 0.1; transform: translate(-50%,-50%) scale(0.96); }
-            to   { opacity: 0.55; transform: translate(-50%,-50%) scale(1.04); }
           }
           @keyframes rrBloom {
             from { opacity: 0.6; transform: translate(-50%,-50%) scale(0.95); }

@@ -11,15 +11,23 @@ function useElementScroll() {
   const ref = useRef(null);
   const [p, setP] = useState(0);
   useEffect(() => {
+    let ticking = false;
     const update = () => {
       if (!ref.current) return;
       const r = ref.current.getBoundingClientRect();
       const vh = window.innerHeight;
       setP(Math.max(0, Math.min(1, (vh - r.top) / (vh + r.height))));
+      ticking = false;
     };
-    window.addEventListener('scroll', update, { passive: true });
+    const onScroll = () => {
+      if (!ticking) {
+        requestAnimationFrame(update);
+        ticking = true;
+      }
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
     update();
-    return () => window.removeEventListener('scroll', update);
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
   return [ref, p];
 }
@@ -844,7 +852,7 @@ export default function HomePage() {
         <section ref={heroRef} style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '4rem 2rem', position: 'relative', overflow: 'hidden' }}>
           <div style={{ position: 'absolute', inset: 0, zIndex: 1 }}>
             <AntigravityCanvas
-              count={160}
+              count={120}
               magnetRadius={6}
               ringRadius={7}
               waveSpeed={0.4}
@@ -863,7 +871,7 @@ export default function HomePage() {
           </div>
           <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(201,168,76,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(201,168,76,0.03) 1px, transparent 1px)', backgroundSize: '88px 88px', transform: `perspective(800px) rotateX(${55 + heroScroll * 14}deg) translateZ(-80px) scale(2.2)`, transformOrigin: '50% 100%', opacity: 0.5, zIndex: 2, pointerEvents: 'none' }} />
           <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: '800px', height: '800px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(201,168,76,0.06) 0%, rgba(201,168,76,0.015) 40%, transparent 65%)', pointerEvents: 'none', zIndex: 2, animation: 'rrBloom 4s ease-in-out infinite alternate' }} />
-          <div style={{ maxWidth: '960px', position: 'relative', zIndex: 3, transform: `translateY(${heroTranslateY}px)`, opacity: heroOpacity, willChange: 'transform, opacity', background: 'radial-gradient(ellipse 85% 100% at 50% 50%, rgba(4,3,2,0.88) 0%, rgba(4,3,2,0.65) 58%, transparent 100%)', padding: '3rem 5rem', borderRadius: '50%' }}>
+          <div style={{ maxWidth: '960px', position: 'relative', zIndex: 3, transform: `translateY(${heroTranslateY}px)`, opacity: heroOpacity, willChange: 'transform, opacity', backfaceVisibility: 'hidden', background: 'radial-gradient(ellipse 85% 100% at 50% 50%, rgba(4,3,2,0.88) 0%, rgba(4,3,2,0.65) 58%, transparent 100%)', padding: '3rem 5rem', borderRadius: '50%' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1.2rem', marginBottom: '3rem', opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'none' : 'translateY(20px)', transition: 'opacity 1s ease 0.2s, transform 1s ease 0.2s' }}>
               <div style={{ width: '38px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C)' }} />
               <p style={{ fontSize: '0.57rem', color: '#C9A84C', letterSpacing: '0.55em', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif', fontWeight: 300 }}>Premium Sport &amp; Lifestyle</p>
@@ -898,7 +906,7 @@ export default function HomePage() {
         <div style={{ position: 'relative', zIndex: 2 }}><Marquee /></div>
 
         <section ref={collectionsRef} style={{ padding: '11rem 4rem 10rem', maxWidth: '1380px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
-          <div style={{ textAlign: 'center', marginBottom: '7rem', transform: `translateY(${Math.max(0, (0.5 - collectionsScroll) * 60)}px)`, opacity: Math.min(1, collectionsScroll * 3.5) }}>
+          <div style={{ textAlign: 'center', marginBottom: '7rem', transform: `translateZ(0) translateY(${Math.max(0, (0.5 - collectionsScroll) * 60)}px)`, opacity: Math.min(1, collectionsScroll * 3.5) }}>
             <p style={{ fontSize: '0.55rem', color: '#C9A84C', letterSpacing: '0.6em', textTransform: 'uppercase', marginBottom: '1.2rem', fontFamily: 'Montserrat, sans-serif' }}>Browse</p>
             <h2 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(2.8rem, 7vw, 5.5rem)', fontWeight: 300, color: '#FFFFFF', textShadow: '0 0 60px rgba(255,255,255,0.07)' }}>Our Collections</h2>
             <div style={{ width: '70px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: '1.8rem auto 0' }} />
@@ -913,8 +921,8 @@ export default function HomePage() {
             <LiquidChrome baseColor={[0.1, 0.1, 0.1]} speed={1} amplitude={0.6} interactive={true} />
           </div>
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(4,3,2,0.55)', zIndex: 1, pointerEvents: 'none' }} />
-          <div style={{ position: 'absolute', top: '50%', left: '50%', fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(10rem, 28vw, 24rem)', color: 'transparent', WebkitTextStroke: '1px rgba(201,168,76,0.045)', userSelect: 'none', pointerEvents: 'none', whiteSpace: 'nowrap', fontWeight: 300, transform: `translate(-50%,-50%) rotateX(${brandTilt}deg) scale(${brandScale})`, willChange: 'transform', zIndex: 2 }}>R&amp;R</div>
-          <div style={{ maxWidth: '860px', margin: '0 auto', position: 'relative', zIndex: 3, transform: `rotateX(${brandTilt * 0.4}deg) scale(${0.94 + brandScroll * 0.09})`, opacity: Math.min(1, brandScroll * 3), willChange: 'transform, opacity' }}>
+          <div style={{ position: 'absolute', top: '50%', left: '50%', fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(10rem, 28vw, 24rem)', color: 'transparent', WebkitTextStroke: '1px rgba(201,168,76,0.045)', userSelect: 'none', pointerEvents: 'none', whiteSpace: 'nowrap', fontWeight: 300, transform: `translate3d(-50%,-50%,0) rotateX(${brandTilt}deg) scale(${brandScale})`, willChange: 'transform', zIndex: 2 }}>R&amp;R</div>
+          <div style={{ maxWidth: '860px', margin: '0 auto', position: 'relative', zIndex: 3, transform: `rotateX(${brandTilt * 0.4}deg) scale(${0.94 + brandScroll * 0.09})`, opacity: Math.min(1, brandScroll * 3), willChange: 'transform, opacity', backfaceVisibility: 'hidden' }}>
             <p style={{ fontSize: '0.55rem', color: '#C9A84C', letterSpacing: '0.6em', textTransform: 'uppercase', marginBottom: '2rem', fontFamily: 'Montserrat, sans-serif' }}>Our Mission</p>
             <h2 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(2rem, 5vw, 3.7rem)', fontWeight: 300, fontStyle: 'italic', color: '#FFFFFF', lineHeight: 1.65, textShadow: '0 0 80px rgba(255,255,255,0.05)' }}>
               "Premium clothing that combines{' '}
@@ -927,7 +935,7 @@ export default function HomePage() {
         </section>
 
         <section ref={valuesRef} style={{ padding: '11rem 4rem 10rem', maxWidth: '1300px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
-          <div style={{ textAlign: 'center', marginBottom: '7rem', transform: `translateY(${Math.max(0, (0.5 - valuesScroll) * 60)}px)`, opacity: Math.min(1, valuesScroll * 3.5) }}>
+          <div style={{ textAlign: 'center', marginBottom: '7rem', transform: `translateZ(0) translateY(${Math.max(0, (0.5 - valuesScroll) * 60)}px)`, opacity: Math.min(1, valuesScroll * 3.5) }}>
             <p style={{ fontSize: '0.55rem', color: '#C9A84C', letterSpacing: '0.6em', textTransform: 'uppercase', marginBottom: '1.2rem', fontFamily: 'Montserrat, sans-serif' }}>What We Stand For</p>
             <h2 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(2.8rem, 7vw, 5.5rem)', fontWeight: 300, color: '#FFFFFF', textShadow: '0 0 60px rgba(255,255,255,0.07)' }}>Our Values</h2>
             <div style={{ width: '70px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: '1.8rem auto 0' }} />

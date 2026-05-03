@@ -948,23 +948,23 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section ref={valuesRef} style={{ position: 'relative', zIndex: 2, overflow: 'hidden', borderTop: '1px solid rgba(201,168,76,0.1)', borderBottom: '1px solid rgba(201,168,76,0.1)' }}>
-          {/* Wave canvas background */}
+        {/* ── Values: wave header ── */}
+        <div ref={valuesRef} style={{ position: 'relative', zIndex: 2, overflow: 'hidden', height: '340px', borderTop: '1px solid rgba(201,168,76,0.1)' }}>
           <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
             <LineWaves speed={0.3} innerLineCount={40} warpIntensity={1.1} color1="#C9A84C" color2="#8B6914" brightness={0.18} enableMouseInteraction mouseInfluence={1.8} />
           </div>
-          {/* Dark overlay so cards read clearly */}
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(4,3,2,0.72)', zIndex: 1, pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(4,3,2,0.68)', zIndex: 1, pointerEvents: 'none' }} />
+          <div style={{ position: 'relative', zIndex: 2, height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', transform: `translateY(${Math.max(0, (0.4 - valuesScroll) * 60)}px)`, opacity: Math.min(1, valuesScroll * 3.5) }}>
+            <p style={{ fontSize: '0.55rem', color: '#C9A84C', letterSpacing: '0.6em', textTransform: 'uppercase', marginBottom: '1.2rem', fontFamily: 'Montserrat, sans-serif' }}>What We Stand For</p>
+            <h2 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(2.8rem, 7vw, 5.5rem)', fontWeight: 300, color: '#FFFFFF', textShadow: '0 0 60px rgba(255,255,255,0.07)' }}>Our Values</h2>
+            <div style={{ width: '70px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: '1.8rem auto 0' }} />
+          </div>
+        </div>
 
-          <div style={{ position: 'relative', zIndex: 2, padding: '11rem 4rem', maxWidth: '1300px', margin: '0 auto' }}>
-            <div style={{ textAlign: 'center', marginBottom: '6rem', transform: `translateY(${Math.max(0, (0.4 - valuesScroll) * 60)}px)`, opacity: Math.min(1, valuesScroll * 3.5) }}>
-              <p style={{ fontSize: '0.55rem', color: '#C9A84C', letterSpacing: '0.6em', textTransform: 'uppercase', marginBottom: '1.2rem', fontFamily: 'Montserrat, sans-serif' }}>What We Stand For</p>
-              <h2 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(2.8rem, 7vw, 5.5rem)', fontWeight: 300, color: '#FFFFFF', textShadow: '0 0 60px rgba(255,255,255,0.07)' }}>Our Values</h2>
-              <div style={{ width: '70px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: '1.8rem auto 0' }} />
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '2px', background: 'rgba(201,168,76,0.05)' }}>
-              {values.map((v, i) => <ValueCard key={v.title} value={v} index={i} sectionProgress={valuesScroll} />)}
-            </div>
+        {/* ── Values: cards grid (clean dark, like collections) ── */}
+        <section style={{ padding: '0 4rem 10rem', maxWidth: '1300px', margin: '0 auto', position: 'relative', zIndex: 2, borderBottom: '1px solid rgba(201,168,76,0.1)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '2px', background: 'rgba(201,168,76,0.05)', marginTop: '-1px' }}>
+            {values.map((v, i) => <ValueCard key={v.title} value={v} index={i} sectionProgress={valuesScroll} />)}
           </div>
         </section>
 

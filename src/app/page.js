@@ -1082,13 +1082,22 @@ export default function HomePage() {
         >
           <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(201,168,76,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(201,168,76,0.03) 1px, transparent 1px)', backgroundSize: '88px 88px', transform: `perspective(800px) rotateX(${55 + heroScroll * 14}deg) translateZ(-80px) scale(2.2)`, transformOrigin: '50% 100%', opacity: 0.5, zIndex: 1, pointerEvents: 'none' }} />
 
+          {/*
+            THE ORB FIX:
+            - z-index: 2 (behind text which is z-index 4)
+            - Size is larger than the text block so the glowing ring edge falls OUTSIDE the text area
+            - The shader's innerRadius=0.6 means the centre 60% is dark/transparent — text lives there
+            - hue=38 rotates the purple/teal base colours toward amber/gold to match #C9A84C
+            - On desktop: 1400px × 1400px puts the glow ring well outside the ~960px text container
+            - On mobile: 110vw keeps it proportional without overflow issues
+          */}
           <div style={{
             position: 'absolute',
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            width: isMobile ? '520px' : '900px',
-            height: isMobile ? '520px' : '900px',
+            width: isMobile ? '110vw' : '1400px',
+            height: isMobile ? '110vw' : '1400px',
             zIndex: 2,
             pointerEvents: 'none',
           }}>

@@ -291,7 +291,13 @@ function Orb({ hue = 0, hoverIntensity = 0.2, rotateOnHover = true, forceHoverSt
     };
     const handleTouchMove = (e) => {
       const t = e.touches[0];
-      targetHover = getUVHover(t.clientX, t.clientY
+      targetHover = getUVHover(t.clientX, t.clientY);
+    };
+
+    container.addEventListener('mousemove', handleMouseMove);
+    container.addEventListener('mouseleave', handleMouseLeave);
+    container.addEventListener('touchstart', handleTouchStart, { passive: true });
+    container.addEventListener('touchmove', handleTouchMove, { passive: true });
 
     let rafId;
     const update = (t) => {
@@ -315,6 +321,8 @@ function Orb({ hue = 0, hoverIntensity = 0.2, rotateOnHover = true, forceHoverSt
       window.removeEventListener('resize', resize);
       container.removeEventListener('mousemove', handleMouseMove);
       container.removeEventListener('mouseleave', handleMouseLeave);
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchmove', handleTouchMove);
       if (gl.canvas.parentElement) gl.canvas.parentElement.removeChild(gl.canvas);
       gl.getExtension('WEBGL_lose_context')?.loseContext();
     };

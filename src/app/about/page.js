@@ -351,7 +351,7 @@ function isInRect(rect) {
 const { randFloat, randFloatSpread } = MathUtils;
 const _vA = new Vector3(), _vB = new Vector3(), _vC = new Vector3();
 const _vD = new Vector3(), _vE = new Vector3(), _vF = new Vector3();
-const _vG = new Vector3(), _vH = new Vector3(), _vI = new Vector3(), _vJ = new Vector3();
+const _vG = new Vector3(), _vH = new Vector3(), _vI = new Vector3();
 
 class BallPhysics {
   constructor(config) {
@@ -491,106 +491,82 @@ class SubsurfaceMaterial extends MeshPhysicalMaterial {
   }
 }
 
-const BALLPIT_DEFAULTS = {
-  count: 180,
-  colors: [0xC9A84C, 0x8B6914, 0xEDD070, 0xA07828, 0xF5E6B8, 0x6B4E0A],
-  ambientColor: 0xfff8e7,
-  ambientIntensity: 1.2,
-  lightIntensity: 220,
-  materialParams: { metalness: 0.45, roughness: 0.35, clearcoat: 1, clearcoatRoughness: 0.1 },
-  minSize: 0.4,
-  maxSize: 1.1,
-  size0: 1.2,
-  gravity: 0.5,
-  friction: 0.9975,
-  wallBounce: 0.95,
-  maxVelocity: 0.15,
-  maxX: 5,
-  maxY: 5,
-  maxZ: 2,
-  controlSphere0: false,
-  followCursor: true
-};
-
 const _dummy = new Object3D();
 
-class BallpitMesh extends InstancedMesh {
-  constructor(renderer, userConfig = {}) {
-    const config = { ...BALLPIT_DEFAULTS, ...userConfig };
-    const envTexture = new PMREMGenerator(renderer, 0.04).fromScene(new RoomEnvironment()).texture;
-    const geo = new SphereGeometry();
-    const mat = new SubsurfaceMaterial({ envMap: envTexture, ...config.materialParams });
-    mat.envMapRotation.x = -Math.PI / 2;
-    super(geo, mat, config.count);
-    this.config = config;
-    this.physics = new BallPhysics(config);
-    this.#setupLights();
-    this.setColors(config.colors);
-  }
-
-  #setupLights() {
-    this.ambientLight = new AmbientLight(this.config.ambientColor, this.config.ambientIntensity);
-    this.add(this.ambientLight);
-    this.light = new PointLight(this.config.colors[0], this.config.lightIntensity);
-    this.add(this.light);
-  }
-
-  setColors(colors) {
-    if (!Array.isArray(colors) || colors.length <= 1) return;
-    const colorObjs = colors.map(c => new Color(c));
-    const getAt = (ratio) => {
-      const scaled = Math.max(0, Math.min(1, ratio)) * (colorObjs.length - 1);
-      const idx = Math.floor(scaled);
-      const alpha = scaled - idx;
-      if (idx >= colorObjs.length - 1) return colorObjs[idx].clone();
-      const out = new Color();
-      out.r = colorObjs[idx].r + alpha * (colorObjs[idx + 1].r - colorObjs[idx].r);
-      out.g = colorObjs[idx].g + alpha * (colorObjs[idx + 1].g - colorObjs[idx].g);
-      out.b = colorObjs[idx].b + alpha * (colorObjs[idx + 1].b - colorObjs[idx].b);
-      return out;
-    };
-    for (let i = 0; i < this.count; i++) {
-      this.setColorAt(i, getAt(i / this.count));
-      if (i === 0) this.light.color.copy(getAt(0));
-    }
-    this.instanceColor.needsUpdate = true;
-  }
-
-  update(e) {
-    this.physics.update(e);
-    for (let i = 0; i < this.count; i++) {
-      _dummy.position.fromArray(this.physics.positionData, 3 * i);
-      _dummy.scale.setScalar(i === 0 && !this.config.followCursor ? 0 : this.physics.sizeData[i]);
-      _dummy.updateMatrix();
-      this.setMatrixAt(i, _dummy.matrix);
-      if (i === 0) this.light.position.copy(_dummy.position);
-    }
-    this.instanceMatrix.needsUpdate = true;
-  }
-}
-
 function createBallpit(canvas, userConfig = {}) {
+  const config = {
+    count: 70,
+    colors: [0xC9A84C, 0x8B6914, 0xEDD070, 0xA07828, 0xF5E6B8, 0x6B4E0A, 0x3D2A05],
+    ambientColor: 0xfff8e7,
+    ambientIntensity: 1.2,
+    lightIntensity: 180,
+    materialParams: { metalness: 0.5, roughness: 0.3, clearcoat: 0, clearcoatRoughness: 0 },
+    minSize: 0.1,
+    maxSize: 0.42,
+    size0: 0.45,
+    gravity: 0.4,
+    friction: 0.998,
+    wallBounce: 0.92,
+    maxVelocity: 0.15,
+    maxX: 5,
+    maxY: 5,
+    maxZ: 2,
+    controlSphere0: false,
+    followCursor: true,
+    ...userConfig
+  };
+
   const app = new ThreeApp({
     canvas,
     size: 'parent',
-    rendererOptions: { antialias: true, alpha: true }
+    rendererOptions: { antialias: false, alpha: true }
   });
-  let spheres;
+
+  app.maxPixelRatio = 1.5;
   app.renderer.toneMapping = ACESFilmicToneMapping;
   app.camera.position.set(0, 0, 20);
   app.camera.lookAt(0, 0, 0);
   app.cameraMaxAspect = 1.5;
   app.resize();
-  init(userConfig);
+
+  const envTexture = new PMREMGenerator(app.renderer, 0.04).fromScene(new RoomEnvironment()).texture;
+  const geo = new SphereGeometry();
+  const mat = new SubsurfaceMaterial({ envMap: envTexture, ...config.materialParams });
+  mat.envMapRotation.x = -Math.PI / 2;
+
+  const spheres = new InstancedMesh(geo, mat, config.count);
+  const physics = new BallPhysics(config);
+
+  const ambientLight = new AmbientLight(config.ambientColor, config.ambientIntensity);
+  spheres.add(ambientLight);
+  const pointLight = new PointLight(config.colors[0], config.lightIntensity);
+  spheres.add(pointLight);
+
+  const colorObjs = config.colors.map(c => new Color(c));
+  const getColorAt = (ratio) => {
+    const scaled = Math.max(0, Math.min(1, ratio)) * (colorObjs.length - 1);
+    const idx = Math.floor(scaled);
+    const alpha = scaled - idx;
+    if (idx >= colorObjs.length - 1) return colorObjs[idx].clone();
+    const out = new Color();
+    out.r = colorObjs[idx].r + alpha * (colorObjs[idx + 1].r - colorObjs[idx].r);
+    out.g = colorObjs[idx].g + alpha * (colorObjs[idx + 1].g - colorObjs[idx].g);
+    out.b = colorObjs[idx].b + alpha * (colorObjs[idx + 1].b - colorObjs[idx].b);
+    return out;
+  };
+  for (let i = 0; i < config.count; i++) {
+    spheres.setColorAt(i, getColorAt(i / config.count));
+  }
+  spheres.instanceColor.needsUpdate = true;
+
+  app.scene.add(spheres);
 
   const raycaster = new Raycaster();
   const plane = new Plane(new Vector3(0, 0, 1), 0);
   const hitPoint = new Vector3();
-  let paused = false;
 
   canvas.style.touchAction = 'none';
   canvas.style.userSelect = 'none';
-  canvas.style.webkitUserSelect = 'none';
 
   const pointer = createPointer({
     domElement: canvas,
@@ -598,64 +574,59 @@ function createBallpit(canvas, userConfig = {}) {
       raycaster.setFromCamera(pointer.nPosition, app.camera);
       app.camera.getWorldDirection(plane.normal);
       raycaster.ray.intersectPlane(plane, hitPoint);
-      spheres.physics.center.copy(hitPoint);
-      spheres.config.controlSphere0 = true;
+      physics.center.copy(hitPoint);
+      config.controlSphere0 = true;
     },
     onLeave() {
-      spheres.config.controlSphere0 = false;
+      config.controlSphere0 = false;
     }
   });
 
-  function init(config) {
-    if (spheres) { app.clear(); app.scene.remove(spheres); }
-    spheres = new BallpitMesh(app.renderer, config);
-    app.scene.add(spheres);
-  }
+  app.onBeforeRender = (e) => {
+    physics.update(e);
+    for (let i = 0; i < config.count; i++) {
+      _dummy.position.fromArray(physics.positionData, 3 * i);
+      _dummy.scale.setScalar(i === 0 && !config.followCursor ? 0 : physics.sizeData[i]);
+      _dummy.updateMatrix();
+      spheres.setMatrixAt(i, _dummy.matrix);
+      if (i === 0) pointLight.position.copy(_dummy.position);
+    }
+    spheres.instanceMatrix.needsUpdate = true;
+  };
 
-  app.onBeforeRender = (e) => { if (!paused) spheres.update(e); };
   app.onAfterResize = (e) => {
-    spheres.config.maxX = e.wWidth / 2;
-    spheres.config.maxY = e.wHeight / 2;
+    config.maxX = e.wWidth / 2;
+    config.maxY = e.wHeight / 2;
   };
 
   return {
     three: app,
-    get spheres() { return spheres; },
     dispose() { pointer.dispose(); app.dispose(); }
   };
 }
 
-function BallpitBackground({ className = '' }) {
+function BallpitHero({ children }) {
   const canvasRef = useRef(null);
   const instanceRef = useRef(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    instanceRef.current = createBallpit(canvas, {
-      followCursor: true,
-      count: 200,
-      colors: [0xC9A84C, 0x8B6914, 0xEDD070, 0xA07828, 0xF5E6B8, 0x6B4E0A, 0x3D2A05],
-      ambientColor: 0xfff8e7,
-      ambientIntensity: 1.2,
-      lightIntensity: 220,
-      materialParams: { metalness: 0.5, roughness: 0.3, clearcoat: 1, clearcoatRoughness: 0.08 },
-      minSize: 0.15,
-      maxSize: 0.55,
-      size0: 0.6,
-      gravity: 0.4,
-      friction: 0.998,
-      wallBounce: 0.92,
-    });
+    instanceRef.current = createBallpit(canvas);
     return () => { instanceRef.current?.dispose(); };
   }, []);
 
   return (
-    <canvas
-      ref={canvasRef}
-      className={className}
-      style={{ position: 'fixed', inset: 0, width: '100%', height: '100%', zIndex: 0, pointerEvents: 'all' }}
-    />
+    <section style={{ minHeight: '100vh', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}>
+      <canvas
+        ref={canvasRef}
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 0, pointerEvents: 'all' }}
+      />
+      <div style={{ position: 'absolute', inset: 0, background: 'rgba(3,2,10,0.45)', zIndex: 1, pointerEvents: 'none' }} />
+      <div style={{ position: 'relative', zIndex: 2, pointerEvents: 'none' }}>
+        {children}
+      </div>
+    </section>
   );
 }
 
@@ -944,8 +915,6 @@ export default function AboutPage() {
   return (
     <div style={{ paddingTop: '70px', background: '#03020a', minHeight: '100vh', overflowX: 'hidden' }}>
 
-      <BallpitBackground />
-
       {!isMobile && (
         <TargetCursor
           targetSelector="a, button"
@@ -956,11 +925,8 @@ export default function AboutPage() {
         />
       )}
 
-      <div style={{ position: 'fixed', inset: 0, background: 'rgba(3,2,10,0.45)', zIndex: 1, pointerEvents: 'none' }} />
-
-      <section style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', zIndex: 2, pointerEvents: 'none' }}>
-        <div style={{ position: 'relative', zIndex: 4, transform: `translateY(${-scroll * 0.12}px)`, textAlign: 'center', padding: '2rem', pointerEvents: 'none' }}>
-
+      <BallpitHero>
+        <div style={{ transform: `translateY(${-scroll * 0.12}px)`, textAlign: 'center', padding: '2rem' }}>
           <FloatingSlab driftY={5} driftX={2} delay={0.3}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '1rem', marginBottom: '3rem', opacity: heroVis ? 1 : 0, transform: heroVis ? 'none' : 'translateY(20px)', transition: 'opacity 1s ease 0.2s,transform 1s ease 0.2s' }}>
               <div style={{ width: '28px', height: '1px', background: 'linear-gradient(90deg,transparent,#C9A84C)' }} />
@@ -986,7 +952,7 @@ export default function AboutPage() {
             <div style={{ width: '1px', height: '60px', background: 'linear-gradient(180deg,#C9A84C,transparent)', animation: 'aboutPulse 2s ease-in-out infinite' }} />
           </div>
         </div>
-      </section>
+      </BallpitHero>
 
       <section ref={foundRef} style={{ padding: '10rem 3rem', position: 'relative', zIndex: 2, maxWidth: '1100px', margin: '0 auto' }}>
         <FloatingSlab driftY={7} delay={0.2}>

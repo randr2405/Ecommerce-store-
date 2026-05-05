@@ -754,7 +754,7 @@ function LiquidChrome({ baseColor = [0.1, 0.1, 0.1], speed = 0.2, amplitude = 0.
 }
 
 function Marquee() {
-  const items = ['Premium Quality', '✦', 'South African Brand', '✦', 'Sport & Lifestyle', '✦', 'All Ages', '✦', 'Free Delivery', '✦', '118 Pieces', '✦'];
+  const items = ['Premium Quality', '✦', 'South African Brand', '✦', 'Sport & Lifestyle', '✦', '118 Pieces', '✦', 'New Arrivals', '✦', 'Luxury Essentials', '✦'];
   return (
     <div style={{ borderTop: '1px solid rgba(201,168,76,0.18)', borderBottom: '1px solid rgba(201,168,76,0.18)', padding: '1.3rem 0', overflow: 'hidden', background: 'rgba(4,3,2,0.97)', backdropFilter: 'blur(10px)', position: 'relative', zIndex: 2 }}>
       <div style={{ display: 'flex', gap: '3rem', animation: 'rrMarquee 28s linear infinite', width: 'max-content' }}>
@@ -1211,18 +1211,19 @@ export default function HomePage() {
           <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
             <LiquidChrome baseColor={[0.1, 0.1, 0.1]} speed={1} amplitude={0.6} interactive={!isMobile} />
           </div>
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(4,3,2,0.55)', zIndex: 1, pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(4,3,2,0.78)', zIndex: 1, pointerEvents: 'none' }} />
           {!isMobile && (
             <div style={{ position: 'absolute', top: '50%', left: '50%', fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(10rem, 28vw, 24rem)', color: 'transparent', WebkitTextStroke: '1px rgba(201,168,76,0.045)', userSelect: 'none', pointerEvents: 'none', whiteSpace: 'nowrap', fontWeight: 300, transform: `translate3d(-50%,-50%,0) rotateX(${brandTilt}deg) scale(${brandScale})`, willChange: 'transform', zIndex: 2 }}>R&amp;R</div>
           )}
           <div style={{ maxWidth: '860px', margin: '0 auto', position: 'relative', zIndex: 3, transform: isMobile ? 'none' : `rotateX(${brandTilt * 0.4}deg) scale(${0.94 + brandScroll * 0.09})`, opacity: isMobile ? 1 : Math.min(1, brandScroll * 3), willChange: 'transform, opacity', backfaceVisibility: 'hidden' }}>
-            <p style={{ fontSize: '0.55rem', color: '#C9A84C', letterSpacing: '0.6em', textTransform: 'uppercase', marginBottom: '2rem', fontFamily: 'Montserrat, sans-serif' }}>Our Mission</p>
-            <h2 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: isMobile ? 'clamp(1.4rem, 5vw, 2.2rem)' : 'clamp(2rem, 5vw, 3.7rem)', fontWeight: 300, fontStyle: 'italic', color: '#FFFFFF', lineHeight: 1.65, textShadow: '0 0 80px rgba(255,255,255,0.05)' }}>
-              "Premium clothing that combines{' '}
-              <span style={{ color: '#C9A84C', fontStyle: 'normal', textShadow: '0 0 40px rgba(201,168,76,0.4)' }}>elegance with comfort</span>,
-              designed for the modern individual who lives without compromise."
-            </h2>
-            <div style={{ width: '70px', height: '1px', background: '#C9A84C', margin: isMobile ? '2rem auto' : '3.5rem auto 3rem' }} />
+            <p style={{ fontSize: '0.55rem', color: '#C9A84C', letterSpacing: '0.6em', textTransform: 'uppercase', marginBottom: '2rem', fontFamily: 'Montserrat, sans-serif', textShadow: '0 0 20px rgba(201,168,76,0.5)' }}>Our Mission</p>
+            <div style={{ position: 'relative', padding: isMobile ? '1.5rem' : '3rem 3.5rem', background: 'rgba(4,3,2,0.65)', border: '1px solid rgba(201,168,76,0.12)', backdropFilter: 'blur(12px)', marginBottom: isMobile ? '2rem' : '3.5rem' }}>
+              <h2 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: isMobile ? 'clamp(1.3rem, 4.5vw, 2rem)' : 'clamp(1.8rem, 4vw, 3.2rem)', fontWeight: 300, fontStyle: 'italic', color: '#F5F0E8', lineHeight: 1.7, textShadow: '0 2px 20px rgba(0,0,0,0.9), 0 0 40px rgba(0,0,0,0.8)', margin: 0 }}>
+                "Premium clothing that combines{' '}
+                <span style={{ color: '#EDD070', fontStyle: 'normal', textShadow: '0 0 30px rgba(201,168,76,0.7), 0 2px 20px rgba(0,0,0,0.9)' }}>elegance with comfort</span>,
+                designed for the modern individual who lives without compromise."
+              </h2>
+            </div>
             <Link href="/about" className="rr-btn-outline">Read Our Story</Link>
           </div>
         </section>

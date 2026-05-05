@@ -1050,11 +1050,25 @@ function LineWaves({ speed = 0.3, innerLineCount = 32, warpIntensity = 1, color1
 
 export default function HomePage() {
   const [heroVisible, setHeroVisible] = useState(false);
+  const [orbHovered, setOrbHovered] = useState(false);
+  const heroSectionRef = useRef(null);
   const [heroRef, heroScroll] = useElementScroll();
   const [collectionsRef, collectionsScroll] = useElementScroll();
   const [brandRef, brandScroll] = useElementScroll();
   const [valuesRef, valuesScroll] = useElementScroll();
   const isMobile = useIsMobile();
+
+  const handleHeroMouseMove = useCallback((e) => {
+    if (isMobile || !heroSectionRef.current) return;
+    const rect = heroSectionRef.current.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const orbRadius = 475;
+    const dist = Math.sqrt((e.clientX - cx) ** 2 + (e.clientY - cy) ** 2);
+    setOrbHovered(dist < orbRadius * 0.82);
+  }, [isMobile]);
+
+  const handleHeroMouseLeave = useCallback(() => setOrbHovered(false), []);
 
   const navItems = [
     { label: 'Home', href: '/' },
@@ -1104,7 +1118,9 @@ export default function HomePage() {
         <GooeyNav items={navItems} initialActiveIndex={0} />
 
         <section
-          ref={heroRef}
+          ref={(el) => { heroRef.current = el; heroSectionRef.current = el; }}
+          onMouseMove={handleHeroMouseMove}
+          onMouseLeave={handleHeroMouseLeave}
           style={{
             minHeight: '85vh',
             display: 'flex',
@@ -1132,7 +1148,7 @@ export default function HomePage() {
               hue={0}
               hoverIntensity={0.3}
               rotateOnHover={true}
-              forceHoverState={false}
+              forceHoverState={orbHovered}
               backgroundColor="#040302"
             />
           </div>
@@ -1150,11 +1166,6 @@ export default function HomePage() {
             backfaceVisibility: 'hidden',
             padding: isMobile ? '1.5rem 1.2rem' : '2.5rem 4rem',
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.8rem', marginBottom: isMobile ? '1.2rem' : '2.2rem', opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'none' : 'translateY(20px)', transition: 'opacity 1s ease 0.2s, transform 1s ease 0.2s' }}>
-              <div style={{ width: isMobile ? '20px' : '38px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C)' }} />
-              <p style={{ fontSize: isMobile ? '0.45rem' : '0.57rem', color: '#C9A84C', letterSpacing: isMobile ? '0.3em' : '0.55em', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif', fontWeight: 300 }}>Premium Sport &amp; Lifestyle</p>
-              <div style={{ width: isMobile ? '20px' : '38px', height: '1px', background: 'linear-gradient(90deg, #C9A84C, transparent)' }} />
-            </div>
             <div style={{ marginBottom: '1.2rem' }}>
               {[
                 { text: 'R&R', gold: true, delay: 0.35 },
@@ -1163,7 +1174,7 @@ export default function HomePage() {
               ].map((word, i) => (
                 <div key={i} style={{ overflow: 'hidden', lineHeight: 1.02 }}>
                   <div style={{ opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'none' : 'translateY(100%)', transition: `opacity 1.2s cubic-bezier(0.16,1,0.3,1) ${word.delay}s, transform 1.2s cubic-bezier(0.16,1,0.3,1) ${word.delay}s` }}>
-                    <span style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: isMobile ? 'clamp(2.8rem, 17vw, 4.5rem)' : 'clamp(3.5rem, 10vw, 8.5rem)', fontWeight: word.gold ? 300 : 400, color: word.gold ? '#C9A84C' : '#FFFFFF', display: 'block', letterSpacing: word.gold ? '-0.02em' : '-0.01em', textShadow: word.gold ? '0 0 80px rgba(201,168,76,0.7), 0 0 160px rgba(201,168,76,0.4)' : '0 0 8px rgba(0,0,0,1), 0 0 16px rgba(0,0,0,1), 0 0 28px rgba(0,0,0,1), 0 0 50px rgba(0,0,0,0.9)', lineHeight: 1.02 }} dangerouslySetInnerHTML={{ __html: word.text }} />
+                    <span style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: isMobile ? 'clamp(2.2rem, 13vw, 3.5rem)' : 'clamp(2.4rem, 6.5vw, 5.5rem)', fontWeight: word.gold ? 300 : 400, color: word.gold ? '#C9A84C' : '#FFFFFF', display: 'block', letterSpacing: word.gold ? '-0.02em' : '-0.01em', textShadow: word.gold ? '0 0 80px rgba(201,168,76,0.7), 0 0 160px rgba(201,168,76,0.4)' : '0 0 8px rgba(0,0,0,1), 0 0 16px rgba(0,0,0,1), 0 0 28px rgba(0,0,0,1), 0 0 50px rgba(0,0,0,0.9)', lineHeight: 1.02 }} dangerouslySetInnerHTML={{ __html: word.text }} />
                   </div>
                 </div>
               ))}

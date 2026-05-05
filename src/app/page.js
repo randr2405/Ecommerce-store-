@@ -1,30 +1,633 @@
 'use client';
 
-import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import gsap from 'gsap';
-import { Renderer, Triangle, Program, Mesh, Vec3 } from 'ogl';
+import {
+  Vector3, MeshPhysicalMaterial, InstancedMesh, Clock, AmbientLight,
+  SphereGeometry, ShaderChunk, Scene, Color, Object3D, SRGBColorSpace,
+  MathUtils, PMREMGenerator, Vector2, WebGLRenderer, PerspectiveCamera,
+  PointLight, ACESFilmicToneMapping, Plane, Raycaster
+} from 'three';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 
-function useElementScroll() {
-  const ref = useRef(null);
-  const [p, setP] = useState(0);
+class ThreeApp {
+  #config;
+  canvas;
+  camera;
+  cameraMinAspect;
+  cameraMaxAspect;
+  cameraFov;
+  maxPixelRatio;
+  minPixelRatio;
+  scene;
+  renderer;
+  #composer;
+  size = { width: 0, height: 0, wWidth: 0, wHeight: 0, ratio: 0, pixelRatio: 0 };
+  render = this.#defaultRender;
+  onBeforeRender = () => {};
+  onAfterRender = () => {};
+  onAfterResize = () => {};
+  #visible = false;
+  #running = false;
+  isDisposed = false;
+  #resizeTimeout;
+  #resizeObserver;
+  #intersectionObserver;
+  #clock = new Clock();
+  #time = { elapsed: 0, delta: 0 };
+  #rafId;
+
+  constructor(config) {
+    this.#config = { ...config };
+    this.#initCamera();
+    this.#initScene();
+    this.#initRenderer();
+    this.resize();
+    this.#initObservers();
+  }
+
+  #initCamera() {
+    this.camera = new PerspectiveCamera();
+    this.cameraFov = this.camera.fov;
+  }
+
+  #initScene() {
+    this.scene = new Scene();
+  }
+
+  #initRenderer() {
+    if (this.#config.canvas) {
+      this.canvas = this.#config.canvas;
+    } else if (this.#config.id) {
+      this.canvas = document.getElementById(this.#config.id);
+    }
+    this.canvas.style.display = 'block';
+    this.renderer = new WebGLRenderer({
+      canvas: this.canvas,
+      powerPreference: 'high-performance',
+      ...(this.#config.rendererOptions ?? {})
+    });
+    this.renderer.outputColorSpace = SRGBColorSpace;
+  }
+
+  #initObservers() {
+    if (!(this.#config.size instanceof Object)) {
+      window.addEventListener('resize', this.#onResize.bind(this));
+      if (this.#config.size === 'parent' && this.canvas.parentNode) {
+        this.#resizeObserver = new ResizeObserver(this.#onResize.bind(this));
+        this.#resizeObserver.observe(this.canvas.parentNode);
+      }
+    }
+    this.#intersectionObserver = new IntersectionObserver(this.#onIntersect.bind(this), {
+      root: null, rootMargin: '0px', threshold: 0
+    });
+    this.#intersectionObserver.observe(this.canvas);
+    document.addEventListener('visibilitychange', this.#onVisibility.bind(this));
+  }
+
+  #removeObservers() {
+    window.removeEventListener('resize', this.#onResize.bind(this));
+    this.#resizeObserver?.disconnect();
+    this.#intersectionObserver?.disconnect();
+    document.removeEventListener('visibilitychange', this.#onVisibility.bind(this));
+  }
+
+  #onIntersect(entries) {
+    this.#visible = entries[0].isIntersecting;
+    this.#visible ? this.#startLoop() : this.#stopLoop();
+  }
+
+  #onVisibility() {
+    if (this.#visible) {
+      document.hidden ? this.#stopLoop() : this.#startLoop();
+    }
+  }
+
+  #onResize() {
+    if (this.#resizeTimeout) clearTimeout(this.#resizeTimeout);
+    this.#resizeTimeout = setTimeout(this.resize.bind(this), 100);
+  }
+
+  resize() {
+    let w, h;
+    if (this.#config.size instanceof Object) {
+      w = this.#config.size.width;
+      h = this.#config.size.height;
+    } else if (this.#config.size === 'parent' && this.canvas.parentNode) {
+      w = this.canvas.parentNode.offsetWidth;
+      h = this.canvas.parentNode.offsetHeight;
+    } else {
+      w = window.innerWidth;
+      h = window.innerHeight;
+    }
+    this.size.width = w;
+    this.size.height = h;
+    this.size.ratio = w / h;
+    this.#updateCamera();
+    this.#updateRenderer();
+    this.onAfterResize(this.size);
+  }
+
+  #updateCamera() {
+    this.camera.aspect = this.size.width / this.size.height;
+    if (this.camera.isPerspectiveCamera && this.cameraFov) {
+      if (this.cameraMinAspect && this.camera.aspect < this.cameraMinAspect) {
+        this.#adjustFov(this.cameraMinAspect);
+      } else if (this.cameraMaxAspect && this.camera.aspect > this.cameraMaxAspect) {
+        this.#adjustFov(this.cameraMaxAspect);
+      } else {
+        this.camera.fov = this.cameraFov;
+      }
+    }
+    this.camera.updateProjectionMatrix();
+    this.updateWorldSize();
+  }
+
+  #adjustFov(aspect) {
+    const t = Math.tan(MathUtils.degToRad(this.cameraFov / 2)) / (this.camera.aspect / aspect);
+    this.camera.fov = 2 * MathUtils.radToDeg(Math.atan(t));
+  }
+
+  updateWorldSize() {
+    if (this.camera.isPerspectiveCamera) {
+      const fov = (this.camera.fov * Math.PI) / 180;
+      this.size.wHeight = 2 * Math.tan(fov / 2) * this.camera.position.length();
+      this.size.wWidth = this.size.wHeight * this.camera.aspect;
+    }
+  }
+
+  #updateRenderer() {
+    this.renderer.setSize(this.size.width, this.size.height);
+    this.#composer?.setSize(this.size.width, this.size.height);
+    let dpr = window.devicePixelRatio;
+    if (this.maxPixelRatio && dpr > this.maxPixelRatio) dpr = this.maxPixelRatio;
+    else if (this.minPixelRatio && dpr < this.minPixelRatio) dpr = this.minPixelRatio;
+    this.renderer.setPixelRatio(dpr);
+    this.size.pixelRatio = dpr;
+  }
+
+  #startLoop() {
+    if (this.#running) return;
+    const animate = () => {
+      this.#rafId = requestAnimationFrame(animate);
+      this.#time.delta = this.#clock.getDelta();
+      this.#time.elapsed += this.#time.delta;
+      this.onBeforeRender(this.#time);
+      this.render();
+      this.onAfterRender(this.#time);
+    };
+    this.#running = true;
+    this.#clock.start();
+    animate();
+  }
+
+  #stopLoop() {
+    if (this.#running) {
+      cancelAnimationFrame(this.#rafId);
+      this.#running = false;
+      this.#clock.stop();
+    }
+  }
+
+  #defaultRender() {
+    this.renderer.render(this.scene, this.camera);
+  }
+
+  clear() {
+    this.scene.traverse(obj => {
+      if (obj.isMesh && obj.material) {
+        Object.keys(obj.material).forEach(k => {
+          const v = obj.material[k];
+          if (v && typeof v.dispose === 'function') v.dispose();
+        });
+        obj.material.dispose();
+        obj.geometry.dispose();
+      }
+    });
+    this.scene.clear();
+  }
+
+  dispose() {
+    this.#removeObservers();
+    this.#stopLoop();
+    this.clear();
+    this.renderer.dispose();
+    this.renderer.forceContextLoss();
+    this.isDisposed = true;
+  }
+}
+
+const pointerMap = new Map();
+const pointerPos = new Vector2();
+let pointerListening = false;
+
+function createPointer(opts) {
+  const state = {
+    position: new Vector2(),
+    nPosition: new Vector2(),
+    hover: false,
+    touching: false,
+    onEnter() {},
+    onMove() {},
+    onClick() {},
+    onLeave() {},
+    ...opts
+  };
+
+  if (!pointerMap.has(opts.domElement)) {
+    pointerMap.set(opts.domElement, state);
+    if (!pointerListening) {
+      document.body.addEventListener('pointermove', onPointerMove);
+      document.body.addEventListener('pointerleave', onPointerLeave);
+      document.body.addEventListener('click', onPointerClick);
+      document.body.addEventListener('touchstart', onTouchStart, { passive: false });
+      document.body.addEventListener('touchmove', onTouchMove, { passive: false });
+      document.body.addEventListener('touchend', onTouchEnd, { passive: false });
+      document.body.addEventListener('touchcancel', onTouchEnd, { passive: false });
+      pointerListening = true;
+    }
+  }
+
+  state.dispose = () => {
+    pointerMap.delete(opts.domElement);
+    if (pointerMap.size === 0) {
+      document.body.removeEventListener('pointermove', onPointerMove);
+      document.body.removeEventListener('pointerleave', onPointerLeave);
+      document.body.removeEventListener('click', onPointerClick);
+      document.body.removeEventListener('touchstart', onTouchStart);
+      document.body.removeEventListener('touchmove', onTouchMove);
+      document.body.removeEventListener('touchend', onTouchEnd);
+      document.body.removeEventListener('touchcancel', onTouchEnd);
+      pointerListening = false;
+    }
+  };
+
+  return state;
+}
+
+function onPointerMove(e) {
+  pointerPos.set(e.clientX, e.clientY);
+  for (const [elem, state] of pointerMap) {
+    const rect = elem.getBoundingClientRect();
+    if (isInRect(rect)) {
+      updatePosition(state, rect);
+      if (!state.hover) { state.hover = true; state.onEnter(state); }
+      state.onMove(state);
+    } else if (state.hover && !state.touching) {
+      state.hover = false;
+      state.onLeave(state);
+    }
+  }
+}
+
+function onPointerLeave() {
+  for (const state of pointerMap.values()) {
+    if (state.hover) { state.hover = false; state.onLeave(state); }
+  }
+}
+
+function onPointerClick(e) {
+  pointerPos.set(e.clientX, e.clientY);
+  for (const [elem, state] of pointerMap) {
+    const rect = elem.getBoundingClientRect();
+    updatePosition(state, rect);
+    if (isInRect(rect)) state.onClick(state);
+  }
+}
+
+function onTouchStart(e) {
+  if (!e.touches.length) return;
+  e.preventDefault();
+  pointerPos.set(e.touches[0].clientX, e.touches[0].clientY);
+  for (const [elem, state] of pointerMap) {
+    const rect = elem.getBoundingClientRect();
+    if (isInRect(rect)) {
+      state.touching = true;
+      updatePosition(state, rect);
+      if (!state.hover) { state.hover = true; state.onEnter(state); }
+      state.onMove(state);
+    }
+  }
+}
+
+function onTouchMove(e) {
+  if (!e.touches.length) return;
+  e.preventDefault();
+  pointerPos.set(e.touches[0].clientX, e.touches[0].clientY);
+  for (const [elem, state] of pointerMap) {
+    const rect = elem.getBoundingClientRect();
+    updatePosition(state, rect);
+    if (isInRect(rect)) {
+      if (!state.hover) { state.hover = true; state.touching = true; state.onEnter(state); }
+      state.onMove(state);
+    } else if (state.hover && state.touching) {
+      state.onMove(state);
+    }
+  }
+}
+
+function onTouchEnd() {
+  for (const state of pointerMap.values()) {
+    if (state.touching) {
+      state.touching = false;
+      if (state.hover) { state.hover = false; state.onLeave(state); }
+    }
+  }
+}
+
+function updatePosition(state, rect) {
+  state.position.x = pointerPos.x - rect.left;
+  state.position.y = pointerPos.y - rect.top;
+  state.nPosition.x = (state.position.x / rect.width) * 2 - 1;
+  state.nPosition.y = -(state.position.y / rect.height) * 2 + 1;
+}
+
+function isInRect(rect) {
+  return pointerPos.x >= rect.left && pointerPos.x <= rect.left + rect.width &&
+    pointerPos.y >= rect.top && pointerPos.y <= rect.top + rect.height;
+}
+
+const { randFloat, randFloatSpread } = MathUtils;
+const _vA = new Vector3(), _vB = new Vector3(), _vC = new Vector3();
+const _vD = new Vector3(), _vE = new Vector3(), _vF = new Vector3();
+const _vG = new Vector3(), _vH = new Vector3(), _vI = new Vector3();
+
+class BallPhysics {
+  constructor(config) {
+    this.config = config;
+    this.positionData = new Float32Array(3 * config.count).fill(0);
+    this.velocityData = new Float32Array(3 * config.count).fill(0);
+    this.sizeData = new Float32Array(config.count).fill(1);
+    this.center = new Vector3();
+    this.#init();
+    this.setSizes();
+  }
+
+  #init() {
+    const { config: c, positionData: p } = this;
+    this.center.toArray(p, 0);
+    for (let i = 1; i < c.count; i++) {
+      const b = 3 * i;
+      p[b] = randFloatSpread(2 * c.maxX);
+      p[b + 1] = randFloatSpread(2 * c.maxY);
+      p[b + 2] = randFloatSpread(2 * c.maxZ);
+    }
+  }
+
+  setSizes() {
+    const { config: c, sizeData: s } = this;
+    s[0] = c.size0;
+    for (let i = 1; i < c.count; i++) s[i] = randFloat(c.minSize, c.maxSize);
+  }
+
+  update(e) {
+    const { config: c, center, positionData: pos, sizeData: sz, velocityData: vel } = this;
+    let start = 0;
+    if (c.controlSphere0) {
+      start = 1;
+      _vA.fromArray(pos, 0).lerp(center, 0.1).toArray(pos, 0);
+      _vD.set(0, 0, 0).toArray(vel, 0);
+    }
+    for (let i = start; i < c.count; i++) {
+      const b = 3 * i;
+      _vA.fromArray(pos, b);
+      _vD.fromArray(vel, b);
+      _vD.y -= e.delta * c.gravity * sz[i];
+      _vD.multiplyScalar(c.friction).clampLength(0, c.maxVelocity);
+      _vA.add(_vD);
+      _vA.toArray(pos, b);
+      _vD.toArray(vel, b);
+    }
+    for (let i = start; i < c.count; i++) {
+      const b = 3 * i;
+      _vA.fromArray(pos, b);
+      _vD.fromArray(vel, b);
+      const ri = sz[i];
+      for (let j = i + 1; j < c.count; j++) {
+        const bj = 3 * j;
+        _vB.fromArray(pos, bj);
+        _vE.fromArray(vel, bj);
+        const rj = sz[j];
+        _vC.copy(_vB).sub(_vA);
+        const dist = _vC.length();
+        const sum = ri + rj;
+        if (dist < sum) {
+          const overlap = sum - dist;
+          _vF.copy(_vC).normalize().multiplyScalar(0.5 * overlap);
+          _vG.copy(_vF).multiplyScalar(Math.max(_vD.length(), 1));
+          _vH.copy(_vF).multiplyScalar(Math.max(_vE.length(), 1));
+          _vA.sub(_vF); _vD.sub(_vG); _vA.toArray(pos, b); _vD.toArray(vel, b);
+          _vB.add(_vF); _vE.add(_vH); _vB.toArray(pos, bj); _vE.toArray(vel, bj);
+        }
+      }
+      if (c.controlSphere0) {
+        const sphere0 = _vI.fromArray(pos, 0);
+        _vC.copy(sphere0).sub(_vA);
+        const d = _vC.length();
+        const s0 = ri + sz[0];
+        if (d < s0) {
+          const diff = s0 - d;
+          _vF.copy(_vC.normalize()).multiplyScalar(diff);
+          _vG.copy(_vF).multiplyScalar(Math.max(_vD.length(), 2));
+          _vA.sub(_vF); _vD.sub(_vG);
+        }
+      }
+      if (Math.abs(_vA.x) + ri > c.maxX) { _vA.x = Math.sign(_vA.x) * (c.maxX - ri); _vD.x = -_vD.x * c.wallBounce; }
+      if (c.gravity === 0) {
+        if (Math.abs(_vA.y) + ri > c.maxY) { _vA.y = Math.sign(_vA.y) * (c.maxY - ri); _vD.y = -_vD.y * c.wallBounce; }
+      } else if (_vA.y - ri < -c.maxY) {
+        _vA.y = -c.maxY + ri; _vD.y = -_vD.y * c.wallBounce;
+      }
+      const maxBound = Math.max(c.maxZ, c.maxSize);
+      if (Math.abs(_vA.z) + ri > maxBound) { _vA.z = Math.sign(_vA.z) * (c.maxZ - ri); _vD.z = -_vD.z * c.wallBounce; }
+      _vA.toArray(pos, b); _vD.toArray(vel, b);
+    }
+  }
+}
+
+class SubsurfaceMaterial extends MeshPhysicalMaterial {
+  constructor(params) {
+    super(params);
+    this.uniforms = {
+      thicknessDistortion: { value: 0.1 },
+      thicknessAmbient: { value: 0 },
+      thicknessAttenuation: { value: 0.1 },
+      thicknessPower: { value: 2 },
+      thicknessScale: { value: 10 }
+    };
+    this.defines.USE_UV = '';
+    this.onBeforeCompile = (shader) => {
+      Object.assign(shader.uniforms, this.uniforms);
+      shader.fragmentShader = `
+        uniform float thicknessPower;
+        uniform float thicknessScale;
+        uniform float thicknessDistortion;
+        uniform float thicknessAmbient;
+        uniform float thicknessAttenuation;
+      ` + shader.fragmentShader;
+      shader.fragmentShader = shader.fragmentShader.replace(
+        'void main() {',
+        `void RE_Direct_Scattering(const in IncidentLight directLight, const in vec2 uv, const in vec3 geometryPosition, const in vec3 geometryNormal, const in vec3 geometryViewDir, const in vec3 geometryClearcoatNormal, inout ReflectedLight reflectedLight) {
+          vec3 scatteringHalf = normalize(directLight.direction + (geometryNormal * thicknessDistortion));
+          float scatteringDot = pow(saturate(dot(geometryViewDir, -scatteringHalf)), thicknessPower) * thicknessScale;
+          #ifdef USE_COLOR
+            vec3 scatteringIllu = (scatteringDot + thicknessAmbient) * vColor;
+          #else
+            vec3 scatteringIllu = (scatteringDot + thicknessAmbient) * diffuse;
+          #endif
+          reflectedLight.directDiffuse += scatteringIllu * thicknessAttenuation * directLight.color;
+        }
+        void main() {`
+      );
+      const replaced = ShaderChunk.lights_fragment_begin.replaceAll(
+        'RE_Direct( directLight, geometryPosition, geometryNormal, geometryViewDir, geometryClearcoatNormal, material, reflectedLight );',
+        `RE_Direct( directLight, geometryPosition, geometryNormal, geometryViewDir, geometryClearcoatNormal, material, reflectedLight );
+          RE_Direct_Scattering(directLight, vUv, geometryPosition, geometryNormal, geometryViewDir, geometryClearcoatNormal, reflectedLight);`
+      );
+      shader.fragmentShader = shader.fragmentShader.replace('#include <lights_fragment_begin>', replaced);
+      if (this.onBeforeCompile2) this.onBeforeCompile2(shader);
+    };
+  }
+}
+
+const _dummy = new Object3D();
+
+function createBallpit(canvas, userConfig = {}) {
+  const config = {
+    count: 70,
+    colors: [0xC9A84C, 0x8B6914, 0xEDD070, 0xA07828, 0xF5E6B8, 0x6B4E0A, 0x3D2A05],
+    ambientColor: 0xfff8e7,
+    ambientIntensity: 1.2,
+    lightIntensity: 180,
+    materialParams: { metalness: 0.5, roughness: 0.3, clearcoat: 0, clearcoatRoughness: 0 },
+    minSize: 0.1,
+    maxSize: 0.42,
+    size0: 0.45,
+    gravity: 0.4,
+    friction: 0.998,
+    wallBounce: 0.92,
+    maxVelocity: 0.15,
+    maxX: 5,
+    maxY: 5,
+    maxZ: 2,
+    controlSphere0: false,
+    followCursor: true,
+    ...userConfig
+  };
+
+  const app = new ThreeApp({
+    canvas,
+    size: 'parent',
+    rendererOptions: { antialias: false, alpha: true }
+  });
+
+  app.maxPixelRatio = 1.5;
+  app.renderer.toneMapping = ACESFilmicToneMapping;
+  app.camera.position.set(0, 0, 20);
+  app.camera.lookAt(0, 0, 0);
+  app.cameraMaxAspect = 1.5;
+  app.resize();
+
+  const envTexture = new PMREMGenerator(app.renderer, 0.04).fromScene(new RoomEnvironment()).texture;
+  const geo = new SphereGeometry();
+  const mat = new SubsurfaceMaterial({ envMap: envTexture, ...config.materialParams });
+  mat.envMapRotation.x = -Math.PI / 2;
+
+  const spheres = new InstancedMesh(geo, mat, config.count);
+  const physics = new BallPhysics(config);
+
+  const ambientLight = new AmbientLight(config.ambientColor, config.ambientIntensity);
+  spheres.add(ambientLight);
+  const pointLight = new PointLight(config.colors[0], config.lightIntensity);
+  spheres.add(pointLight);
+
+  const colorObjs = config.colors.map(c => new Color(c));
+  const getColorAt = (ratio) => {
+    const scaled = Math.max(0, Math.min(1, ratio)) * (colorObjs.length - 1);
+    const idx = Math.floor(scaled);
+    const alpha = scaled - idx;
+    if (idx >= colorObjs.length - 1) return colorObjs[idx].clone();
+    const out = new Color();
+    out.r = colorObjs[idx].r + alpha * (colorObjs[idx + 1].r - colorObjs[idx].r);
+    out.g = colorObjs[idx].g + alpha * (colorObjs[idx + 1].g - colorObjs[idx].g);
+    out.b = colorObjs[idx].b + alpha * (colorObjs[idx + 1].b - colorObjs[idx].b);
+    return out;
+  };
+  for (let i = 0; i < config.count; i++) {
+    spheres.setColorAt(i, getColorAt(i / config.count));
+  }
+  spheres.instanceColor.needsUpdate = true;
+
+  app.scene.add(spheres);
+
+  const raycaster = new Raycaster();
+  const plane = new Plane(new Vector3(0, 0, 1), 0);
+  const hitPoint = new Vector3();
+
+  canvas.style.touchAction = 'none';
+  canvas.style.userSelect = 'none';
+
+  const pointer = createPointer({
+    domElement: canvas,
+    onMove() {
+      raycaster.setFromCamera(pointer.nPosition, app.camera);
+      app.camera.getWorldDirection(plane.normal);
+      raycaster.ray.intersectPlane(plane, hitPoint);
+      physics.center.copy(hitPoint);
+      config.controlSphere0 = true;
+    },
+    onLeave() {
+      config.controlSphere0 = false;
+    }
+  });
+
+  app.onBeforeRender = (e) => {
+    physics.update(e);
+    for (let i = 0; i < config.count; i++) {
+      _dummy.position.fromArray(physics.positionData, 3 * i);
+      _dummy.scale.setScalar(i === 0 && !config.followCursor ? 0 : physics.sizeData[i]);
+      _dummy.updateMatrix();
+      spheres.setMatrixAt(i, _dummy.matrix);
+      if (i === 0) pointLight.position.copy(_dummy.position);
+    }
+    spheres.instanceMatrix.needsUpdate = true;
+  };
+
+  app.onAfterResize = (e) => {
+    config.maxX = e.wWidth / 2;
+    config.maxY = e.wHeight / 2;
+  };
+
+  return {
+    three: app,
+    dispose() { pointer.dispose(); app.dispose(); }
+  };
+}
+
+function BallpitHero({ children }) {
+  const canvasRef = useRef(null);
+  const instanceRef = useRef(null);
+
   useEffect(() => {
-    let ticking = false;
-    const update = () => {
-      if (!ref.current) return;
-      const r = ref.current.getBoundingClientRect();
-      const vh = window.innerHeight;
-      setP(Math.max(0, Math.min(1, (vh - r.top) / (vh + r.height))));
-      ticking = false;
-    };
-    const onScroll = () => {
-      if (!ticking) { requestAnimationFrame(update); ticking = true; }
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    update();
-    return () => window.removeEventListener('scroll', onScroll);
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    instanceRef.current = createBallpit(canvas);
+    return () => { instanceRef.current?.dispose(); };
   }, []);
-  return [ref, p];
+
+  return (
+    <section style={{ minHeight: '100vh', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}>
+      <canvas
+        ref={canvasRef}
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 0, pointerEvents: 'all' }}
+      />
+      <div style={{ position: 'absolute', inset: 0, background: 'rgba(3,2,10,0.45)', zIndex: 1, pointerEvents: 'none' }} />
+      <div style={{ position: 'relative', zIndex: 2, pointerEvents: 'none' }}>
+        {children}
+      </div>
+    </section>
+  );
 }
 
 function useIsMobile() {
@@ -38,346 +641,11 @@ function useIsMobile() {
   return isMobile;
 }
 
-function hexToVec3(color) {
-  if (color.startsWith('#')) {
-    const r = parseInt(color.slice(1, 3), 16) / 255;
-    const g = parseInt(color.slice(3, 5), 16) / 255;
-    const b = parseInt(color.slice(5, 7), 16) / 255;
-    return new Vec3(r, g, b);
-  }
-  const rgbMatch = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
-  if (rgbMatch) {
-    return new Vec3(parseInt(rgbMatch[1]) / 255, parseInt(rgbMatch[2]) / 255, parseInt(rgbMatch[3]) / 255);
-  }
-  return new Vec3(0, 0, 0);
-}
-
-function Orb({ hue = 0, hoverIntensity = 0.2, rotateOnHover = true, forceHoverState = false, backgroundColor = '#040302' }) {
-  const ctnDom = useRef(null);
-
-  useEffect(() => {
-    const container = ctnDom.current;
-    if (!container) return;
-
-    const vert = `
-      precision highp float;
-      attribute vec2 position;
-      attribute vec2 uv;
-      varying vec2 vUv;
-      void main() {
-        vUv = uv;
-        gl_Position = vec4(position, 0.0, 1.0);
-      }
-    `;
-
-    const frag = `
-      precision highp float;
-      uniform float iTime;
-      uniform vec3 iResolution;
-      uniform float hue;
-      uniform float hover;
-      uniform float rot;
-      uniform float hoverIntensity;
-      uniform vec3 backgroundColor;
-      varying vec2 vUv;
-
-      vec3 rgb2yiq(vec3 c) {
-        float y = dot(c, vec3(0.299, 0.587, 0.114));
-        float i = dot(c, vec3(0.596, -0.274, -0.322));
-        float q = dot(c, vec3(0.211, -0.523, 0.312));
-        return vec3(y, i, q);
-      }
-      vec3 yiq2rgb(vec3 c) {
-        float r = c.x + 0.956 * c.y + 0.621 * c.z;
-        float g = c.x - 0.272 * c.y - 0.647 * c.z;
-        float b = c.x - 1.106 * c.y + 1.703 * c.z;
-        return vec3(r, g, b);
-      }
-      vec3 adjustHue(vec3 color, float hueDeg) {
-        float hueRad = hueDeg * 3.14159265 / 180.0;
-        vec3 yiq = rgb2yiq(color);
-        float cosA = cos(hueRad);
-        float sinA = sin(hueRad);
-        float i = yiq.y * cosA - yiq.z * sinA;
-        float q = yiq.y * sinA + yiq.z * cosA;
-        yiq.y = i;
-        yiq.z = q;
-        return yiq2rgb(yiq);
-      }
-      vec3 hash33(vec3 p3) {
-        p3 = fract(p3 * vec3(0.1031, 0.11369, 0.13787));
-        p3 += dot(p3, p3.yxz + 19.19);
-        return -1.0 + 2.0 * fract(vec3(p3.x + p3.y, p3.x + p3.z, p3.y + p3.z) * p3.zyx);
-      }
-      float snoise3(vec3 p) {
-        const float K1 = 0.333333333;
-        const float K2 = 0.166666667;
-        vec3 i = floor(p + (p.x + p.y + p.z) * K1);
-        vec3 d0 = p - (i - (i.x + i.y + i.z) * K2);
-        vec3 e = step(vec3(0.0), d0 - d0.yzx);
-        vec3 i1 = e * (1.0 - e.zxy);
-        vec3 i2 = 1.0 - e.zxy * (1.0 - e);
-        vec3 d1 = d0 - (i1 - K2);
-        vec3 d2 = d0 - (i2 - K1);
-        vec3 d3 = d0 - 0.5;
-        vec4 h = max(0.6 - vec4(dot(d0,d0), dot(d1,d1), dot(d2,d2), dot(d3,d3)), 0.0);
-        vec4 n = h*h*h*h * vec4(dot(d0,hash33(i)), dot(d1,hash33(i+i1)), dot(d2,hash33(i+i2)), dot(d3,hash33(i+1.0)));
-        return dot(vec4(31.316), n);
-      }
-      vec4 extractAlpha(vec3 colorIn) {
-        float a = max(max(colorIn.r, colorIn.g), colorIn.b);
-        return vec4(colorIn.rgb / (a + 1e-5), a);
-      }
-
-      const vec3 baseColor1 = vec3(0.788, 0.659, 0.298);
-      const vec3 baseColor2 = vec3(0.929, 0.816, 0.439);
-      const vec3 baseColor3 = vec3(0.200, 0.157, 0.031);
-      const float innerRadius = 0.6;
-      const float noiseScale = 0.65;
-
-      float hash1(float n) { return fract(sin(n) * 43758.5453); }
-      float hash1b(float n) { return fract(cos(n * 1.618) * 27183.7); }
-
-      float spikeProfile(float ang, float t) {
-        float s1 = abs(fract(sin(ang * 19.673 + t * 0.9) * 43758.5) * 2.0 - 1.0);
-        float s2 = abs(fract(sin(ang * 31.891 - t * 1.3) * 87613.2) * 2.0 - 1.0);
-        float s3 = abs(fract(cos(ang * 47.213 + t * 0.6) * 15731.4) * 2.0 - 1.0);
-        float combined = s1 * s2 + s3 * 0.4;
-        return pow(clamp(combined, 0.0, 1.0), 2.8);
-      }
-
-      float light1(float intensity, float attenuation, float dist) {
-        return intensity / (1.0 + dist * attenuation);
-      }
-      float light2(float intensity, float attenuation, float dist) {
-        return intensity / (1.0 + dist * dist * attenuation);
-      }
-
-      vec4 draw(vec2 uv) {
-        float scanY = floor(uv.y * 9.0 + iTime * 0.25);
-        float glitchLine = step(0.94, hash1(scanY + iTime * 3.7)) * hover;
-        float glitchDir = sign(hash1b(scanY) - 0.5);
-        uv.x += glitchLine * glitchDir * 0.055 * hover;
-
-        vec3 color1 = adjustHue(baseColor1, hue);
-        vec3 color2 = adjustHue(baseColor2, hue);
-        vec3 color3 = adjustHue(baseColor3, hue);
-
-        float ang = atan(uv.y, uv.x);
-        float len = length(uv);
-        float invLen = len > 0.0 ? 1.0 / len : 0.0;
-
-        float spikes = spikeProfile(ang, iTime) * hover * 0.42;
-
-        float bgLuminance = dot(backgroundColor, vec3(0.299, 0.587, 0.114));
-        float n0 = snoise3(vec3(uv * noiseScale, iTime * 0.5)) * 0.5 + 0.5;
-        float r0base = mix(mix(innerRadius, 1.0, 0.4), mix(innerRadius, 1.0, 0.6), n0);
-        float r0 = r0base + spikes;
-
-        float d0 = distance(uv, (r0 * invLen) * uv);
-        float v0 = light1(1.0, 10.0, d0);
-        v0 *= smoothstep(r0 * 1.05, r0, len);
-        float innerFade = smoothstep(r0 * 0.8, r0 * 0.95, len);
-        v0 *= mix(innerFade, 1.0, bgLuminance * 0.7);
-
-        float cl = cos(ang + iTime * 2.0) * 0.5 + 0.5;
-        float a = iTime * -1.0;
-        vec2 pos = vec2(cos(a), sin(a)) * r0;
-        float d = distance(uv, pos);
-        float v1 = light2(1.5, 5.0, d);
-        v1 *= light1(1.0, 50.0, d0);
-
-        float spikeGlow = spikes * smoothstep(r0 * 0.85, r0, len) * 2.5;
-        v1 += spikeGlow;
-
-        float v2 = smoothstep(1.0 + spikes * 0.5, mix(innerRadius, 1.0, n0 * 0.5), len);
-        float v3 = smoothstep(innerRadius, mix(innerRadius, 1.0, 0.5), len);
-
-        vec3 colBase = mix(color1, color2, cl);
-        float fadeAmount = mix(1.0, 0.1, bgLuminance);
-        vec3 darkCol = mix(color3, colBase, v0);
-        darkCol = (darkCol + v1) * v2 * v3;
-        darkCol = clamp(darkCol, 0.0, 1.0);
-        vec3 lightCol = (colBase + v1) * mix(1.0, v2 * v3, fadeAmount);
-        lightCol = mix(backgroundColor, lightCol, v0);
-        lightCol = clamp(lightCol, 0.0, 1.0);
-        vec3 finalCol = mix(darkCol, lightCol, bgLuminance);
-
-        vec3 spikeColor = color1 * 1.6;
-        finalCol = mix(finalCol, spikeColor, spikes * v0 * hover * 0.6);
-
-        return extractAlpha(finalCol);
-      }
-
-      vec4 mainImage(vec2 fragCoord) {
-        vec2 center = iResolution.xy * 0.5;
-        float size = min(iResolution.x, iResolution.y);
-        vec2 uv = (fragCoord - center) / size * 2.0;
-        float angle = rot;
-        float s = sin(angle);
-        float c = cos(angle);
-        uv = vec2(c * uv.x - s * uv.y, s * uv.x + c * uv.y);
-        uv.x += hover * hoverIntensity * 0.1 * sin(uv.y * 10.0 + iTime);
-        uv.y += hover * hoverIntensity * 0.1 * sin(uv.x * 10.0 + iTime);
-        return draw(uv);
-      }
-      void main() {
-        vec2 fragCoord = vUv * iResolution.xy;
-        vec4 col = mainImage(fragCoord);
-        gl_FragColor = vec4(col.rgb * col.a, col.a);
-      }
-    `;
-
-    const renderer = new Renderer({ alpha: true, premultipliedAlpha: false });
-    const gl = renderer.gl;
-    gl.clearColor(0, 0, 0, 0);
-    container.appendChild(gl.canvas);
-
-    const geometry = new Triangle(gl);
-    const program = new Program(gl, {
-      vertex: vert,
-      fragment: frag,
-      uniforms: {
-        iTime: { value: 0 },
-        iResolution: { value: new Vec3(gl.canvas.width, gl.canvas.height, gl.canvas.width / gl.canvas.height) },
-        hue: { value: hue },
-        hover: { value: 0 },
-        rot: { value: 0 },
-        hoverIntensity: { value: hoverIntensity },
-        backgroundColor: { value: hexToVec3(backgroundColor) },
-      },
-    });
-
-    const mesh = new Mesh(gl, { geometry, program });
-
-    function resize() {
-      if (!container) return;
-      const dpr = window.devicePixelRatio || 1;
-      const width = container.clientWidth;
-      const height = container.clientHeight;
-      renderer.setSize(width * dpr, height * dpr);
-      gl.canvas.style.width = width + 'px';
-      gl.canvas.style.height = height + 'px';
-      program.uniforms.iResolution.value.set(gl.canvas.width, gl.canvas.height, gl.canvas.width / gl.canvas.height);
-    }
-    window.addEventListener('resize', resize);
-    resize();
-
-    let targetHover = 0;
-    let lastTime = 0;
-    let currentRot = 0;
-    const rotationSpeed = 0.3;
-
-    const getUVHover = (clientX, clientY) => {
-      const rect = container.getBoundingClientRect();
-      const x = clientX - rect.left;
-      const y = clientY - rect.top;
-      const width = rect.width;
-      const height = rect.height;
-      const size = Math.min(width, height);
-      const uvX = ((x - width / 2) / size) * 2.0;
-      const uvY = ((y - height / 2) / size) * 2.0;
-      return Math.sqrt(uvX * uvX + uvY * uvY) < 0.8 ? 1 : 0;
-    };
-
-    const handleMouseMove = (e) => {
-      targetHover = getUVHover(e.clientX, e.clientY);
-    };
-    const handleMouseLeave = () => { targetHover = 0; };
-
-    const handleTouchStart = (e) => {
-      const t = e.touches[0];
-      targetHover = getUVHover(t.clientX, t.clientY);
-    };
-    const handleTouchMove = (e) => {
-      const t = e.touches[0];
-      targetHover = getUVHover(t.clientX, t.clientY);
-    };
-
-    container.addEventListener('mousemove', handleMouseMove);
-    container.addEventListener('mouseleave', handleMouseLeave);
-    container.addEventListener('touchstart', handleTouchStart, { passive: true });
-    container.addEventListener('touchmove', handleTouchMove, { passive: true });
-
-    let rafId;
-    const update = (t) => {
-      rafId = requestAnimationFrame(update);
-      const dt = (t - lastTime) * 0.001;
-      lastTime = t;
-      program.uniforms.iTime.value = t * 0.001;
-      program.uniforms.hue.value = hue;
-      program.uniforms.hoverIntensity.value = hoverIntensity;
-      program.uniforms.backgroundColor.value = hexToVec3(backgroundColor);
-      const effectiveHover = forceHoverState ? 1 : targetHover;
-      program.uniforms.hover.value += (effectiveHover - program.uniforms.hover.value) * 0.1;
-      if (rotateOnHover && effectiveHover > 0.5) currentRot += dt * rotationSpeed;
-      program.uniforms.rot.value = currentRot;
-      renderer.render({ scene: mesh });
-    };
-    rafId = requestAnimationFrame(update);
-
-    return () => {
-      cancelAnimationFrame(rafId);
-      window.removeEventListener('resize', resize);
-      container.removeEventListener('mousemove', handleMouseMove);
-      container.removeEventListener('mouseleave', handleMouseLeave);
-      container.removeEventListener('touchstart', handleTouchStart);
-      container.removeEventListener('touchmove', handleTouchMove);
-      if (gl.canvas.parentElement) gl.canvas.parentElement.removeChild(gl.canvas);
-      gl.getExtension('WEBGL_lose_context')?.loseContext();
-    };
-  }, [hue, hoverIntensity, rotateOnHover, forceHoverState, backgroundColor]);
-
-  return (
-    <div
-      ref={ctnDom}
-      style={{
-        position: 'absolute',
-        inset: 0,
-        width: '100%',
-        height: '100%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    />
-  );
-}
-
-function ClickSpark({ children, sparkColor = '#C9A84C', sparkSize = 8, sparkRadius = 14, sparkCount = 8, duration = 400 }) {
-  const [sparks, setSparks] = useState([]);
-  const handleClick = useCallback((e) => {
-    const id = Date.now() + Math.random();
-    const newSparks = Array.from({ length: sparkCount }, (_, i) => ({
-      id: id + i, x: e.clientX, y: e.clientY, angle: (360 / sparkCount) * i,
-    }));
-    setSparks(prev => [...prev, ...newSparks]);
-    setTimeout(() => setSparks(prev => prev.filter(s => !newSparks.find(ns => ns.id === s.id))), duration);
-  }, [sparkCount, duration]);
-  return (
-    <div onClick={handleClick} style={{ position: 'relative' }}>
-      {children}
-      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 99999 }}>
-        {sparks.map(spark => (
-          <div key={spark.id} style={{
-            position: 'absolute', left: spark.x, top: spark.y,
-            width: sparkSize, height: sparkSize, borderRadius: '50%',
-            background: sparkColor, transform: 'translate(-50%, -50%)',
-            animation: `sparkFly ${duration}ms ease-out forwards`,
-            '--angle': `${spark.angle}deg`, '--radius': `${sparkRadius}px`,
-          }} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function TargetCursor({ targetSelector = 'a, button', spinDuration = 2, hideDefaultCursor = true, hoverDuration = 0.2, parallaxOn = true }) {
   const cursorRef = useRef(null);
   const cornersRef = useRef(null);
   const spinTl = useRef(null);
   const dotRef = useRef(null);
-  const isActiveRef = useRef(false);
   const targetCornerPositionsRef = useRef(null);
   const tickerFnRef = useRef(null);
   const activeStrengthRef = useRef(0);
@@ -406,16 +674,20 @@ function TargetCursor({ targetSelector = 'a, button', spinDuration = 2, hideDefa
     let activeTarget = null;
     let currentLeaveHandler = null;
     let resumeTimeout = null;
+
     const cleanupTarget = target => {
       if (currentLeaveHandler) target.removeEventListener('mouseleave', currentLeaveHandler);
       currentLeaveHandler = null;
     };
+
     gsap.set(cursor, { xPercent: -50, yPercent: -50, x: window.innerWidth / 2, y: window.innerHeight / 2 });
+
     const createSpinTimeline = () => {
       if (spinTl.current) spinTl.current.kill();
       spinTl.current = gsap.timeline({ repeat: -1 }).to(cursor, { rotation: '+=360', duration: spinDuration, ease: 'none' });
     };
     createSpinTimeline();
+
     const tickerFn = () => {
       if (!targetCornerPositionsRef.current || !cursorRef.current || !cornersRef.current) return;
       const strength = activeStrengthRef.current;
@@ -423,28 +695,31 @@ function TargetCursor({ targetSelector = 'a, button', spinDuration = 2, hideDefa
       const cursorX = gsap.getProperty(cursorRef.current, 'x');
       const cursorY = gsap.getProperty(cursorRef.current, 'y');
       Array.from(cornersRef.current).forEach((corner, i) => {
-        const currentX = gsap.getProperty(corner, 'x');
-        const currentY = gsap.getProperty(corner, 'y');
-        const targetX = targetCornerPositionsRef.current[i].x - cursorX;
-        const targetY = targetCornerPositionsRef.current[i].y - cursorY;
-        const finalX = currentX + (targetX - currentX) * strength;
-        const finalY = currentY + (targetY - currentY) * strength;
-        const duration = strength >= 0.99 ? (parallaxOn ? 0.2 : 0) : 0.05;
-        gsap.to(corner, { x: finalX, y: finalY, duration, ease: duration === 0 ? 'none' : 'power1.out', overwrite: 'auto' });
+        const cx = gsap.getProperty(corner, 'x');
+        const cy = gsap.getProperty(corner, 'y');
+        const tx = targetCornerPositionsRef.current[i].x - cursorX;
+        const ty = targetCornerPositionsRef.current[i].y - cursorY;
+        const fx = cx + (tx - cx) * strength;
+        const fy = cy + (ty - cy) * strength;
+        const dur = strength >= 0.99 ? (parallaxOn ? 0.2 : 0) : 0.05;
+        gsap.to(corner, { x: fx, y: fy, duration: dur, ease: dur === 0 ? 'none' : 'power1.out', overwrite: 'auto' });
       });
     };
     tickerFnRef.current = tickerFn;
+
     const moveHandler = e => moveCursor(e.clientX, e.clientY);
     window.addEventListener('mousemove', moveHandler);
+
     const scrollHandler = () => {
       if (!activeTarget || !cursorRef.current) return;
-      const mouseX = gsap.getProperty(cursorRef.current, 'x');
-      const mouseY = gsap.getProperty(cursorRef.current, 'y');
-      const el = document.elementFromPoint(mouseX, mouseY);
+      const mx = gsap.getProperty(cursorRef.current, 'x');
+      const my = gsap.getProperty(cursorRef.current, 'y');
+      const el = document.elementFromPoint(mx, my);
       const stillOver = el && (el === activeTarget || el.closest(targetSelector) === activeTarget);
       if (!stillOver && currentLeaveHandler) currentLeaveHandler();
     };
     window.addEventListener('scroll', scrollHandler, { passive: true });
+
     const mouseDownHandler = () => {
       if (!dotRef.current) return;
       gsap.to(dotRef.current, { scale: 0.7, duration: 0.3 });
@@ -457,6 +732,7 @@ function TargetCursor({ targetSelector = 'a, button', spinDuration = 2, hideDefa
     };
     window.addEventListener('mousedown', mouseDownHandler);
     window.addEventListener('mouseup', mouseUpHandler);
+
     const enterHandler = e => {
       let current = e.target;
       let target = null;
@@ -470,7 +746,7 @@ function TargetCursor({ targetSelector = 'a, button', spinDuration = 2, hideDefa
       if (resumeTimeout) { clearTimeout(resumeTimeout); resumeTimeout = null; }
       activeTarget = target;
       const corners = Array.from(cornersRef.current);
-      corners.forEach(corner => gsap.killTweensOf(corner));
+      corners.forEach(c => gsap.killTweensOf(c));
       gsap.killTweensOf(cursorRef.current, 'rotation');
       spinTl.current?.pause();
       gsap.set(cursorRef.current, { rotation: 0 });
@@ -484,27 +760,26 @@ function TargetCursor({ targetSelector = 'a, button', spinDuration = 2, hideDefa
         { x: rect.right + borderWidth - cornerSize, y: rect.bottom + borderWidth - cornerSize },
         { x: rect.left - borderWidth, y: rect.bottom + borderWidth - cornerSize },
       ];
-      isActiveRef.current = true;
       gsap.ticker.add(tickerFnRef.current);
       gsap.to(activeStrengthRef, { current: 1, duration: hoverDuration, ease: 'power2.out' });
       corners.forEach((corner, i) => {
         gsap.to(corner, { x: targetCornerPositionsRef.current[i].x - cursorX, y: targetCornerPositionsRef.current[i].y - cursorY, duration: 0.2, ease: 'power2.out' });
       });
+
       const leaveHandler = () => {
         gsap.ticker.remove(tickerFnRef.current);
-        isActiveRef.current = false;
         targetCornerPositionsRef.current = null;
         gsap.set(activeStrengthRef, { current: 0, overwrite: true });
         activeTarget = null;
         if (cornersRef.current) {
           const cs = Array.from(cornersRef.current);
           gsap.killTweensOf(cs);
-          const { cornerSize } = constants;
+          const { cornerSize: cs2 } = constants;
           const positions = [
-            { x: -cornerSize * 1.5, y: -cornerSize * 1.5 },
-            { x: cornerSize * 0.5, y: -cornerSize * 1.5 },
-            { x: cornerSize * 0.5, y: cornerSize * 0.5 },
-            { x: -cornerSize * 1.5, y: cornerSize * 0.5 },
+            { x: -cs2 * 1.5, y: -cs2 * 1.5 },
+            { x: cs2 * 0.5, y: -cs2 * 1.5 },
+            { x: cs2 * 0.5, y: cs2 * 0.5 },
+            { x: -cs2 * 1.5, y: cs2 * 0.5 },
           ];
           const tl = gsap.timeline();
           cs.forEach((corner, idx) => tl.to(corner, { x: positions[idx].x, y: positions[idx].y, duration: 0.3, ease: 'power3.out' }, 0));
@@ -524,6 +799,7 @@ function TargetCursor({ targetSelector = 'a, button', spinDuration = 2, hideDefa
       target.addEventListener('mouseleave', leaveHandler);
     };
     window.addEventListener('mouseover', enterHandler, { passive: true });
+
     return () => {
       if (tickerFnRef.current) gsap.ticker.remove(tickerFnRef.current);
       window.removeEventListener('mousemove', moveHandler);
@@ -534,7 +810,6 @@ function TargetCursor({ targetSelector = 'a, button', spinDuration = 2, hideDefa
       if (activeTarget) cleanupTarget(activeTarget);
       spinTl.current?.kill();
       document.body.style.cursor = originalCursor;
-      isActiveRef.current = false;
       targetCornerPositionsRef.current = null;
       activeStrengthRef.current = 0;
     };
@@ -553,951 +828,399 @@ function TargetCursor({ targetSelector = 'a, button', spinDuration = 2, hideDefa
   );
 }
 
-function MobileNav({ items }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      <button
-        onClick={() => setOpen(o => !o)}
-        style={{
-          background: 'none', border: 'none', cursor: 'pointer',
-          display: 'flex', flexDirection: 'column', gap: '5px', padding: '4px',
-        }}
-        aria-label="Toggle menu"
-      >
-        {[0, 1, 2].map(i => (
-          <span key={i} style={{
-            display: 'block', width: '22px', height: '1px', background: '#C9A84C',
-            transition: 'all 0.3s',
-            transform: open
-              ? i === 0 ? 'rotate(45deg) translate(4px, 4px)'
-                : i === 2 ? 'rotate(-45deg) translate(4px, -4px)'
-                : 'scaleX(0)'
-              : 'none',
-            opacity: open && i === 1 ? 0 : 1,
-          }} />
-        ))}
-      </button>
-      {open && (
-        <div style={{
-          position: 'fixed', top: '60px', left: 0, right: 0,
-          background: 'rgba(4,3,2,0.98)', backdropFilter: 'blur(20px)',
-          borderBottom: '1px solid rgba(201,168,76,0.12)',
-          padding: '1.5rem 0', zIndex: 999,
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0',
-        }}>
-          {items.map((item) => (
-            <Link key={item.label} href={item.href} onClick={() => setOpen(false)} style={{
-              width: '100%', textAlign: 'center', padding: '1rem 2rem',
-              fontSize: '0.65rem', fontFamily: 'Montserrat, sans-serif',
-              fontWeight: 300, letterSpacing: '0.3em', textTransform: 'uppercase',
-              color: 'rgba(201,168,76,0.8)', textDecoration: 'none',
-              borderBottom: '1px solid rgba(201,168,76,0.06)',
-            }}>{item.label}</Link>
-          ))}
-          <Link href="/shop" onClick={() => setOpen(false)} style={{
-            marginTop: '1rem',
-            fontSize: '0.6rem', fontFamily: 'Montserrat, sans-serif', fontWeight: 400,
-            letterSpacing: '0.3em', textTransform: 'uppercase', color: '#C9A84C', textDecoration: 'none',
-            border: '1px solid rgba(201,168,76,0.4)', padding: '0.6rem 1.5rem',
-          }}>Shop</Link>
-        </div>
-      )}
-    </>
-  );
-}
-
-function GooeyNav({ items, initialActiveIndex = 0 }) {
-  const [active, setActive] = useState(initialActiveIndex);
-  const [particles, setParticles] = useState([]);
-  const isMobile = useIsMobile();
-  const colors = ['#C9A84C', '#8B6914', '#EDD070', '#A07828'];
-  const handleClick = (index) => {
-    if (index === active) return;
-    const newParticles = Array.from({ length: 12 }, (_, i) => ({
-      id: Date.now() + i, color: colors[i % colors.length],
-      x: Math.random() * 60 - 30, y: Math.random() * 40 - 20, size: 4 + Math.random() * 6,
-    }));
-    setParticles(newParticles);
-    setTimeout(() => setParticles([]), 600);
-    setActive(index);
-  };
-  return (
-    <nav style={{
-      position: 'fixed', top: 0, left: 0, right: 0, height: '60px',
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: '0 1.5rem', background: 'rgba(4,3,2,0.92)',
-      backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(201,168,76,0.12)', zIndex: 1000,
-    }}>
-      <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.4rem', fontWeight: 300, color: '#C9A84C', letterSpacing: '0.08em' }}>R&amp;R</div>
-      {isMobile ? (
-        <MobileNav items={items} />
-      ) : (
-        <>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', position: 'relative' }}>
-            {items.map((item, i) => (
-              <Link key={item.label} href={item.href} onClick={() => handleClick(i)} style={{
-                position: 'relative', padding: '0.6rem 1.2rem', fontSize: '0.52rem',
-                fontFamily: 'Montserrat, sans-serif', fontWeight: active === i ? 500 : 300,
-                letterSpacing: '0.3em', textTransform: 'uppercase',
-                color: active === i ? '#080604' : 'rgba(201,168,76,0.6)', textDecoration: 'none',
-                transition: 'color 0.3s', zIndex: 1,
-              }}>
-                {active === i && <span style={{ position: 'absolute', inset: 0, background: '#C9A84C', borderRadius: '2px', zIndex: -1, animation: 'navPillIn 0.35s cubic-bezier(0.16,1,0.3,1)' }} />}
-                {item.label}
-                {active === i && particles.map(p => (
-                  <span key={p.id} style={{
-                    position: 'absolute', left: '50%', top: '50%',
-                    width: p.size, height: p.size, borderRadius: '50%', background: p.color,
-                    transform: `translate(${p.x}px, ${p.y}px)`,
-                    animation: 'particlePop 0.6s ease-out forwards', pointerEvents: 'none', zIndex: 10,
-                  }} />
-                ))}
-              </Link>
-            ))}
-          </div>
-          <Link href="/shop" style={{
-            fontSize: '0.48rem', fontFamily: 'Montserrat, sans-serif', fontWeight: 400,
-            letterSpacing: '0.3em', textTransform: 'uppercase', color: '#C9A84C', textDecoration: 'none',
-            border: '1px solid rgba(201,168,76,0.4)', padding: '0.5rem 1.1rem', transition: 'all 0.3s',
-          }}>Shop</Link>
-        </>
-      )}
-    </nav>
-  );
-}
-
-function LiquidChrome({ baseColor = [0.1, 0.1, 0.1], speed = 0.2, amplitude = 0.3, frequencyX = 3, frequencyY = 3, interactive = true }) {
-  const containerRef = useRef(null);
-  const isMobile = useIsMobile();
+function FloatingSlab({ children, driftX = 0, driftY = 0, driftRot = 0, delay = 0, style = {} }) {
+  const [pos, setPos] = useState({ y: 0, x: 0, rot: 0 });
+  const tRef = useRef(delay * 80);
   useEffect(() => {
-    if (!containerRef.current) return;
-    const container = containerRef.current;
-    const renderer = new Renderer({ antialias: true });
-    const gl = renderer.gl;
-    gl.clearColor(1, 1, 1, 1);
-    const vertexShader = `
-      attribute vec2 position;
-      attribute vec2 uv;
-      varying vec2 vUv;
-      void main() {
-        vUv = uv;
-        gl_Position = vec4(position, 0.0, 1.0);
-      }
-    `;
-    const fragmentShader = `
-      precision highp float;
-      uniform float uTime;
-      uniform vec3 uResolution;
-      uniform vec3 uBaseColor;
-      uniform float uAmplitude;
-      uniform float uFrequencyX;
-      uniform float uFrequencyY;
-      uniform vec2 uMouse;
-      varying vec2 vUv;
-      vec4 renderImage(vec2 uvCoord) {
-          vec2 fragCoord = uvCoord * uResolution.xy;
-          vec2 uv = (2.0 * fragCoord - uResolution.xy) / min(uResolution.x, uResolution.y);
-          for (float i = 1.0; i < 10.0; i++){
-              uv.x += uAmplitude / i * cos(i * uFrequencyX * uv.y + uTime + uMouse.x * 3.14159);
-              uv.y += uAmplitude / i * cos(i * uFrequencyY * uv.x + uTime + uMouse.y * 3.14159);
-          }
-          vec2 diff = (uvCoord - uMouse);
-          float dist = length(diff);
-          float falloff = exp(-dist * 20.0);
-          float ripple = sin(10.0 * dist - uTime * 2.0) * 0.03;
-          uv += (diff / (dist + 0.0001)) * ripple * falloff;
-          vec3 color = uBaseColor / abs(sin(uTime - uv.y - uv.x));
-          return vec4(color, 1.0);
-      }
-      void main() {
-          vec4 col = vec4(0.0);
-          int samples = 0;
-          for (int i = -1; i <= 1; i++){
-              for (int j = -1; j <= 1; j++){
-                  vec2 offset = vec2(float(i), float(j)) * (1.0 / min(uResolution.x, uResolution.y));
-                  col += renderImage(vUv + offset);
-                  samples++;
-              }
-          }
-          gl_FragColor = col / float(samples);
-      }
-    `;
-    const geometry = new Triangle(gl);
-    const program = new Program(gl, {
-      vertex: vertexShader, fragment: fragmentShader,
-      uniforms: {
-        uTime: { value: 0 },
-        uResolution: { value: new Float32Array([gl.canvas.width, gl.canvas.height, gl.canvas.width / gl.canvas.height]) },
-        uBaseColor: { value: new Float32Array(baseColor) },
-        uAmplitude: { value: amplitude },
-        uFrequencyX: { value: frequencyX },
-        uFrequencyY: { value: frequencyY },
-        uMouse: { value: new Float32Array([0, 0]) },
-      },
-    });
-    const mesh = new Mesh(gl, { geometry, program });
-    function resize() {
-      renderer.setSize(container.offsetWidth, container.offsetHeight);
-      const r = program.uniforms.uResolution.value;
-      r[0] = gl.canvas.width; r[1] = gl.canvas.height; r[2] = gl.canvas.width / gl.canvas.height;
-    }
-    window.addEventListener('resize', resize);
-    resize();
-    function handleMouseMove(event) {
-      const rect = container.getBoundingClientRect();
-      program.uniforms.uMouse.value[0] = (event.clientX - rect.left) / rect.width;
-      program.uniforms.uMouse.value[1] = 1 - (event.clientY - rect.top) / rect.height;
-    }
-    if (interactive && !isMobile) container.addEventListener('mousemove', handleMouseMove);
-    let animationId;
-    function update(t) {
-      animationId = requestAnimationFrame(update);
-      program.uniforms.uTime.value = t * 0.001 * speed;
-      renderer.render({ scene: mesh });
-    }
-    animationId = requestAnimationFrame(update);
-    container.appendChild(gl.canvas);
+    let raf;
+    const loop = () => {
+      tRef.current += 0.008;
+      const t = tRef.current;
+      setPos({ y: Math.sin(t * 0.7 + delay) * driftY, x: Math.cos(t * 0.5 + delay) * driftX, rot: Math.sin(t * 0.4 + delay) * driftRot });
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+  return <div style={{ transform: `translate(${pos.x}px,${pos.y}px) rotate(${pos.rot}deg)`, willChange: 'transform', ...style }}>{children}</div>;
+}
+
+function GlassPanel({ children, index = 0, visible = true, delay = 0, style = {} }) {
+  const [hov, setHov] = useState(false);
+  const [mouse, setMouse] = useState({ x: 0, y: 0 });
+  const ref = useRef(null);
+  const onMove = useCallback((e) => {
+    const r = ref.current?.getBoundingClientRect();
+    if (!r) return;
+    setMouse({ x: (e.clientX - r.left) / r.width - 0.5, y: (e.clientY - r.top) / r.height - 0.5 });
+  }, []);
+  const d = delay + index * 0.1;
+  return (
+    <div ref={ref} onMouseEnter={() => setHov(true)} onMouseLeave={() => { setHov(false); setMouse({ x: 0, y: 0 }); }} onMouseMove={onMove} style={{ perspective: '800px', ...style }}>
+      <div style={{
+        background: hov ? 'rgba(201,168,76,0.055)' : 'rgba(255,255,255,0.022)',
+        backdropFilter: 'blur(24px)',
+        border: '1px solid', borderColor: hov ? 'rgba(201,168,76,0.55)' : 'rgba(255,255,255,0.07)',
+        position: 'relative', overflow: 'hidden',
+        transform: `rotateX(${hov ? mouse.y * -16 : 0}deg) rotateY(${hov ? mouse.x * 20 : 0}deg) translateZ(${hov ? 16 : 0}px) translateY(${visible ? 0 : 50}px)`,
+        opacity: visible ? 1 : 0,
+        transition: hov
+          ? 'background 0.3s, border-color 0.3s, box-shadow 0.3s, transform 0.08s'
+          : `background 0.5s, border-color 0.5s, box-shadow 0.5s, opacity 0.85s ease ${d}s, transform 0.85s cubic-bezier(0.16,1,0.3,1) ${d}s`,
+        boxShadow: hov ? '0 40px 100px rgba(0,0,0,0.65), 0 0 0 1px rgba(201,168,76,0.18), inset 0 1px 0 rgba(201,168,76,0.12)' : '0 8px 40px rgba(0,0,0,0.35)',
+        cursor: 'none',
+      }}>
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: `linear-gradient(90deg,transparent,rgba(201,168,76,${hov ? 0.55 : 0.12}),transparent)`, transition: 'all 0.4s' }} />
+        <div style={{ position: 'absolute', top: 0, left: hov ? '100%' : '-100%', width: '60%', height: '100%', background: 'linear-gradient(90deg,transparent,rgba(201,168,76,0.04),transparent)', transition: 'left 0.8s ease', pointerEvents: 'none' }} />
+        {children(hov)}
+      </div>
+    </div>
+  );
+}
+
+export default function AboutPage() {
+  const [heroVis, setHeroVis] = useState(false);
+  const [scroll, setScroll] = useState(0);
+  const [foundVis, setFoundVis] = useState(false);
+  const [collVis, setCollVis] = useState(false);
+  const [valVis, setValVis] = useState(false);
+  const [whatVis, setWhatVis] = useState(false);
+  const isMobile = useIsMobile();
+
+  const foundRef = useRef(null);
+  const collRef = useRef(null);
+  const valRef = useRef(null);
+  const whatRef = useRef(null);
+
+  useEffect(() => {
+    const t = setTimeout(() => setHeroVis(true), 120);
+    const observe = (ref, setter) => {
+      const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setter(true); }, { threshold: 0.12 });
+      if (ref.current) obs.observe(ref.current);
+      return obs;
+    };
+    const o1 = observe(foundRef, setFoundVis);
+    const o2 = observe(collRef, setCollVis);
+    const o3 = observe(valRef, setValVis);
+    const o4 = observe(whatRef, setWhatVis);
+    const onScroll = () => setScroll(window.scrollY);
+    window.addEventListener('scroll', onScroll, { passive: true });
     return () => {
-      cancelAnimationFrame(animationId);
-      window.removeEventListener('resize', resize);
-      if (interactive && !isMobile) container.removeEventListener('mousemove', handleMouseMove);
-      if (gl.canvas.parentElement) gl.canvas.parentElement.removeChild(gl.canvas);
-      gl.getExtension('WEBGL_lose_context')?.loseContext();
+      clearTimeout(t);
+      [o1, o2, o3, o4].forEach(o => o.disconnect());
+      window.removeEventListener('scroll', onScroll);
     };
-  }, [baseColor, speed, amplitude, frequencyX, frequencyY, interactive, isMobile]);
-  return <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }} />;
-}
-
-function Marquee() {
-  const items = ['Premium Quality', '✦', 'South African Brand', '✦', 'Sport & Lifestyle', '✦', '118 Pieces', '✦', 'New Arrivals', '✦', 'Luxury Essentials', '✦'];
-  return (
-    <div style={{ borderTop: '1px solid rgba(201,168,76,0.18)', borderBottom: '1px solid rgba(201,168,76,0.18)', padding: '1.3rem 0', overflow: 'hidden', background: 'rgba(4,3,2,0.97)', backdropFilter: 'blur(10px)', position: 'relative', zIndex: 2 }}>
-      <div style={{ display: 'flex', gap: '3rem', animation: 'rrMarquee 28s linear infinite', width: 'max-content' }}>
-        {[...items, ...items].map((t, i) => (
-          <span key={i} style={{ fontSize: '0.53rem', color: t === '✦' ? '#C9A84C' : '#4A4030', letterSpacing: '0.42em', textTransform: 'uppercase', whiteSpace: 'nowrap', fontFamily: 'Montserrat, sans-serif' }}>{t}</span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function CategoryCard({ cat, index, sectionProgress }) {
-  const [hovered, setHovered] = useState(false);
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const cardRef = useRef(null);
-  const glowRef = useRef(null);
-  const isMobile = useIsMobile();
-
-  const delay = index * 0.13;
-  const cardProgress = Math.max(0, Math.min(1, (sectionProgress - 0.1 - delay) / 0.45));
-  const enterY = (1 - cardProgress) * 80;
-  const enterOp = Math.min(1, cardProgress * 1.2);
-
-  const handleMouseMove = useCallback((e) => {
-    if (isMobile) return;
-    const rect = cardRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const x = (e.clientX - rect.left) / rect.width;
-    const y = (e.clientY - rect.top) / rect.height;
-    setMousePos({ x: x - 0.5, y: y - 0.5 });
-    if (glowRef.current) {
-      glowRef.current.style.background = `radial-gradient(400px circle at ${x * 100}% ${y * 100}%, rgba(201,168,76,0.12) 0%, transparent 65%)`;
-    }
-  }, [isMobile]);
-
-  const tiltX = (!isMobile && hovered) ? mousePos.y * -18 : 0;
-  const tiltY = (!isMobile && hovered) ? mousePos.x * 22 : 0;
-
-  return (
-    <Link href={`/shop?category=${cat.label.toLowerCase()}`} style={{ textDecoration: 'none', display: 'block' }}>
-      <div
-        ref={cardRef}
-        onMouseEnter={() => !isMobile && setHovered(true)}
-        onMouseLeave={() => { if (isMobile) return; setHovered(false); setMousePos({ x: 0, y: 0 }); if (glowRef.current) glowRef.current.style.background = 'none'; }}
-        onMouseMove={handleMouseMove}
-        style={{
-          perspective: '900px',
-          transformStyle: 'preserve-3d',
-          transform: `translateY(${enterY}px) rotateY(${tiltY}deg) rotateX(${tiltX}deg) ${hovered ? 'translateZ(16px)' : ''}`,
-          opacity: enterOp,
-          transition: hovered
-            ? 'transform 0.07s ease, box-shadow 0.4s'
-            : 'transform 0.9s cubic-bezier(0.16,1,0.3,1), opacity 0.9s, box-shadow 0.4s',
-          willChange: 'transform',
-          position: 'relative',
-          overflow: 'hidden',
-          background: hovered
-            ? 'linear-gradient(135deg, rgba(12,9,4,0.98) 0%, rgba(20,14,5,0.98) 100%)'
-            : 'linear-gradient(135deg, rgba(8,6,3,0.97) 0%, rgba(12,9,4,0.97) 100%)',
-          boxShadow: hovered
-            ? '0 40px 80px rgba(0,0,0,0.7), 0 0 60px rgba(201,168,76,0.08), inset 0 1px 0 rgba(201,168,76,0.15)'
-            : '0 4px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(201,168,76,0.05)',
-          border: `1px solid ${hovered ? 'rgba(201,168,76,0.3)' : 'rgba(201,168,76,0.08)'}`,
-          padding: isMobile ? '2rem 1.5rem' : '3.5rem 2.4rem',
-          cursor: 'pointer',
-          minHeight: isMobile ? 'auto' : undefined,
-        }}
-      >
-        <div ref={glowRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none', transition: 'background 0.1s', zIndex: 0 }} />
-        <div style={{ position: 'absolute', inset: 0, backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(201,168,76,0.006) 2px, rgba(201,168,76,0.006) 3px)', pointerEvents: 'none', zIndex: 0 }} />
-        <div style={{ position: 'absolute', bottom: 0, left: 0, height: '1px', width: hovered ? '100%' : '0%', background: 'linear-gradient(90deg, transparent, #C9A84C 30%, #EDD070 50%, #C9A84C 70%, transparent)', transition: 'width 0.7s cubic-bezier(0.16,1,0.3,1)', zIndex: 1 }} />
-        {[['top', 'left'], ['top', 'right'], ['bottom', 'left'], ['bottom', 'right']].map(([v, h], ci) => (
-          <div key={ci} style={{
-            position: 'absolute', [v]: 0, [h]: 0,
-            width: hovered ? '32px' : '12px',
-            height: hovered ? '32px' : '12px',
-            borderTop: v === 'top' ? `1px solid ${hovered ? '#C9A84C' : 'rgba(201,168,76,0.3)'}` : 'none',
-            borderBottom: v === 'bottom' ? `1px solid ${hovered ? '#C9A84C' : 'rgba(201,168,76,0.3)'}` : 'none',
-            borderLeft: h === 'left' ? `1px solid ${hovered ? '#C9A84C' : 'rgba(201,168,76,0.3)'}` : 'none',
-            borderRight: h === 'right' ? `1px solid ${hovered ? '#C9A84C' : 'rgba(201,168,76,0.3)'}` : 'none',
-            transition: 'all 0.5s cubic-bezier(0.16,1,0.3,1)',
-            zIndex: 1,
-          }} />
-        ))}
-        <div style={{ position: 'relative', zIndex: 2 }}>
-          <p style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '0.6rem', color: hovered ? '#C9A84C' : 'rgba(201,168,76,0.22)', letterSpacing: '0.3em', marginBottom: isMobile ? '1rem' : '1.8rem', transition: 'color 0.4s' }}>
-            {String(index + 1).padStart(2, '0')}
-          </p>
-          <span style={{
-            fontSize: isMobile ? '2rem' : '3rem', display: 'block', marginBottom: isMobile ? '1rem' : '1.8rem',
-            transform: hovered ? 'scale(1.15) rotate(-8deg)' : 'scale(1)',
-            transition: 'transform 0.55s cubic-bezier(0.16,1,0.3,1)',
-            filter: hovered ? 'drop-shadow(0 0 16px rgba(201,168,76,0.5))' : 'none',
-          }}>{cat.icon}</span>
-          <h3 style={{
-            fontFamily: 'Cormorant Garamond, serif', fontSize: isMobile ? '1.4rem' : '1.95rem', fontWeight: 300,
-            color: hovered ? '#FFFFFF' : '#C8BC9E',
-            marginBottom: '0.7rem', transition: 'color 0.3s',
-            textShadow: hovered ? '0 0 40px rgba(255,255,255,0.18)' : 'none',
-          }}>{cat.label}</h3>
-          <p style={{ fontSize: '0.6rem', color: hovered ? 'rgba(201,168,76,0.5)' : 'rgba(100,90,70,0.8)', letterSpacing: '0.1em', lineHeight: 2, transition: 'color 0.3s' }}>
-            {cat.desc}
-          </p>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: '0.6rem', marginTop: isMobile ? '1.2rem' : '2rem',
-            opacity: isMobile ? 1 : hovered ? 1 : 0,
-            transform: isMobile ? 'none' : hovered ? 'translateX(0)' : 'translateX(-14px)',
-            transition: 'all 0.45s cubic-bezier(0.16,1,0.3,1)',
-          }}>
-            <div style={{ width: '22px', height: '1px', background: '#C9A84C' }} />
-            <span style={{ fontSize: '0.5rem', color: '#C9A84C', letterSpacing: '0.35em', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif' }}>Explore</span>
-          </div>
-        </div>
-      </div>
-    </Link>
-  );
-}
-
-function ValueCard({ value, index, sectionProgress }) {
-  const [hovered, setHovered] = useState(false);
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const cardRef = useRef(null);
-  const glowRef = useRef(null);
-  const isMobile = useIsMobile();
-  const romans = ['I', 'II', 'III', 'IV'];
-  const icons = ['◈', '◆', '◉', '◇'];
-
-  const delay = index * 0.13;
-  const cardP = Math.max(0, Math.min(1, (sectionProgress - 0.08 - delay) / 0.5));
-  const entryY = (1 - cardP) * 80;
-
-  const handleMouseMove = useCallback((e) => {
-    if (isMobile) return;
-    const rect = cardRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const x = (e.clientX - rect.left) / rect.width;
-    const y = (e.clientY - rect.top) / rect.height;
-    setMousePos({ x: x - 0.5, y: y - 0.5 });
-    if (glowRef.current) {
-      glowRef.current.style.background = `radial-gradient(350px circle at ${x * 100}% ${y * 100}%, rgba(201,168,76,0.11) 0%, transparent 65%)`;
-    }
-  }, [isMobile]);
-
-  const tiltX = (!isMobile && hovered) ? mousePos.y * -14 : 0;
-  const tiltY = (!isMobile && hovered) ? mousePos.x * 18 : 0;
-
-  return (
-    <div
-      ref={cardRef}
-      onMouseEnter={() => !isMobile && setHovered(true)}
-      onMouseLeave={() => { if (isMobile) return; setHovered(false); setMousePos({ x: 0, y: 0 }); if (glowRef.current) glowRef.current.style.background = 'none'; }}
-      onMouseMove={handleMouseMove}
-      style={{
-        perspective: '900px',
-        transformStyle: 'preserve-3d',
-        transform: `translateY(${entryY}px) rotateY(${tiltY}deg) rotateX(${tiltX}deg) ${hovered ? 'translateZ(14px)' : ''}`,
-        opacity: cardP,
-        transition: hovered
-          ? 'transform 0.07s ease, box-shadow 0.4s'
-          : 'transform 0.9s cubic-bezier(0.16,1,0.3,1), opacity 0.9s, box-shadow 0.4s',
-        willChange: 'transform',
-        position: 'relative',
-        overflow: 'hidden',
-        textAlign: 'center',
-        background: hovered
-          ? 'linear-gradient(135deg, rgba(14,10,4,0.96) 0%, rgba(22,16,5,0.96) 100%)'
-          : 'linear-gradient(135deg, rgba(6,5,2,0.85) 0%, rgba(10,8,3,0.85) 100%)',
-        backdropFilter: 'blur(16px)',
-        boxShadow: hovered
-          ? '0 40px 80px rgba(0,0,0,0.8), 0 0 60px rgba(201,168,76,0.07), inset 0 1px 0 rgba(201,168,76,0.12)'
-          : '0 4px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(201,168,76,0.04)',
-        border: `1px solid ${hovered ? 'rgba(201,168,76,0.28)' : 'rgba(201,168,76,0.07)'}`,
-        padding: isMobile ? '2.5rem 1.5rem' : '3.8rem 2.2rem',
-        cursor: 'default',
-      }}
-    >
-      <div ref={glowRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0 }} />
-      <div style={{ position: 'absolute', inset: 0, backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(201,168,76,0.005) 2px, rgba(201,168,76,0.005) 3px)', pointerEvents: 'none', zIndex: 0 }} />
-      <div style={{ position: 'absolute', bottom: 0, left: 0, height: '1px', width: hovered ? '100%' : '0%', background: 'linear-gradient(90deg, transparent, #C9A84C 30%, #EDD070 50%, #C9A84C 70%, transparent)', transition: 'width 0.7s cubic-bezier(0.16,1,0.3,1)', zIndex: 1 }} />
-      {[['top', 'left'], ['top', 'right'], ['bottom', 'left'], ['bottom', 'right']].map(([v, h], ci) => (
-        <div key={ci} style={{
-          position: 'absolute', [v]: 0, [h]: 0,
-          width: hovered ? '28px' : '10px',
-          height: hovered ? '28px' : '10px',
-          borderTop: v === 'top' ? `1px solid ${hovered ? '#C9A84C' : 'rgba(201,168,76,0.25)'}` : 'none',
-          borderBottom: v === 'bottom' ? `1px solid ${hovered ? '#C9A84C' : 'rgba(201,168,76,0.25)'}` : 'none',
-          borderLeft: h === 'left' ? `1px solid ${hovered ? '#C9A84C' : 'rgba(201,168,76,0.25)'}` : 'none',
-          borderRight: h === 'right' ? `1px solid ${hovered ? '#C9A84C' : 'rgba(201,168,76,0.25)'}` : 'none',
-          transition: 'all 0.5s cubic-bezier(0.16,1,0.3,1)',
-          zIndex: 1,
-        }} />
-      ))}
-      <div style={{ position: 'absolute', top: '-1rem', right: '1rem', fontFamily: 'Cormorant Garamond, serif', fontSize: isMobile ? '4rem' : '5.5rem', fontWeight: 300, color: hovered ? 'rgba(201,168,76,0.09)' : 'rgba(201,168,76,0.03)', transition: 'color 0.5s', userSelect: 'none', pointerEvents: 'none', zIndex: 0 }}>{romans[index]}</div>
-      <div style={{ position: 'relative', zIndex: 2 }}>
-        <div style={{
-          fontSize: '1.6rem', color: hovered ? '#C9A84C' : 'rgba(201,168,76,0.3)',
-          marginBottom: '1.6rem',
-          transform: hovered ? 'scale(1.2) rotate(15deg)' : 'scale(1) rotate(0deg)',
-          transition: 'all 0.55s cubic-bezier(0.16,1,0.3,1)',
-          filter: hovered ? 'drop-shadow(0 0 12px rgba(201,168,76,0.6))' : 'none',
-          display: 'block',
-        }}>{icons[index]}</div>
-        <div style={{ width: hovered ? '55px' : '18px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: '0 auto 1.8rem', transition: 'width 0.55s cubic-bezier(0.16,1,0.3,1)' }} />
-        <h3 style={{
-          fontFamily: 'Cormorant Garamond, serif', fontSize: isMobile ? '1.4rem' : '1.6rem', fontWeight: 300,
-          color: hovered ? '#FFFFFF' : '#C8BC9E',
-          marginBottom: '1rem', transition: 'color 0.3s',
-          textShadow: hovered ? '0 0 40px rgba(255,255,255,0.15)' : 'none',
-          letterSpacing: '0.02em',
-        }}>{value.title}</h3>
-        <p style={{ fontSize: '0.62rem', color: hovered ? 'rgba(201,168,76,0.45)' : 'rgba(100,90,70,0.75)', lineHeight: 2.1, letterSpacing: '0.06em', transition: 'color 0.3s' }}>{value.desc}</p>
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem', marginTop: '1.8rem',
-          opacity: isMobile ? 1 : hovered ? 1 : 0,
-          transform: isMobile ? 'none' : hovered ? 'translateY(0)' : 'translateY(8px)',
-          transition: 'all 0.45s cubic-bezier(0.16,1,0.3,1)',
-        }}>
-          <div style={{ width: '16px', height: '1px', background: '#C9A84C' }} />
-          <span style={{ fontSize: '0.46rem', color: '#C9A84C', letterSpacing: '0.38em', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif' }}>Our Commitment</span>
-          <div style={{ width: '16px', height: '1px', background: '#C9A84C' }} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function LineWaves({ speed = 0.3, innerLineCount = 32, warpIntensity = 1, color1 = '#C9A84C', color2 = '#8B6914', brightness = 0.2, enableMouseInteraction = true, mouseInfluence = 2 }) {
-  const wrapperRef = useRef(null);
-  const canvasRef = useRef(null);
-  const isMobile = useIsMobile();
-  useEffect(() => {
-    const wrapper = wrapperRef.current;
-    const canvas = canvasRef.current;
-    if (!canvas || !wrapper) return;
-    const ctx = canvas.getContext('2d');
-    let w = 0; let h = 0;
-    let mouse = { x: 0, y: 0 };
-    let raf; let t = 0;
-    const setSize = () => {
-      w = canvas.width = wrapper.offsetWidth || window.innerWidth;
-      h = canvas.height = wrapper.offsetHeight || window.innerHeight;
-      mouse = { x: w / 2, y: h / 2 };
-    };
-    setSize();
-    const ro = new ResizeObserver(setSize);
-    ro.observe(wrapper);
-    const onMove = (e) => {
-      if (!enableMouseInteraction || isMobile) return;
-      const rect = canvas.getBoundingClientRect();
-      mouse.x = e.clientX - rect.left;
-      mouse.y = e.clientY - rect.top;
-    };
-    window.addEventListener('mousemove', onMove);
-    const r1v = parseInt(color1.slice(1,3),16); const g1v = parseInt(color1.slice(3,5),16); const b1v = parseInt(color1.slice(5,7),16);
-    const r2v = parseInt(color2.slice(1,3),16); const g2v = parseInt(color2.slice(3,5),16); const b2v = parseInt(color2.slice(5,7),16);
-    const animate = () => {
-      raf = requestAnimationFrame(animate);
-      if (!w || !h) return;
-      t += speed * 0.016;
-      ctx.clearRect(0, 0, w, h);
-      for (let li = 0; li < innerLineCount; li++) {
-        const progress = li / innerLineCount;
-        const y = progress * h;
-        const mouseDistY = Math.abs(mouse.y - y) / h;
-        const mousePull = (enableMouseInteraction && !isMobile) ? (1 - Math.min(1, mouseDistY * 3)) * mouseInfluence : 0;
-        ctx.beginPath();
-        for (let x = 0; x <= w; x += 3) {
-          const warp = Math.sin(x * 0.01 + t + li * 0.18) * 18 * warpIntensity
-            + Math.sin(x * 0.005 - t * 0.7 + li * 0.1) * 10 * warpIntensity
-            + mousePull * Math.sin(x * 0.02 + t) * 20;
-          const py = y + warp;
-          if (x === 0) ctx.moveTo(x, py); else ctx.lineTo(x, py);
-        }
-        const alpha = brightness * (0.4 + Math.sin(t + li * 0.3) * 0.3 + mousePull * 0.5);
-        const colorMix = (Math.sin(t * 0.5 + li * 0.1) + 1) / 2;
-        const r = Math.round(r1v + (r2v - r1v) * colorMix);
-        const g = Math.round(g1v + (g2v - g1v) * colorMix);
-        const b = Math.round(b1v + (b2v - b1v) * colorMix);
-        ctx.strokeStyle = `rgba(${r},${g},${b},${Math.min(1, alpha)})`;
-        ctx.lineWidth = 1;
-        ctx.stroke();
-      }
-    };
-    animate();
-    return () => { cancelAnimationFrame(raf); ro.disconnect(); window.removeEventListener('mousemove', onMove); };
-  }, [speed, innerLineCount, warpIntensity, color1, color2, brightness, enableMouseInteraction, mouseInfluence, isMobile]);
-  return (
-    <div ref={wrapperRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
-      <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: '100%' }} />
-    </div>
-  );
-}
-
-export default function HomePage() {
-  const [heroVisible, setHeroVisible] = useState(false);
-  const [orbHovered, setOrbHovered] = useState(false);
-  const heroSectionRef = useRef(null);
-  const [heroRef, heroScroll] = useElementScroll();
-  const [collectionsRef, collectionsScroll] = useElementScroll();
-  const [brandRef, brandScroll] = useElementScroll();
-  const [valuesRef, valuesScroll] = useElementScroll();
-  const isMobile = useIsMobile();
-
-  const handleHeroMouseMove = useCallback((e) => {
-    if (isMobile || !heroSectionRef.current) return;
-    const rect = heroSectionRef.current.getBoundingClientRect();
-    const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
-    const orbRadius = 475;
-    const dist = Math.sqrt((e.clientX - cx) ** 2 + (e.clientY - cy) ** 2);
-    setOrbHovered(dist < orbRadius * 0.82);
-  }, [isMobile]);
-
-  const handleHeroMouseLeave = useCallback(() => setOrbHovered(false), []);
-
-  const navItems = [
-    { label: 'Home', href: '/' },
-    { label: 'Shop', href: '/shop' },
-    { label: 'About', href: '/about' },
-    { label: 'Contact', href: '/contact' },
-  ];
-
-  const categories = [
-    { label: 'Menswear', desc: 'Sport & lifestyle essentials for the modern man', icon: '👔' },
-    { label: 'Womenswear', desc: 'Elegant everyday wear, effortlessly refined', icon: '👗' },
-    { label: 'Kiddies', desc: 'Stylish pieces crafted for little ones', icon: '🧒' },
-    { label: 'Baby Wear', desc: 'Soft, premium comfort from day one', icon: '👶' },
-  ];
-
-  const values = [
-    { title: 'Quality', desc: 'Only the finest materials, constructed to outlast trends and time.' },
-    { title: 'Design', desc: 'Style meets function — every piece is entirely intentional.' },
-    { title: 'Customer Focus', desc: 'You are at the heart of everything we create and do.' },
-    { title: 'Innovation', desc: 'Always improving, always evolving, never standing still.' },
-  ];
-
-  useEffect(() => {
-    const t = setTimeout(() => setHeroVisible(true), 100);
-    return () => clearTimeout(t);
   }, []);
 
-  const heroOpacity = Math.max(0, 1 - heroScroll * 1.5);
-  const heroTranslateY = heroScroll * 60;
-  const brandTilt = (brandScroll - 0.5) * 14;
-  const brandScale = 0.88 + brandScroll * 0.24;
-
-  const mobileOrbSize = 'min(88vw, 380px)';
-
   return (
-    <ClickSpark sparkColor="#C9A84C" sparkSize={7} sparkRadius={14} sparkCount={8} duration={400}>
-      <div style={{ paddingTop: '60px', background: '#040302', overflowX: 'hidden' }}>
+    <div style={{ paddingTop: '70px', background: '#03020a', minHeight: '100vh', overflowX: 'hidden' }}>
 
-        {!isMobile && (
-          <TargetCursor
-            targetSelector="a, button"
-            spinDuration={2.4}
-            hideDefaultCursor={true}
-            hoverDuration={0.18}
-            parallaxOn={true}
-          />
-        )}
+      {!isMobile && (
+        <TargetCursor
+          targetSelector="a, button"
+          spinDuration={2.4}
+          hideDefaultCursor={true}
+          hoverDuration={0.18}
+          parallaxOn={true}
+        />
+      )}
 
-        <GooeyNav items={navItems} initialActiveIndex={0} />
-
-        <section
-          ref={(el) => { heroRef.current = el; heroSectionRef.current = el; }}
-          onMouseMove={handleHeroMouseMove}
-          onMouseLeave={handleHeroMouseLeave}
-          style={{
-            minHeight: isMobile ? '100svh' : '85vh',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            textAlign: 'center',
-            padding: isMobile ? '0' : '3rem 2rem',
-            position: 'relative',
-            overflow: 'hidden',
-          }}
-        >
-          <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(201,168,76,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(201,168,76,0.03) 1px, transparent 1px)', backgroundSize: '88px 88px', transform: `perspective(800px) rotateX(${55 + heroScroll * 14}deg) translateZ(-80px) scale(2.2)`, transformOrigin: '50% 100%', opacity: 0.5, zIndex: 1, pointerEvents: 'none' }} />
-
-          {isMobile ? (
-            <>
-              <div style={{
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                width: mobileOrbSize,
-                height: mobileOrbSize,
-                zIndex: 2,
-                pointerEvents: 'none',
-              }}>
-                <Orb
-                  hue={0}
-                  hoverIntensity={0.3}
-                  rotateOnHover={false}
-                  forceHoverState={false}
-                  backgroundColor="#040302"
-                />
-              </div>
-
-              <div style={{
-                maxWidth: '100%',
-                width: '100%',
-                position: 'relative',
-                zIndex: 4,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                minHeight: '100svh',
-                padding: '5rem 1.5rem 3rem',
-              }}>
-                <div style={{ marginBottom: '0.8rem' }}>
-                  {[
-                    { text: 'R&R', gold: true, delay: 0.35 },
-                    { text: 'Sport &', gold: false, delay: 0.52 },
-                    { text: 'Lifestyle', gold: false, delay: 0.69 },
-                  ].map((word, i) => (
-                    <div key={i} style={{ overflow: 'hidden', lineHeight: 1.05 }}>
-                      <div style={{ opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'none' : 'translateY(100%)', transition: `opacity 1.2s cubic-bezier(0.16,1,0.3,1) ${word.delay}s, transform 1.2s cubic-bezier(0.16,1,0.3,1) ${word.delay}s` }}>
-                        <span style={{
-                          fontFamily: 'Cormorant Garamond, serif',
-                          fontSize: 'clamp(2.6rem, 14vw, 4rem)',
-                          fontWeight: word.gold ? 300 : 400,
-                          color: word.gold ? '#C9A84C' : '#FFFFFF',
-                          display: 'block',
-                          letterSpacing: word.gold ? '-0.02em' : '-0.01em',
-                          textShadow: word.gold
-                            ? '0 0 80px rgba(201,168,76,0.7), 0 0 160px rgba(201,168,76,0.4)'
-                            : '0 0 12px rgba(0,0,0,1), 0 0 24px rgba(0,0,0,1), 0 0 40px rgba(0,0,0,1)',
-                          lineHeight: 1.05,
-                        }} dangerouslySetInnerHTML={{ __html: word.text }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div style={{ width: heroVisible ? '70px' : '0px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: '1rem auto', transition: 'width 1.6s cubic-bezier(0.16,1,0.3,1) 0.9s' }} />
-
-                <p style={{ fontSize: '0.5rem', color: 'rgba(255,255,255,0.8)', letterSpacing: '0.25em', textTransform: 'uppercase', marginBottom: '2rem', fontFamily: 'Montserrat, sans-serif', fontWeight: 200, opacity: heroVisible ? 1 : 0, transition: 'opacity 1s ease 1.2s' }}>Own the Look · Own the Moment</p>
-
-                <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap', opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'none' : 'translateY(20px)', transition: 'opacity 1s ease 1.5s, transform 1s ease 1.5s' }}>
-                  <Link href="/shop" className="rr-btn-primary">Shop the Collection</Link>
-                  <Link href="/about" className="rr-btn-outline">Our Story</Link>
-                </div>
-              </div>
-            </>
-          ) : (
-            <>
-              <div style={{
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                width: '950px',
-                height: '950px',
-                zIndex: 2,
-                pointerEvents: 'none',
-              }}>
-                <Orb
-                  hue={0}
-                  hoverIntensity={0.3}
-                  rotateOnHover={true}
-                  forceHoverState={orbHovered}
-                  backgroundColor="#040302"
-                />
-              </div>
-
-              <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: '680px', height: '680px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(201,168,76,0.04) 0%, rgba(201,168,76,0.01) 40%, transparent 65%)', pointerEvents: 'none', zIndex: 3, animation: 'rrBloom 4s ease-in-out infinite alternate' }} />
-
-              <div style={{
-                maxWidth: '820px',
-                width: '100%',
-                position: 'relative',
-                zIndex: 4,
-                transform: `translateY(${heroTranslateY}px)`,
-                opacity: heroOpacity,
-                willChange: 'transform, opacity',
-                backfaceVisibility: 'hidden',
-                padding: '2.5rem 4rem',
-              }}>
-                <div style={{ marginBottom: '1.2rem' }}>
-                  {[
-                    { text: 'R&R', gold: true, delay: 0.35 },
-                    { text: 'Sport &', gold: false, delay: 0.52 },
-                    { text: 'Lifestyle', gold: false, delay: 0.69 },
-                  ].map((word, i) => (
-                    <div key={i} style={{ overflow: 'hidden', lineHeight: 1.02 }}>
-                      <div style={{ opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'none' : 'translateY(100%)', transition: `opacity 1.2s cubic-bezier(0.16,1,0.3,1) ${word.delay}s, transform 1.2s cubic-bezier(0.16,1,0.3,1) ${word.delay}s` }}>
-                        <span style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(2.4rem, 6.5vw, 5.5rem)', fontWeight: word.gold ? 300 : 400, color: word.gold ? '#C9A84C' : '#FFFFFF', display: 'block', letterSpacing: word.gold ? '-0.02em' : '-0.01em', textShadow: word.gold ? '0 0 80px rgba(201,168,76,0.7), 0 0 160px rgba(201,168,76,0.4)' : '0 0 8px rgba(0,0,0,1), 0 0 16px rgba(0,0,0,1), 0 0 28px rgba(0,0,0,1), 0 0 50px rgba(0,0,0,0.9)', lineHeight: 1.02 }} dangerouslySetInnerHTML={{ __html: word.text }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div style={{ width: heroVisible ? '110px' : '0px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: '2.2rem auto', transition: 'width 1.6s cubic-bezier(0.16,1,0.3,1) 0.9s' }} />
-                <p style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.75)', letterSpacing: '0.42em', textTransform: 'uppercase', marginBottom: '3rem', fontFamily: 'Montserrat, sans-serif', fontWeight: 200, opacity: heroVisible ? 1 : 0, transition: 'opacity 1s ease 1.2s' }}>Own the Look · Own the Moment</p>
-                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap', opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'none' : 'translateY(20px)', transition: 'opacity 1s ease 1.5s, transform 1s ease 1.5s' }}>
-                  <Link href="/shop" className="rr-btn-primary">Shop the Collection</Link>
-                  <Link href="/about" className="rr-btn-outline">Our Story</Link>
-                </div>
-                <div style={{ marginTop: '3.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.8rem', opacity: heroVisible ? 0.55 : 0, transition: 'opacity 1s ease 2.2s' }}>
-                  <p style={{ fontSize: '0.44rem', color: '#C9A84C', letterSpacing: '0.5em', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif' }}>Scroll</p>
-                  <div style={{ width: '1px', height: '50px', background: 'linear-gradient(180deg, #C9A84C, transparent)', animation: 'rrScrollPulse 2s ease-in-out infinite' }} />
-                </div>
-              </div>
-            </>
-          )}
-        </section>
-
-        <div style={{ position: 'relative', zIndex: 2 }}><Marquee /></div>
-
-        <section ref={collectionsRef} style={{ padding: isMobile ? '5rem 1rem 4rem' : '11rem 4rem 10rem', maxWidth: '1380px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
-          <div style={{ textAlign: 'center', marginBottom: isMobile ? '3rem' : '7rem', transform: `translateZ(0) translateY(${Math.max(0, (0.5 - collectionsScroll) * 60)}px)`, opacity: Math.min(1, collectionsScroll * 3.5) }}>
-            <p style={{ fontSize: '0.55rem', color: '#C9A84C', letterSpacing: '0.6em', textTransform: 'uppercase', marginBottom: '1.2rem', fontFamily: 'Montserrat, sans-serif' }}>Browse</p>
-            <h2 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: isMobile ? 'clamp(2rem, 10vw, 3.5rem)' : 'clamp(2.8rem, 7vw, 5.5rem)', fontWeight: 300, color: '#FFFFFF', textShadow: '0 0 60px rgba(255,255,255,0.07)' }}>Our Collections</h2>
-            <div style={{ width: '70px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: '1.8rem auto 0' }} />
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2px', background: 'rgba(201,168,76,0.06)' }}>
-            {categories.map((cat, i) => <CategoryCard key={cat.label} cat={cat} index={i} sectionProgress={collectionsScroll} />)}
-          </div>
-        </section>
-
-        <section ref={brandRef} style={{ backdropFilter: 'blur(24px)', borderTop: '1px solid rgba(201,168,76,0.1)', borderBottom: '1px solid rgba(201,168,76,0.1)', padding: isMobile ? '6rem 1.5rem' : '11rem 2rem', textAlign: 'center', position: 'relative', zIndex: 2, overflow: 'hidden', perspective: '1200px', minHeight: isMobile ? '400px' : '600px' }}>
-          <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
-            <LiquidChrome baseColor={[0.1, 0.1, 0.1]} speed={1} amplitude={0.6} interactive={!isMobile} />
-          </div>
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(4,3,2,0.78)', zIndex: 1, pointerEvents: 'none' }} />
-          {!isMobile && (
-            <div style={{ position: 'absolute', top: '50%', left: '50%', fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(10rem, 28vw, 24rem)', color: 'transparent', WebkitTextStroke: '1px rgba(201,168,76,0.045)', userSelect: 'none', pointerEvents: 'none', whiteSpace: 'nowrap', fontWeight: 300, transform: `translate3d(-50%,-50%,0) rotateX(${brandTilt}deg) scale(${brandScale})`, willChange: 'transform', zIndex: 2 }}>R&amp;R</div>
-          )}
-          <div style={{ maxWidth: '860px', margin: '0 auto', position: 'relative', zIndex: 3, transform: isMobile ? 'none' : `rotateX(${brandTilt * 0.4}deg) scale(${0.94 + brandScroll * 0.09})`, opacity: isMobile ? 1 : Math.min(1, brandScroll * 3), willChange: 'transform, opacity', backfaceVisibility: 'hidden' }}>
-            <p style={{ fontSize: '0.55rem', color: '#C9A84C', letterSpacing: '0.6em', textTransform: 'uppercase', marginBottom: '2rem', fontFamily: 'Montserrat, sans-serif', textShadow: '0 0 20px rgba(201,168,76,0.5)' }}>Our Mission</p>
-            <div style={{ position: 'relative', padding: isMobile ? '1.5rem' : '3rem 3.5rem', background: 'rgba(4,3,2,0.65)', border: '1px solid rgba(201,168,76,0.12)', backdropFilter: 'blur(12px)', marginBottom: isMobile ? '2rem' : '3.5rem' }}>
-              <h2 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: isMobile ? 'clamp(1.3rem, 4.5vw, 2rem)' : 'clamp(1.8rem, 4vw, 3.2rem)', fontWeight: 300, fontStyle: 'italic', color: '#F5F0E8', lineHeight: 1.7, textShadow: '0 2px 20px rgba(0,0,0,0.9), 0 0 40px rgba(0,0,0,0.8)', margin: 0 }}>
-                "Premium clothing that combines{' '}
-                <span style={{ color: '#EDD070', fontStyle: 'normal', textShadow: '0 0 30px rgba(201,168,76,0.7), 0 2px 20px rgba(0,0,0,0.9)' }}>elegance with comfort</span>,
-                designed for the modern individual who lives without compromise."
-              </h2>
+      <BallpitHero>
+        <div style={{ transform: `translateY(${-scroll * 0.12}px)`, textAlign: 'center', padding: '2rem' }}>
+          <FloatingSlab driftY={5} driftX={2} delay={0.3}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '1rem', marginBottom: '3rem', opacity: heroVis ? 1 : 0, transform: heroVis ? 'none' : 'translateY(20px)', transition: 'opacity 1s ease 0.2s,transform 1s ease 0.2s' }}>
+              <div style={{ width: '28px', height: '1px', background: 'linear-gradient(90deg,transparent,#C9A84C)' }} />
+              <p style={{ fontSize: '0.5rem', color: '#C9A84C', letterSpacing: '0.58em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', fontWeight: 300 }}>Who We Are</p>
+              <div style={{ width: '28px', height: '1px', background: 'linear-gradient(90deg,#C9A84C,transparent)' }} />
             </div>
-            <Link href="/about" className="rr-btn-outline">Read Our Story</Link>
-          </div>
-        </section>
+          </FloatingSlab>
 
-        <section ref={valuesRef} style={{ padding: isMobile ? '5rem 1rem 4rem' : '11rem 4rem 10rem', maxWidth: '1300px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
-          <div style={{ textAlign: 'center', marginBottom: isMobile ? '3rem' : '7rem', transform: `translateZ(0) translateY(${Math.max(0, (0.5 - valuesScroll) * 60)}px)`, opacity: Math.min(1, valuesScroll * 3.5) }}>
-            <p style={{ fontSize: '0.55rem', color: '#C9A84C', letterSpacing: '0.6em', textTransform: 'uppercase', marginBottom: '1.2rem', fontFamily: 'Montserrat, sans-serif' }}>What We Stand For</p>
-            <h2 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: isMobile ? 'clamp(2rem, 10vw, 3.5rem)' : 'clamp(2.8rem, 7vw, 5.5rem)', fontWeight: 300, color: '#FFFFFF', textShadow: '0 0 60px rgba(255,255,255,0.07)' }}>Our Values</h2>
-            <div style={{ width: '70px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: '1.8rem auto 0' }} />
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fit, minmax(240px, 1fr))', gap: '2px', background: 'rgba(201,168,76,0.05)' }}>
-            {values.map((v, i) => <ValueCard key={v.title} value={v} index={i} sectionProgress={valuesScroll} />)}
-          </div>
-        </section>
+          <FloatingSlab driftY={10} driftX={4} delay={0}>
+            <div style={{ overflow: 'hidden' }}>
+              <h1 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: 'clamp(3.5rem,11vw,9.5rem)', fontWeight: 300, lineHeight: 0.9, color: 'rgba(255,255,255,0.93)', letterSpacing: '-0.02em', display: 'block', opacity: heroVis ? 1 : 0, transform: heroVis ? 'none' : 'translateY(80px)', transition: 'opacity 1.2s cubic-bezier(0.16,1,0.3,1) 0.3s,transform 1.2s cubic-bezier(0.16,1,0.3,1) 0.3s', textShadow: '0 0 80px rgba(255,255,255,0.07)' }}>About</h1>
+            </div>
+          </FloatingSlab>
 
-        <section style={{ padding: isMobile ? '7rem 1.5rem' : '14rem 2rem', textAlign: 'center', borderTop: '1px solid rgba(201,168,76,0.1)', position: 'relative', zIndex: 2, overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
-            <LineWaves
-              speed={0.3}
-              innerLineCount={isMobile ? 30 : 50}
-              warpIntensity={1.6}
-              color1="#C9A84C"
-              color2="#8B6914"
-              brightness={0.8}
-              enableMouseInteraction={!isMobile}
-              mouseInfluence={2.5}
-            />
+          <FloatingSlab driftY={14} driftX={-6} delay={1.5}>
+            <div style={{ overflow: 'hidden' }}>
+              <h1 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: 'clamp(3.5rem,11vw,9.5rem)', fontWeight: 300, lineHeight: 0.9, color: '#C9A84C', letterSpacing: '-0.02em', fontStyle: 'italic', display: 'block', opacity: heroVis ? 1 : 0, transform: heroVis ? 'none' : 'translateY(80px)', transition: 'opacity 1.2s cubic-bezier(0.16,1,0.3,1) 0.52s,transform 1.2s cubic-bezier(0.16,1,0.3,1) 0.52s', textShadow: '0 0 100px rgba(201,168,76,0.65),0 0 200px rgba(201,168,76,0.2)' }}>Us</h1>
+            </div>
+          </FloatingSlab>
+
+          <div style={{ marginTop: '5rem', opacity: heroVis ? 0.45 : 0, transition: 'opacity 1s ease 2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.8rem' }}>
+            <p style={{ fontSize: '0.43rem', color: '#C9A84C', letterSpacing: '0.5em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif' }}>Drift down</p>
+            <div style={{ width: '1px', height: '60px', background: 'linear-gradient(180deg,#C9A84C,transparent)', animation: 'aboutPulse 2s ease-in-out infinite' }} />
           </div>
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(4,3,2,0.2)', zIndex: 1, pointerEvents: 'none' }} />
-          <div style={{ position: 'relative', zIndex: 2 }}>
-            <p style={{ fontSize: '0.55rem', color: '#C9A84C', letterSpacing: isMobile ? '0.2em' : '0.6em', textTransform: 'uppercase', marginBottom: '2rem', fontFamily: 'Montserrat, sans-serif' }}>118 premium pieces — available now</p>
-            <h2 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: isMobile ? 'clamp(2.5rem, 14vw, 5rem)' : 'clamp(3rem, 9vw, 7.5rem)', fontWeight: 300, lineHeight: 1.05, marginBottom: '3rem' }}>
-              <span style={{ color: '#FFFFFF', textShadow: '0 0 80px rgba(255,255,255,0.08)', display: 'block' }}>Ready to</span>
-              <span style={{ color: '#C9A84C', textShadow: '0 0 80px rgba(201,168,76,0.5), 0 0 160px rgba(201,168,76,0.2)', fontStyle: 'italic', display: 'block' }}>elevate</span>
-              <span style={{ color: '#FFFFFF', textShadow: '0 0 80px rgba(255,255,255,0.08)', display: 'block' }}>your wardrobe?</span>
+        </div>
+      </BallpitHero>
+
+      <section ref={foundRef} style={{ padding: '10rem 3rem', position: 'relative', zIndex: 2, maxWidth: '1100px', margin: '0 auto' }}>
+        <FloatingSlab driftY={7} delay={0.2}>
+          <div style={{ textAlign: 'center', marginBottom: '6rem', opacity: foundVis ? 1 : 0, transform: foundVis ? 'none' : 'translateY(30px)', transition: 'opacity 0.9s,transform 0.9s' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '1.5rem', marginBottom: '1rem' }}>
+              <div style={{ width: '45px', height: '1px', background: 'linear-gradient(90deg,transparent,rgba(201,168,76,0.45))' }} />
+              <p style={{ fontSize: '0.49rem', color: 'rgba(201,168,76,0.55)', letterSpacing: '0.5em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif' }}>The Founders</p>
+              <div style={{ width: '45px', height: '1px', background: 'linear-gradient(90deg,rgba(201,168,76,0.45),transparent)' }} />
+            </div>
+            <h2 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: 'clamp(2.2rem,5vw,4rem)', fontWeight: 300, color: 'rgba(255,255,255,0.88)' }}>Two Passions, One Vision</h2>
+          </div>
+        </FloatingSlab>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+          <FloatingSlab driftY={12} driftX={-4} delay={0}>
+            <GlassPanel index={0} visible={foundVis} delay={0.1}>
+              {(hov) => (
+                <div style={{ padding: isMobile ? '2rem 1.5rem' : '4rem', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'auto 1fr', gap: isMobile ? '2rem' : '4rem', alignItems: 'center' }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ width: '90px', height: '90px', borderRadius: '50%', border: `1px solid rgba(201,168,76,${hov ? 0.55 : 0.18})`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.2rem', transition: 'border-color 0.4s', position: 'relative' }}>
+                      <span style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: '2.2rem', color: '#C9A84C', fontWeight: 300 }}>01</span>
+                      <div style={{ position: 'absolute', inset: '-8px', borderRadius: '50%', border: `1px solid rgba(201,168,76,${hov ? 0.18 : 0.05})`, transition: 'border-color 0.4s' }} />
+                    </div>
+                    <p style={{ fontSize: '0.46rem', color: 'rgba(201,168,76,0.45)', letterSpacing: '0.3em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', whiteSpace: 'nowrap' }}>Co-Founder</p>
+                  </div>
+                  <div>
+                    <p style={{ fontSize: '0.48rem', color: hov ? 'rgba(201,168,76,0.75)' : 'rgba(201,168,76,0.48)', letterSpacing: '0.38em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', marginBottom: '0.7rem', transition: 'color 0.3s' }}>Sports & Performance</p>
+                    <h3 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: '2.5rem', fontWeight: 300, color: hov ? '#fff' : 'rgba(255,255,255,0.88)', marginBottom: '0.4rem', transition: 'color 0.3s' }}>Romario Govender</h3>
+                    <p style={{ fontSize: '0.53rem', color: '#C9A84C', letterSpacing: '0.18em', fontFamily: 'Montserrat,sans-serif', marginBottom: '1.8rem' }}>Athletic Excellence</p>
+                    <p style={{ fontSize: '0.67rem', color: hov ? 'rgba(255,255,255,0.48)' : 'rgba(255,255,255,0.27)', lineHeight: 2.1, letterSpacing: '0.04em', transition: 'color 0.4s' }}>
+                      A true athlete at heart, Romario has excelled in nearly every sport imaginable. As a semi-professional golfer, he brings an elite athlete's perspective — ensuring every sportswear piece performs at the highest level.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </GlassPanel>
+          </FloatingSlab>
+
+          <FloatingSlab driftY={10} driftX={5} delay={1.2} style={{ alignSelf: 'flex-end', width: '94%' }}>
+            <GlassPanel index={1} visible={foundVis} delay={0.25}>
+              {(hov) => (
+                <div style={{ padding: isMobile ? '2rem 1.5rem' : '4rem', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr auto', gap: isMobile ? '2rem' : '4rem', alignItems: 'center' }}>
+                  <div>
+                    <p style={{ fontSize: '0.48rem', color: hov ? 'rgba(201,168,76,0.75)' : 'rgba(201,168,76,0.48)', letterSpacing: '0.38em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', marginBottom: '0.7rem', transition: 'color 0.3s' }}>Lifestyle & Luxury</p>
+                    <h3 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: '2.5rem', fontWeight: 300, color: hov ? '#fff' : 'rgba(255,255,255,0.88)', marginBottom: '0.4rem', transition: 'color 0.3s' }}>Rhea Jugernath</h3>
+                    <p style={{ fontSize: '0.53rem', color: '#C9A84C', letterSpacing: '0.18em', fontFamily: 'Montserrat,sans-serif', marginBottom: '1.8rem' }}>Style & Sophistication</p>
+                    <p style={{ fontSize: '0.67rem', color: hov ? 'rgba(255,255,255,0.48)' : 'rgba(255,255,255,0.27)', lineHeight: 2.1, letterSpacing: '0.04em', transition: 'color 0.4s' }}>
+                      With a passion for fashion and an eye for luxury, Rhea brings the lifestyle element that elevates R&R beyond performance wear — ensuring every collection embodies sophistication, comfort, and timeless style.
+                    </p>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ width: '90px', height: '90px', borderRadius: '50%', border: `1px solid rgba(201,168,76,${hov ? 0.55 : 0.18})`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.2rem', transition: 'border-color 0.4s', position: 'relative' }}>
+                      <span style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: '2.2rem', color: '#C9A84C', fontWeight: 300 }}>02</span>
+                      <div style={{ position: 'absolute', inset: '-8px', borderRadius: '50%', border: `1px solid rgba(201,168,76,${hov ? 0.18 : 0.05})`, transition: 'border-color 0.4s' }} />
+                    </div>
+                    <p style={{ fontSize: '0.46rem', color: 'rgba(201,168,76,0.45)', letterSpacing: '0.3em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', whiteSpace: 'nowrap' }}>Co-Founder</p>
+                  </div>
+                </div>
+              )}
+            </GlassPanel>
+          </FloatingSlab>
+
+          <FloatingSlab driftY={9} driftX={2} delay={0.6}>
+            <GlassPanel index={2} visible={foundVis} delay={0.4}>
+              {(hov) => (
+                <div style={{ padding: '3.5rem 4rem', textAlign: 'center' }}>
+                  <p style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: 'clamp(1.1rem,2.5vw,1.6rem)', fontWeight: 300, fontStyle: 'italic', color: hov ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.5)', lineHeight: 1.8, transition: 'color 0.4s', maxWidth: '720px', margin: '0 auto' }}>
+                    "Where athletic performance meets everyday elegance — where functionality embraces fashion, and every piece tells the story of{' '}
+                    <span style={{ color: '#C9A84C', fontStyle: 'normal' }}>two passions perfectly combined.</span>"
+                  </p>
+                </div>
+              )}
+            </GlassPanel>
+          </FloatingSlab>
+        </div>
+      </section>
+
+      <section ref={whatRef} style={{ padding: '8rem 3rem', position: 'relative', zIndex: 2, maxWidth: '1100px', margin: '0 auto' }}>
+        <FloatingSlab driftY={6} delay={0.2}>
+          <div style={{ textAlign: 'center', marginBottom: '5rem', opacity: whatVis ? 1 : 0, transform: whatVis ? 'none' : 'translateY(30px)', transition: 'opacity 0.9s,transform 0.9s' }}>
+            <h2 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: 'clamp(2rem,5vw,3.8rem)', fontWeight: 300, color: 'rgba(255,255,255,0.88)' }}>What Sets Us Apart</h2>
+            <div style={{ width: '45px', height: '1px', background: '#C9A84C', margin: '1.5rem auto 0' }} />
+          </div>
+        </FloatingSlab>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit,minmax(280px,1fr))', gap: '1.5rem' }}>
+          {[
+            { icon: '🧵', title: 'Premium Fabrics', desc: 'Only the finest technical materials, selected for performance and durability.', num: '01' },
+            { icon: '🎨', title: 'Contemporary Design', desc: 'Original collections blending athletic functionality with street-style aesthetics.', num: '02' },
+            { icon: '✨', title: 'Limited Edition', desc: 'Every garment produced in limited quantities. Once gone, never reproduced.', num: '03' },
+          ].map((item, i) => (
+            <FloatingSlab key={item.title} driftY={8 + i * 3} driftX={i % 2 === 0 ? 4 : -4} delay={i * 0.5}>
+              <GlassPanel index={i} visible={whatVis} delay={i * 0.14}>
+                {(hov) => (
+                  <div style={{ padding: '3rem 2.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
+                      <span style={{ fontSize: '2.2rem', transform: hov ? 'translateY(-6px) scale(1.15)' : 'none', transition: 'transform 0.45s cubic-bezier(0.16,1,0.3,1)', display: 'block', filter: hov ? 'drop-shadow(0 8px 16px rgba(201,168,76,0.4))' : 'none' }}>{item.icon}</span>
+                      <span style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: '3rem', color: hov ? 'rgba(201,168,76,0.18)' : 'rgba(201,168,76,0.06)', fontWeight: 300, transition: 'color 0.4s', lineHeight: 1 }}>{item.num}</span>
+                    </div>
+                    <h3 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: '1.5rem', fontWeight: 300, color: hov ? '#fff' : 'rgba(255,255,255,0.78)', marginBottom: '0.8rem', transition: 'color 0.3s' }}>{item.title}</h3>
+                    <p style={{ fontSize: '0.63rem', color: hov ? 'rgba(255,255,255,0.44)' : 'rgba(255,255,255,0.2)', lineHeight: 2, letterSpacing: '0.05em', transition: 'color 0.4s' }}>{item.desc}</p>
+                  </div>
+                )}
+              </GlassPanel>
+            </FloatingSlab>
+          ))}
+        </div>
+      </section>
+
+      <section ref={collRef} style={{ padding: '8rem 3rem', position: 'relative', zIndex: 2, maxWidth: '1200px', margin: '0 auto' }}>
+        <FloatingSlab driftY={7} delay={0.1}>
+          <div style={{ marginBottom: '5rem', opacity: collVis ? 1 : 0, transform: collVis ? 'none' : 'translateY(30px)', transition: 'opacity 0.9s,transform 0.9s' }}>
+            <p style={{ fontSize: '0.49rem', color: 'rgba(201,168,76,0.5)', letterSpacing: '0.5em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', marginBottom: '0.8rem' }}>Collections</p>
+            <h2 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: 'clamp(2rem,5vw,3.8rem)', fontWeight: 300, color: 'rgba(255,255,255,0.88)' }}>
+              Designed for Every Aspect<br /><span style={{ color: '#C9A84C', fontStyle: 'italic' }}>of Your Active Life</span>
             </h2>
-            <Link href="/shop" className="rr-btn-primary">Shop Now</Link>
           </div>
-        </section>
+        </FloatingSlab>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fit,minmax(230px,1fr))', gap: '2px', background: 'rgba(201,168,76,0.04)' }}>
+          {[
+            { tag: 'Sportswear', title: 'Active Performance', desc: 'Technical wear engineered for peak performance.', icon: '⚡' },
+            { tag: 'Training', title: 'Essentials', desc: 'Versatile pieces for every workout.', icon: '🔥' },
+            { tag: 'Lifestyle', title: 'Urban', desc: 'Streetwear with athletic DNA.', icon: '🌆' },
+            { tag: 'Luxury', title: 'Premium', desc: 'Exclusive pieces from the finest materials.', icon: '✦' },
+          ].map((col, i) => (
+            <FloatingSlab key={col.title} driftY={6 + i * 2} driftX={i % 2 === 0 ? 3 : -3} delay={i * 0.28}>
+              <GlassPanel index={i} visible={collVis} delay={i * 0.12}>
+                {(hov) => (
+                  <div style={{ padding: '3rem 2rem' }}>
+                    <p style={{ fontSize: '0.43rem', color: hov ? 'rgba(201,168,76,0.75)' : 'rgba(201,168,76,0.38)', letterSpacing: '0.38em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', marginBottom: '1.5rem', transition: 'color 0.3s' }}>{col.tag}</p>
+                    <span style={{ fontSize: '2rem', display: 'block', marginBottom: '1rem', transform: hov ? 'translateY(-4px)' : 'none', transition: 'transform 0.4s' }}>{col.icon}</span>
+                    <h3 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: '1.7rem', fontWeight: 300, color: hov ? '#fff' : 'rgba(255,255,255,0.72)', marginBottom: '0.8rem', transition: 'color 0.3s' }}>{col.title}</h3>
+                    <p style={{ fontSize: '0.6rem', color: hov ? 'rgba(255,255,255,0.38)' : 'rgba(255,255,255,0.18)', lineHeight: 2, transition: 'color 0.4s' }}>{col.desc}</p>
+                    <div style={{ marginTop: '1.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: hov ? 1 : 0, transform: hov ? 'translateX(0)' : 'translateX(-10px)', transition: 'all 0.4s' }}>
+                      <div style={{ width: '18px', height: '1px', background: '#C9A84C' }} />
+                      <span style={{ fontSize: '0.43rem', color: '#C9A84C', letterSpacing: '0.3em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif' }}>Explore</span>
+                    </div>
+                  </div>
+                )}
+              </GlassPanel>
+            </FloatingSlab>
+          ))}
+        </div>
+      </section>
 
-        <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Montserrat:wght@200;300;400;500&display=swap');
+      <section ref={valRef} style={{ padding: '8rem 3rem 12rem', position: 'relative', zIndex: 2, maxWidth: '1100px', margin: '0 auto' }}>
+        <FloatingSlab driftY={8} delay={0}>
+          <div style={{ textAlign: 'center', marginBottom: '6rem', opacity: valVis ? 1 : 0, transform: valVis ? 'none' : 'translateY(30px)', transition: 'opacity 0.9s,transform 0.9s' }}>
+            <h2 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: 'clamp(2rem,5vw,3.8rem)', fontWeight: 300, color: 'rgba(255,255,255,0.88)' }}>Our Values</h2>
+            <p style={{ fontSize: '0.58rem', color: 'rgba(255,255,255,0.18)', letterSpacing: '0.15em', marginTop: '1rem', fontFamily: 'Montserrat,sans-serif', fontWeight: 200 }}>What drives every decision we make</p>
+          </div>
+        </FloatingSlab>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2,1fr)', gap: '1.5rem' }}>
+          {[
+            { title: 'Quality', desc: 'Only the finest materials, constructed to outlast trends and time.', sym: 'Ⅰ' },
+            { title: 'Design', desc: 'Style meets function — every piece is entirely intentional.', sym: 'Ⅱ' },
+            { title: 'Customer Focus', desc: 'You are at the heart of everything we create and do.', sym: 'Ⅲ' },
+            { title: 'Innovation', desc: 'Always improving, always evolving, never standing still.', sym: 'Ⅳ' },
+          ].map((v, i) => (
+            <FloatingSlab key={v.title} driftY={8 + i * 2} driftX={i % 2 === 0 ? -5 : 5} driftRot={i % 2 === 0 ? 0.14 : -0.14} delay={i * 0.4}>
+              <GlassPanel index={i} visible={valVis} delay={i * 0.14}>
+                {(hov) => (
+                  <div style={{ padding: '3.5rem 3rem', position: 'relative' }}>
+                    <div style={{ position: 'absolute', bottom: '0.5rem', right: '1.5rem', fontFamily: 'Cormorant Garamond,serif', fontSize: '5rem', fontWeight: 300, color: hov ? 'rgba(201,168,76,0.1)' : 'rgba(201,168,76,0.04)', lineHeight: 1, userSelect: 'none', pointerEvents: 'none', transition: 'color 0.4s' }}>{v.sym}</div>
+                    <div style={{ width: hov ? '50px' : '20px', height: '1px', background: '#C9A84C', marginBottom: '2rem', transition: 'width 0.5s cubic-bezier(0.16,1,0.3,1)' }} />
+                    <h3 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: '1.8rem', fontWeight: 300, color: hov ? '#fff' : '#C9A84C', marginBottom: '1rem', transition: 'color 0.3s' }}>{v.title}</h3>
+                    <p style={{ fontSize: '0.64rem', color: hov ? 'rgba(255,255,255,0.44)' : 'rgba(255,255,255,0.2)', lineHeight: 2.1, letterSpacing: '0.04em', transition: 'color 0.4s' }}>{v.desc}</p>
+                  </div>
+                )}
+              </GlassPanel>
+            </FloatingSlab>
+          ))}
+        </div>
+      </section>
 
-          @media (min-width: 769px) {
-            * { cursor: none !important; }
-          }
+      <section style={{ padding: '10rem 2rem', position: 'relative', zIndex: 2, textAlign: 'center' }}>
+        <FloatingSlab driftY={10} driftX={2} delay={0.5}>
+          <div style={{ maxWidth: '750px', margin: '0 auto' }}>
+            <p style={{ fontSize: '0.49rem', color: 'rgba(201,168,76,0.5)', letterSpacing: '0.5em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', marginBottom: '2.5rem' }}>Ready to Explore?</p>
+            <p style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: 'clamp(1.8rem,4.5vw,3.2rem)', fontWeight: 300, fontStyle: 'italic', color: 'rgba(255,255,255,0.8)', lineHeight: 1.7, marginBottom: '3.5rem' }}>
+              "Premium clothing that combines{' '}<span style={{ color: '#C9A84C', fontStyle: 'normal' }}>elegance with comfort</span>, designed for those who live without compromise."
+            </p>
+            <div style={{ display: 'flex', gap: '1.4rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <Link href="/shop" className="rr-btn-primary">Shop the Collection</Link>
+              <Link href="/contact" className="rr-btn-ghost">Get in Touch</Link>
+            </div>
+          </div>
+        </FloatingSlab>
+      </section>
 
-          html { scroll-behavior: smooth; }
-          *, *::before, *::after { box-sizing: border-box; }
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Montserrat:wght@200;300;400;500&display=swap');
 
-          .tc-wrapper {
-            position: fixed;
-            top: 0; left: 0;
-            width: 0; height: 0;
-            pointer-events: none;
-            z-index: 99999;
-            will-change: transform;
-          }
+        @media (min-width: 769px) {
+          * { cursor: none !important; }
+        }
 
-          .tc-dot {
-            position: absolute;
-            width: 5px; height: 5px;
-            border-radius: 50%;
-            background: #C9A84C;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            box-shadow: 0 0 8px rgba(201,168,76,0.8), 0 0 16px rgba(201,168,76,0.4);
-          }
+        html { scroll-behavior: smooth; }
+        *, *::before, *::after { box-sizing: border-box; }
 
-          .tc-corner {
-            position: absolute;
-            width: 12px; height: 12px;
-            border-color: #C9A84C;
-            border-style: solid;
-            border-width: 0;
-            will-change: transform;
-            filter: drop-shadow(0 0 4px rgba(201,168,76,0.6));
-          }
+        .tc-wrapper {
+          position: fixed; top: 0; left: 0;
+          width: 0; height: 0;
+          pointer-events: none;
+          z-index: 99999;
+          will-change: transform;
+        }
+        .tc-dot {
+          position: absolute;
+          width: 5px; height: 5px;
+          border-radius: 50%;
+          background: #C9A84C;
+          top: 50%; left: 50%;
+          transform: translate(-50%, -50%);
+          box-shadow: 0 0 8px rgba(201,168,76,0.8), 0 0 16px rgba(201,168,76,0.4);
+        }
+        .tc-corner {
+          position: absolute;
+          width: 12px; height: 12px;
+          border-color: #C9A84C;
+          border-style: solid;
+          border-width: 0;
+          will-change: transform;
+          filter: drop-shadow(0 0 4px rgba(201,168,76,0.6));
+        }
+        .tc-tl { border-top-width: 2px; border-left-width: 2px; transform: translate(-18px, -18px); }
+        .tc-tr { border-top-width: 2px; border-right-width: 2px; transform: translate(6px, -18px); }
+        .tc-br { border-bottom-width: 2px; border-right-width: 2px; transform: translate(6px, 6px); }
+        .tc-bl { border-bottom-width: 2px; border-left-width: 2px; transform: translate(-18px, 6px); }
 
-          .tc-tl { border-top-width: 2px; border-left-width: 2px; transform: translate(-18px, -18px); }
-          .tc-tr { border-top-width: 2px; border-right-width: 2px; transform: translate(6px, -18px); }
-          .tc-br { border-bottom-width: 2px; border-right-width: 2px; transform: translate(6px, 6px); }
-          .tc-bl { border-bottom-width: 2px; border-left-width: 2px; transform: translate(-18px, 6px); }
+        @keyframes aboutPulse {
+          0%,100% { opacity:0.8; transform:scaleY(1); }
+          50% { opacity:0.12; transform:scaleY(0.2); }
+        }
 
-          @keyframes rrMarquee {
-            from { transform: translateX(0); }
-            to   { transform: translateX(-50%); }
-          }
-          @keyframes rrScrollPulse {
-            0%,100% { opacity: 0.8; transform: scaleY(1); }
-            50%     { opacity: 0.1; transform: scaleY(0.2); }
-          }
-          @keyframes rrBloom {
-            from { opacity: 0.6; transform: translate(-50%,-50%) scale(0.95); }
-            to   { opacity: 1.0; transform: translate(-50%,-50%) scale(1.05); }
-          }
-          @keyframes navPillIn {
-            from { transform: scaleX(0.6); opacity: 0; }
-            to   { transform: scaleX(1); opacity: 1; }
-          }
-          @keyframes particlePop {
-            0%   { transform: translate(0, 0) scale(1); opacity: 1; }
-            100% { transform: translate(var(--px, 20px), var(--py, -20px)) scale(0); opacity: 0; }
-          }
-          @keyframes sparkFly {
-            0%   { transform: translate(-50%,-50%) scale(1); opacity: 1; }
-            100% {
-              transform: translate(
-                calc(-50% + cos(var(--angle)) * var(--radius) * 3),
-                calc(-50% + sin(var(--angle)) * var(--radius) * 3)
-              ) scale(0);
-              opacity: 0;
-            }
-          }
+        .rr-btn-primary {
+          display:inline-block; padding:1.1rem 3rem;
+          background:#C9A84C; color:#06040a;
+          font-family:'Montserrat',sans-serif; font-size:0.56rem; font-weight:500;
+          letter-spacing:0.4em; text-transform:uppercase; text-decoration:none;
+          position:relative; overflow:hidden;
+          transition:transform 0.35s cubic-bezier(0.16,1,0.3,1),box-shadow 0.35s;
+          box-shadow:0 8px 40px rgba(201,168,76,0.25);
+        }
+        .rr-btn-primary::before {
+          content:''; position:absolute; inset:0;
+          background:#EDD070; transform:translateX(-101%);
+          transition:transform 0.55s cubic-bezier(0.16,1,0.3,1);
+        }
+        .rr-btn-primary:hover::before { transform:translateX(0); }
+        .rr-btn-primary:hover { transform:translateY(-5px); box-shadow:0 25px 60px rgba(201,168,76,0.4); }
 
-          .rr-btn-primary {
-            display: inline-block;
-            padding: 1rem 2.4rem;
-            background: #C9A84C;
-            color: #080604;
-            font-family: 'Montserrat', sans-serif;
-            font-size: 0.57rem; font-weight: 600;
-            letter-spacing: 0.4em; text-transform: uppercase;
-            text-decoration: none;
-            position: relative; overflow: hidden;
-            transition: transform 0.35s cubic-bezier(0.16,1,0.3,1), box-shadow 0.35s;
-            box-shadow: 0 8px 40px rgba(201,168,76,0.3);
-            white-space: nowrap;
-          }
-          .rr-btn-primary::before {
-            content: '';
-            position: absolute; inset: 0;
-            background: #EDD070;
-            transform: translateX(-101%);
-            transition: transform 0.55s cubic-bezier(0.16,1,0.3,1);
-          }
-          .rr-btn-primary:hover::before { transform: translateX(0); }
-          .rr-btn-primary:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 25px 60px rgba(201,168,76,0.35);
-          }
+        .rr-btn-ghost {
+          display:inline-block; padding:1.1rem 3rem;
+          border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.45);
+          font-family:'Montserrat',sans-serif; font-size:0.56rem; font-weight:300;
+          letter-spacing:0.4em; text-transform:uppercase; text-decoration:none;
+          position:relative; overflow:hidden;
+          transition:border-color 0.4s,color 0.4s,transform 0.35s cubic-bezier(0.16,1,0.3,1);
+          backdrop-filter:blur(12px);
+        }
+        .rr-btn-ghost:hover { border-color:rgba(201,168,76,0.5); color:#C9A84C; transform:translateY(-5px); }
 
-          .rr-btn-outline {
-            display: inline-block;
-            padding: 1rem 2.4rem;
-            border: 1px solid rgba(201,168,76,0.7);
-            color: #C9A84C;
-            font-family: 'Montserrat', sans-serif;
-            font-size: 0.57rem; font-weight: 300;
-            letter-spacing: 0.4em; text-transform: uppercase;
-            text-decoration: none;
-            position: relative; overflow: hidden;
-            transition: border-color 0.4s, transform 0.35s cubic-bezier(0.16,1,0.3,1), box-shadow 0.35s;
-            white-space: nowrap;
-          }
-          .rr-btn-outline::before {
-            content: '';
-            position: absolute; inset: 0;
-            background: rgba(201,168,76,0.08);
-            transform: scaleX(0); transform-origin: left;
-            transition: transform 0.55s cubic-bezier(0.16,1,0.3,1);
-          }
-          .rr-btn-outline:hover::before { transform: scaleX(1); }
-          .rr-btn-outline:hover {
-            border-color: #C9A84C;
-            transform: translateY(-5px);
-            box-shadow: 0 20px 50px rgba(201,168,76,0.15);
-          }
-
-          @media (max-width: 768px) {
-            .rr-btn-primary, .rr-btn-outline {
-              padding: 0.9rem 1.8rem;
-              font-size: 0.54rem;
-              letter-spacing: 0.2em;
-            }
-          }
-
-          @media (max-width: 480px) {
-            .rr-btn-primary, .rr-btn-outline {
-              padding: 0.8rem 1.4rem;
-              font-size: 0.5rem;
-              letter-spacing: 0.18em;
-            }
-          }
-        `}</style>
-      </div>
-    </ClickSpark>
+        @media (max-width:640px) {
+          div[style*="grid-template-columns: repeat(2, 1fr)"] { grid-template-columns:1fr !important; }
+          div[style*="grid-template-columns: auto 1fr"],
+          div[style*="grid-template-columns: 1fr auto"] { grid-template-columns:1fr !important; }
+        }
+      `}</style>
+    </div>
   );
 }

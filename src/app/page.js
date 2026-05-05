@@ -1101,6 +1101,8 @@ export default function HomePage() {
   const brandTilt = (brandScroll - 0.5) * 14;
   const brandScale = 0.88 + brandScroll * 0.24;
 
+  const mobileOrbSize = 'min(88vw, 380px)';
+
   return (
     <ClickSpark sparkColor="#C9A84C" sparkSize={7} sparkRadius={14} sparkCount={8} duration={400}>
       <div style={{ paddingTop: '60px', background: '#040302', overflowX: 'hidden' }}>
@@ -1122,76 +1124,146 @@ export default function HomePage() {
           onMouseMove={handleHeroMouseMove}
           onMouseLeave={handleHeroMouseLeave}
           style={{
-            minHeight: '85vh',
+            minHeight: isMobile ? '100svh' : '85vh',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             textAlign: 'center',
-            padding: isMobile ? '2rem 1rem' : '3rem 2rem',
+            padding: isMobile ? '0' : '3rem 2rem',
             position: 'relative',
             overflow: 'hidden',
           }}
         >
           <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(201,168,76,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(201,168,76,0.03) 1px, transparent 1px)', backgroundSize: '88px 88px', transform: `perspective(800px) rotateX(${55 + heroScroll * 14}deg) translateZ(-80px) scale(2.2)`, transformOrigin: '50% 100%', opacity: 0.5, zIndex: 1, pointerEvents: 'none' }} />
 
-          <div style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: isMobile ? '100vw' : '950px',
-            height: isMobile ? '100vw' : '950px',
-            zIndex: 2,
-            pointerEvents: 'none',
-          }}>
-            <Orb
-              hue={0}
-              hoverIntensity={0.3}
-              rotateOnHover={true}
-              forceHoverState={orbHovered}
-              backgroundColor="#040302"
-            />
-          </div>
-
-          <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: isMobile ? '280px' : '680px', height: isMobile ? '280px' : '680px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(201,168,76,0.04) 0%, rgba(201,168,76,0.01) 40%, transparent 65%)', pointerEvents: 'none', zIndex: 3, animation: 'rrBloom 4s ease-in-out infinite alternate' }} />
-
-          <div style={{
-            maxWidth: '820px',
-            width: '100%',
-            position: 'relative',
-            zIndex: 4,
-            transform: `translateY(${heroTranslateY}px)`,
-            opacity: heroOpacity,
-            willChange: 'transform, opacity',
-            backfaceVisibility: 'hidden',
-            padding: isMobile ? '1.5rem 1.2rem' : '2.5rem 4rem',
-          }}>
-            <div style={{ marginBottom: '1.2rem' }}>
-              {[
-                { text: 'R&R', gold: true, delay: 0.35 },
-                { text: 'Sport &', gold: false, delay: 0.52 },
-                { text: 'Lifestyle', gold: false, delay: 0.69 },
-              ].map((word, i) => (
-                <div key={i} style={{ overflow: 'hidden', lineHeight: 1.02 }}>
-                  <div style={{ opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'none' : 'translateY(100%)', transition: `opacity 1.2s cubic-bezier(0.16,1,0.3,1) ${word.delay}s, transform 1.2s cubic-bezier(0.16,1,0.3,1) ${word.delay}s` }}>
-                    <span style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: isMobile ? 'clamp(2.2rem, 13vw, 3.5rem)' : 'clamp(2.4rem, 6.5vw, 5.5rem)', fontWeight: word.gold ? 300 : 400, color: word.gold ? '#C9A84C' : '#FFFFFF', display: 'block', letterSpacing: word.gold ? '-0.02em' : '-0.01em', textShadow: word.gold ? '0 0 80px rgba(201,168,76,0.7), 0 0 160px rgba(201,168,76,0.4)' : '0 0 8px rgba(0,0,0,1), 0 0 16px rgba(0,0,0,1), 0 0 28px rgba(0,0,0,1), 0 0 50px rgba(0,0,0,0.9)', lineHeight: 1.02 }} dangerouslySetInnerHTML={{ __html: word.text }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div style={{ width: heroVisible ? isMobile ? '70px' : '110px' : '0px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: isMobile ? '1.2rem auto' : '2.2rem auto', transition: 'width 1.6s cubic-bezier(0.16,1,0.3,1) 0.9s' }} />
-            <p style={{ fontSize: isMobile ? '0.5rem' : '0.68rem', color: 'rgba(255,255,255,0.75)', letterSpacing: isMobile ? '0.25em' : '0.42em', textTransform: 'uppercase', marginBottom: isMobile ? '1.8rem' : '3rem', fontFamily: 'Montserrat, sans-serif', fontWeight: 200, opacity: heroVisible ? 1 : 0, transition: 'opacity 1s ease 1.2s' }}>Own the Look · Own the Moment</p>
-            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap', opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'none' : 'translateY(20px)', transition: 'opacity 1s ease 1.5s, transform 1s ease 1.5s' }}>
-              <Link href="/shop" className="rr-btn-primary">Shop the Collection</Link>
-              <Link href="/about" className="rr-btn-outline">Our Story</Link>
-            </div>
-            {!isMobile && (
-              <div style={{ marginTop: '3.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.8rem', opacity: heroVisible ? 0.55 : 0, transition: 'opacity 1s ease 2.2s' }}>
-                <p style={{ fontSize: '0.44rem', color: '#C9A84C', letterSpacing: '0.5em', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif' }}>Scroll</p>
-                <div style={{ width: '1px', height: '50px', background: 'linear-gradient(180deg, #C9A84C, transparent)', animation: 'rrScrollPulse 2s ease-in-out infinite' }} />
+          {isMobile ? (
+            <>
+              <div style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: mobileOrbSize,
+                height: mobileOrbSize,
+                zIndex: 2,
+                pointerEvents: 'none',
+              }}>
+                <Orb
+                  hue={0}
+                  hoverIntensity={0.3}
+                  rotateOnHover={false}
+                  forceHoverState={false}
+                  backgroundColor="#040302"
+                />
               </div>
-            )}
-          </div>
+
+              <div style={{
+                maxWidth: '100%',
+                width: '100%',
+                position: 'relative',
+                zIndex: 4,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minHeight: '100svh',
+                padding: '5rem 1.5rem 3rem',
+              }}>
+                <div style={{ marginBottom: '0.8rem' }}>
+                  {[
+                    { text: 'R&R', gold: true, delay: 0.35 },
+                    { text: 'Sport &', gold: false, delay: 0.52 },
+                    { text: 'Lifestyle', gold: false, delay: 0.69 },
+                  ].map((word, i) => (
+                    <div key={i} style={{ overflow: 'hidden', lineHeight: 1.05 }}>
+                      <div style={{ opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'none' : 'translateY(100%)', transition: `opacity 1.2s cubic-bezier(0.16,1,0.3,1) ${word.delay}s, transform 1.2s cubic-bezier(0.16,1,0.3,1) ${word.delay}s` }}>
+                        <span style={{
+                          fontFamily: 'Cormorant Garamond, serif',
+                          fontSize: 'clamp(2.6rem, 14vw, 4rem)',
+                          fontWeight: word.gold ? 300 : 400,
+                          color: word.gold ? '#C9A84C' : '#FFFFFF',
+                          display: 'block',
+                          letterSpacing: word.gold ? '-0.02em' : '-0.01em',
+                          textShadow: word.gold
+                            ? '0 0 80px rgba(201,168,76,0.7), 0 0 160px rgba(201,168,76,0.4)'
+                            : '0 0 12px rgba(0,0,0,1), 0 0 24px rgba(0,0,0,1), 0 0 40px rgba(0,0,0,1)',
+                          lineHeight: 1.05,
+                        }} dangerouslySetInnerHTML={{ __html: word.text }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ width: heroVisible ? '70px' : '0px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: '1rem auto', transition: 'width 1.6s cubic-bezier(0.16,1,0.3,1) 0.9s' }} />
+
+                <p style={{ fontSize: '0.5rem', color: 'rgba(255,255,255,0.8)', letterSpacing: '0.25em', textTransform: 'uppercase', marginBottom: '2rem', fontFamily: 'Montserrat, sans-serif', fontWeight: 200, opacity: heroVisible ? 1 : 0, transition: 'opacity 1s ease 1.2s' }}>Own the Look · Own the Moment</p>
+
+                <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap', opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'none' : 'translateY(20px)', transition: 'opacity 1s ease 1.5s, transform 1s ease 1.5s' }}>
+                  <Link href="/shop" className="rr-btn-primary">Shop the Collection</Link>
+                  <Link href="/about" className="rr-btn-outline">Our Story</Link>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: '950px',
+                height: '950px',
+                zIndex: 2,
+                pointerEvents: 'none',
+              }}>
+                <Orb
+                  hue={0}
+                  hoverIntensity={0.3}
+                  rotateOnHover={true}
+                  forceHoverState={orbHovered}
+                  backgroundColor="#040302"
+                />
+              </div>
+
+              <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: '680px', height: '680px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(201,168,76,0.04) 0%, rgba(201,168,76,0.01) 40%, transparent 65%)', pointerEvents: 'none', zIndex: 3, animation: 'rrBloom 4s ease-in-out infinite alternate' }} />
+
+              <div style={{
+                maxWidth: '820px',
+                width: '100%',
+                position: 'relative',
+                zIndex: 4,
+                transform: `translateY(${heroTranslateY}px)`,
+                opacity: heroOpacity,
+                willChange: 'transform, opacity',
+                backfaceVisibility: 'hidden',
+                padding: '2.5rem 4rem',
+              }}>
+                <div style={{ marginBottom: '1.2rem' }}>
+                  {[
+                    { text: 'R&R', gold: true, delay: 0.35 },
+                    { text: 'Sport &', gold: false, delay: 0.52 },
+                    { text: 'Lifestyle', gold: false, delay: 0.69 },
+                  ].map((word, i) => (
+                    <div key={i} style={{ overflow: 'hidden', lineHeight: 1.02 }}>
+                      <div style={{ opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'none' : 'translateY(100%)', transition: `opacity 1.2s cubic-bezier(0.16,1,0.3,1) ${word.delay}s, transform 1.2s cubic-bezier(0.16,1,0.3,1) ${word.delay}s` }}>
+                        <span style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(2.4rem, 6.5vw, 5.5rem)', fontWeight: word.gold ? 300 : 400, color: word.gold ? '#C9A84C' : '#FFFFFF', display: 'block', letterSpacing: word.gold ? '-0.02em' : '-0.01em', textShadow: word.gold ? '0 0 80px rgba(201,168,76,0.7), 0 0 160px rgba(201,168,76,0.4)' : '0 0 8px rgba(0,0,0,1), 0 0 16px rgba(0,0,0,1), 0 0 28px rgba(0,0,0,1), 0 0 50px rgba(0,0,0,0.9)', lineHeight: 1.02 }} dangerouslySetInnerHTML={{ __html: word.text }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ width: heroVisible ? '110px' : '0px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: '2.2rem auto', transition: 'width 1.6s cubic-bezier(0.16,1,0.3,1) 0.9s' }} />
+                <p style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.75)', letterSpacing: '0.42em', textTransform: 'uppercase', marginBottom: '3rem', fontFamily: 'Montserrat, sans-serif', fontWeight: 200, opacity: heroVisible ? 1 : 0, transition: 'opacity 1s ease 1.2s' }}>Own the Look · Own the Moment</p>
+                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap', opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'none' : 'translateY(20px)', transition: 'opacity 1s ease 1.5s, transform 1s ease 1.5s' }}>
+                  <Link href="/shop" className="rr-btn-primary">Shop the Collection</Link>
+                  <Link href="/about" className="rr-btn-outline">Our Story</Link>
+                </div>
+                <div style={{ marginTop: '3.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.8rem', opacity: heroVisible ? 0.55 : 0, transition: 'opacity 1s ease 2.2s' }}>
+                  <p style={{ fontSize: '0.44rem', color: '#C9A84C', letterSpacing: '0.5em', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif' }}>Scroll</p>
+                  <div style={{ width: '1px', height: '50px', background: 'linear-gradient(180deg, #C9A84C, transparent)', animation: 'rrScrollPulse 2s ease-in-out infinite' }} />
+                </div>
+              </div>
+            </>
+          )}
         </section>
 
         <div style={{ position: 'relative', zIndex: 2 }}><Marquee /></div>
@@ -1345,12 +1417,12 @@ export default function HomePage() {
             background: #C9A84C;
             color: #080604;
             font-family: 'Montserrat', sans-serif;
-            font-size: 0.57rem; font-weight: 500;
+            font-size: 0.57rem; font-weight: 600;
             letter-spacing: 0.4em; text-transform: uppercase;
             text-decoration: none;
             position: relative; overflow: hidden;
             transition: transform 0.35s cubic-bezier(0.16,1,0.3,1), box-shadow 0.35s;
-            box-shadow: 0 8px 40px rgba(201,168,76,0.2);
+            box-shadow: 0 8px 40px rgba(201,168,76,0.3);
             white-space: nowrap;
           }
           .rr-btn-primary::before {
@@ -1369,7 +1441,7 @@ export default function HomePage() {
           .rr-btn-outline {
             display: inline-block;
             padding: 1rem 2.4rem;
-            border: 1px solid rgba(201,168,76,0.55);
+            border: 1px solid rgba(201,168,76,0.7);
             color: #C9A84C;
             font-family: 'Montserrat', sans-serif;
             font-size: 0.57rem; font-weight: 300;
@@ -1395,17 +1467,17 @@ export default function HomePage() {
 
           @media (max-width: 768px) {
             .rr-btn-primary, .rr-btn-outline {
-              padding: 0.85rem 1.8rem;
-              font-size: 0.52rem;
-              letter-spacing: 0.25em;
+              padding: 0.9rem 1.8rem;
+              font-size: 0.54rem;
+              letter-spacing: 0.2em;
             }
           }
 
           @media (max-width: 480px) {
             .rr-btn-primary, .rr-btn-outline {
-              padding: 0.75rem 1.4rem;
-              font-size: 0.48rem;
-              letter-spacing: 0.2em;
+              padding: 0.8rem 1.4rem;
+              font-size: 0.5rem;
+              letter-spacing: 0.18em;
             }
           }
         `}</style>

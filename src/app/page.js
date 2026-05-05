@@ -1179,7 +1179,7 @@ export default function HomePage() {
             <>
               <div style={{
                 position: 'absolute',
-                top: '50%',
+                top: '38%',
                 left: '50%',
                 transform: 'translate(-50%, -50%)',
                 width: mobileOrbSize,

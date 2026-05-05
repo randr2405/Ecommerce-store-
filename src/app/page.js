@@ -1179,11 +1179,11 @@ export default function HomePage() {
             <>
               <div style={{
                 position: 'absolute',
-                top: '28%',
+                top: '50%',
                 left: '50%',
                 transform: 'translate(-50%, -50%)',
-                width: mobileOrbSize,
-                height: mobileOrbSize,
+                width: 'min(115vw, 520px)',
+                height: 'min(115vw, 520px)',
                 zIndex: 2,
                 pointerEvents: 'none',
               }}>
@@ -1204,9 +1204,9 @@ export default function HomePage() {
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                justifyContent: 'flex-end',
+                justifyContent: 'center',
                 minHeight: '100svh',
-                padding: '0 2rem 7rem',
+                padding: '5rem 2rem 3rem',
               }}>
                 <div style={{ marginBottom: '0.8rem', width: '100%' }}>
                   {[
@@ -1237,7 +1237,7 @@ export default function HomePage() {
 
                 <p style={{ fontSize: '0.5rem', color: 'rgba(255,255,255,0.8)', letterSpacing: '0.25em', textTransform: 'uppercase', marginBottom: '0', fontFamily: 'Montserrat, sans-serif', fontWeight: 200, opacity: heroVisible ? 1 : 0, transition: 'opacity 1s ease 1.2s' }}>Own the Look · Own the Moment</p>
 
-                <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap', marginTop: '2.5rem', opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'none' : 'translateY(20px)', transition: 'opacity 1s ease 1.5s, transform 1s ease 1.5s' }}>
+                <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap', marginTop: '3.5rem', opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'none' : 'translateY(20px)', transition: 'opacity 1s ease 1.5s, transform 1s ease 1.5s' }}>
                   <Link href="/shop" className="rr-btn-primary">Shop the Collection</Link>
                   <Link href="/about" className="rr-btn-outline">Our Story</Link>
                 </div>

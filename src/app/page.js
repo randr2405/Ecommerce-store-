@@ -1207,6 +1207,7 @@ export default function HomePage() {
                 justifyContent: 'center',
                 minHeight: '100svh',
                 padding: '5rem 2rem 3rem',
+                marginTop: '6rem',
               }}>
                 <div style={{ marginBottom: '0.8rem', width: '100%' }}>
                   {[
@@ -1237,7 +1238,7 @@ export default function HomePage() {
 
                 <p style={{ fontSize: '0.5rem', color: 'rgba(255,255,255,0.8)', letterSpacing: '0.25em', textTransform: 'uppercase', marginBottom: '0', fontFamily: 'Montserrat, sans-serif', fontWeight: 200, opacity: heroVisible ? 1 : 0, transition: 'opacity 1s ease 1.2s' }}>Own the Look · Own the Moment</p>
 
-                <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap', marginTop: '3.5rem', opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'none' : 'translateY(20px)', transition: 'opacity 1s ease 1.5s, transform 1s ease 1.5s' }}>
+                <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap', marginTop: '5rem', opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'none' : 'translateY(20px)', transition: 'opacity 1s ease 1.5s, transform 1s ease 1.5s' }}>
                   <Link href="/shop" className="rr-btn-primary">Shop the Collection</Link>
                   <Link href="/about" className="rr-btn-outline">Our Story</Link>
                 </div>

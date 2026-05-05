@@ -128,40 +128,71 @@ function Orb({ hue = 0, hoverIntensity = 0.2, rotateOnHover = true, forceHoverSt
         float a = max(max(colorIn.r, colorIn.g), colorIn.b);
         return vec4(colorIn.rgb / (a + 1e-5), a);
       }
-      const vec3 baseColor1 = vec3(0.611765, 0.262745, 0.996078);
-      const vec3 baseColor2 = vec3(0.298039, 0.760784, 0.913725);
-      const vec3 baseColor3 = vec3(0.062745, 0.078431, 0.600000);
+
+      const vec3 baseColor1 = vec3(0.788, 0.659, 0.298);
+      const vec3 baseColor2 = vec3(0.929, 0.816, 0.439);
+      const vec3 baseColor3 = vec3(0.200, 0.157, 0.031);
       const float innerRadius = 0.6;
       const float noiseScale = 0.65;
+
+      float hash1(float n) { return fract(sin(n) * 43758.5453); }
+      float hash1b(float n) { return fract(cos(n * 1.618) * 27183.7); }
+
+      float spikeProfile(float ang, float t) {
+        float s1 = abs(fract(sin(ang * 19.673 + t * 0.9) * 43758.5) * 2.0 - 1.0);
+        float s2 = abs(fract(sin(ang * 31.891 - t * 1.3) * 87613.2) * 2.0 - 1.0);
+        float s3 = abs(fract(cos(ang * 47.213 + t * 0.6) * 15731.4) * 2.0 - 1.0);
+        float combined = s1 * s2 + s3 * 0.4;
+        return pow(clamp(combined, 0.0, 1.0), 2.8);
+      }
+
       float light1(float intensity, float attenuation, float dist) {
         return intensity / (1.0 + dist * attenuation);
       }
       float light2(float intensity, float attenuation, float dist) {
         return intensity / (1.0 + dist * dist * attenuation);
       }
+
       vec4 draw(vec2 uv) {
+        float scanY = floor(uv.y * 9.0 + iTime * 0.25);
+        float glitchLine = step(0.94, hash1(scanY + iTime * 3.7)) * hover;
+        float glitchDir = sign(hash1b(scanY) - 0.5);
+        uv.x += glitchLine * glitchDir * 0.055 * hover;
+
         vec3 color1 = adjustHue(baseColor1, hue);
         vec3 color2 = adjustHue(baseColor2, hue);
         vec3 color3 = adjustHue(baseColor3, hue);
+
         float ang = atan(uv.y, uv.x);
         float len = length(uv);
         float invLen = len > 0.0 ? 1.0 / len : 0.0;
+
+        float spikes = spikeProfile(ang, iTime) * hover * 0.42;
+
         float bgLuminance = dot(backgroundColor, vec3(0.299, 0.587, 0.114));
         float n0 = snoise3(vec3(uv * noiseScale, iTime * 0.5)) * 0.5 + 0.5;
-        float r0 = mix(mix(innerRadius, 1.0, 0.4), mix(innerRadius, 1.0, 0.6), n0);
+        float r0base = mix(mix(innerRadius, 1.0, 0.4), mix(innerRadius, 1.0, 0.6), n0);
+        float r0 = r0base + spikes;
+
         float d0 = distance(uv, (r0 * invLen) * uv);
         float v0 = light1(1.0, 10.0, d0);
         v0 *= smoothstep(r0 * 1.05, r0, len);
         float innerFade = smoothstep(r0 * 0.8, r0 * 0.95, len);
         v0 *= mix(innerFade, 1.0, bgLuminance * 0.7);
+
         float cl = cos(ang + iTime * 2.0) * 0.5 + 0.5;
         float a = iTime * -1.0;
         vec2 pos = vec2(cos(a), sin(a)) * r0;
         float d = distance(uv, pos);
         float v1 = light2(1.5, 5.0, d);
         v1 *= light1(1.0, 50.0, d0);
-        float v2 = smoothstep(1.0, mix(innerRadius, 1.0, n0 * 0.5), len);
+
+        float spikeGlow = spikes * smoothstep(r0 * 0.85, r0, len) * 2.5;
+        v1 += spikeGlow;
+
+        float v2 = smoothstep(1.0 + spikes * 0.5, mix(innerRadius, 1.0, n0 * 0.5), len);
         float v3 = smoothstep(innerRadius, mix(innerRadius, 1.0, 0.5), len);
+
         vec3 colBase = mix(color1, color2, cl);
         float fadeAmount = mix(1.0, 0.1, bgLuminance);
         vec3 darkCol = mix(color3, colBase, v0);
@@ -171,8 +202,13 @@ function Orb({ hue = 0, hoverIntensity = 0.2, rotateOnHover = true, forceHoverSt
         lightCol = mix(backgroundColor, lightCol, v0);
         lightCol = clamp(lightCol, 0.0, 1.0);
         vec3 finalCol = mix(darkCol, lightCol, bgLuminance);
+
+        vec3 spikeColor = color1 * 1.6;
+        finalCol = mix(finalCol, spikeColor, spikes * v0 * hover * 0.6);
+
         return extractAlpha(finalCol);
       }
+
       vec4 mainImage(vec2 fragCoord) {
         vec2 center = iResolution.xy * 0.5;
         float size = min(iResolution.x, iResolution.y);
@@ -1070,39 +1106,30 @@ export default function HomePage() {
         <section
           ref={heroRef}
           style={{
-            minHeight: '100vh',
+            minHeight: '85vh',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             textAlign: 'center',
-            padding: isMobile ? '2rem 1rem' : '4rem 2rem',
+            padding: isMobile ? '2rem 1rem' : '3rem 2rem',
             position: 'relative',
             overflow: 'hidden',
           }}
         >
           <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(201,168,76,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(201,168,76,0.03) 1px, transparent 1px)', backgroundSize: '88px 88px', transform: `perspective(800px) rotateX(${55 + heroScroll * 14}deg) translateZ(-80px) scale(2.2)`, transformOrigin: '50% 100%', opacity: 0.5, zIndex: 1, pointerEvents: 'none' }} />
 
-          {/*
-            THE ORB FIX:
-            - z-index: 2 (behind text which is z-index 4)
-            - Size is larger than the text block so the glowing ring edge falls OUTSIDE the text area
-            - The shader's innerRadius=0.6 means the centre 60% is dark/transparent — text lives there
-            - hue=38 rotates the purple/teal base colours toward amber/gold to match #C9A84C
-            - On desktop: 1400px × 1400px puts the glow ring well outside the ~960px text container
-            - On mobile: 110vw keeps it proportional without overflow issues
-          */}
           <div style={{
             position: 'absolute',
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            width: isMobile ? '110vw' : '1400px',
-            height: isMobile ? '110vw' : '1400px',
+            width: isMobile ? '100vw' : '950px',
+            height: isMobile ? '100vw' : '950px',
             zIndex: 2,
             pointerEvents: 'none',
           }}>
             <Orb
-              hue={38}
+              hue={0}
               hoverIntensity={0.3}
               rotateOnHover={true}
               forceHoverState={false}
@@ -1110,10 +1137,10 @@ export default function HomePage() {
             />
           </div>
 
-          <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: isMobile ? '320px' : '800px', height: isMobile ? '320px' : '800px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(201,168,76,0.04) 0%, rgba(201,168,76,0.01) 40%, transparent 65%)', pointerEvents: 'none', zIndex: 3, animation: 'rrBloom 4s ease-in-out infinite alternate' }} />
+          <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: isMobile ? '280px' : '680px', height: isMobile ? '280px' : '680px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(201,168,76,0.04) 0%, rgba(201,168,76,0.01) 40%, transparent 65%)', pointerEvents: 'none', zIndex: 3, animation: 'rrBloom 4s ease-in-out infinite alternate' }} />
 
           <div style={{
-            maxWidth: '960px',
+            maxWidth: '820px',
             width: '100%',
             position: 'relative',
             zIndex: 4,
@@ -1121,14 +1148,14 @@ export default function HomePage() {
             opacity: heroOpacity,
             willChange: 'transform, opacity',
             backfaceVisibility: 'hidden',
-            padding: isMobile ? '2rem 1.5rem' : '3rem 5rem',
+            padding: isMobile ? '1.5rem 1.2rem' : '2.5rem 4rem',
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.8rem', marginBottom: isMobile ? '1.5rem' : '3rem', opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'none' : 'translateY(20px)', transition: 'opacity 1s ease 0.2s, transform 1s ease 0.2s' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.8rem', marginBottom: isMobile ? '1.2rem' : '2.2rem', opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'none' : 'translateY(20px)', transition: 'opacity 1s ease 0.2s, transform 1s ease 0.2s' }}>
               <div style={{ width: isMobile ? '20px' : '38px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C)' }} />
               <p style={{ fontSize: isMobile ? '0.45rem' : '0.57rem', color: '#C9A84C', letterSpacing: isMobile ? '0.3em' : '0.55em', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif', fontWeight: 300 }}>Premium Sport &amp; Lifestyle</p>
               <div style={{ width: isMobile ? '20px' : '38px', height: '1px', background: 'linear-gradient(90deg, #C9A84C, transparent)' }} />
             </div>
-            <div style={{ marginBottom: '1.5rem' }}>
+            <div style={{ marginBottom: '1.2rem' }}>
               {[
                 { text: 'R&R', gold: true, delay: 0.35 },
                 { text: 'Sport &', gold: false, delay: 0.52 },
@@ -1136,21 +1163,21 @@ export default function HomePage() {
               ].map((word, i) => (
                 <div key={i} style={{ overflow: 'hidden', lineHeight: 1.02 }}>
                   <div style={{ opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'none' : 'translateY(100%)', transition: `opacity 1.2s cubic-bezier(0.16,1,0.3,1) ${word.delay}s, transform 1.2s cubic-bezier(0.16,1,0.3,1) ${word.delay}s` }}>
-                    <span style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: isMobile ? 'clamp(3rem, 18vw, 5rem)' : 'clamp(4rem, 12vw, 10rem)', fontWeight: word.gold ? 300 : 400, color: word.gold ? '#C9A84C' : '#FFFFFF', display: 'block', letterSpacing: word.gold ? '-0.02em' : '-0.01em', textShadow: word.gold ? '0 0 80px rgba(201,168,76,0.7), 0 0 160px rgba(201,168,76,0.4)' : '0 0 8px rgba(0,0,0,1), 0 0 16px rgba(0,0,0,1), 0 0 28px rgba(0,0,0,1), 0 0 50px rgba(0,0,0,0.9)', lineHeight: 1.02 }} dangerouslySetInnerHTML={{ __html: word.text }} />
+                    <span style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: isMobile ? 'clamp(2.8rem, 17vw, 4.5rem)' : 'clamp(3.5rem, 10vw, 8.5rem)', fontWeight: word.gold ? 300 : 400, color: word.gold ? '#C9A84C' : '#FFFFFF', display: 'block', letterSpacing: word.gold ? '-0.02em' : '-0.01em', textShadow: word.gold ? '0 0 80px rgba(201,168,76,0.7), 0 0 160px rgba(201,168,76,0.4)' : '0 0 8px rgba(0,0,0,1), 0 0 16px rgba(0,0,0,1), 0 0 28px rgba(0,0,0,1), 0 0 50px rgba(0,0,0,0.9)', lineHeight: 1.02 }} dangerouslySetInnerHTML={{ __html: word.text }} />
                   </div>
                 </div>
               ))}
             </div>
-            <div style={{ width: heroVisible ? isMobile ? '80px' : '130px' : '0px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: isMobile ? '1.5rem auto' : '2.8rem auto', transition: 'width 1.6s cubic-bezier(0.16,1,0.3,1) 0.9s' }} />
-            <p style={{ fontSize: isMobile ? '0.5rem' : '0.68rem', color: 'rgba(255,255,255,0.75)', letterSpacing: isMobile ? '0.25em' : '0.42em', textTransform: 'uppercase', marginBottom: isMobile ? '2rem' : '4rem', fontFamily: 'Montserrat, sans-serif', fontWeight: 200, opacity: heroVisible ? 1 : 0, transition: 'opacity 1s ease 1.2s' }}>Own the Look · Own the Moment</p>
+            <div style={{ width: heroVisible ? isMobile ? '70px' : '110px' : '0px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: isMobile ? '1.2rem auto' : '2.2rem auto', transition: 'width 1.6s cubic-bezier(0.16,1,0.3,1) 0.9s' }} />
+            <p style={{ fontSize: isMobile ? '0.5rem' : '0.68rem', color: 'rgba(255,255,255,0.75)', letterSpacing: isMobile ? '0.25em' : '0.42em', textTransform: 'uppercase', marginBottom: isMobile ? '1.8rem' : '3rem', fontFamily: 'Montserrat, sans-serif', fontWeight: 200, opacity: heroVisible ? 1 : 0, transition: 'opacity 1s ease 1.2s' }}>Own the Look · Own the Moment</p>
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap', opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'none' : 'translateY(20px)', transition: 'opacity 1s ease 1.5s, transform 1s ease 1.5s' }}>
               <Link href="/shop" className="rr-btn-primary">Shop the Collection</Link>
               <Link href="/about" className="rr-btn-outline">Our Story</Link>
             </div>
             {!isMobile && (
-              <div style={{ marginTop: '5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.8rem', opacity: heroVisible ? 0.55 : 0, transition: 'opacity 1s ease 2.2s' }}>
+              <div style={{ marginTop: '3.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.8rem', opacity: heroVisible ? 0.55 : 0, transition: 'opacity 1s ease 2.2s' }}>
                 <p style={{ fontSize: '0.44rem', color: '#C9A84C', letterSpacing: '0.5em', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif' }}>Scroll</p>
-                <div style={{ width: '1px', height: '60px', background: 'linear-gradient(180deg, #C9A84C, transparent)', animation: 'rrScrollPulse 2s ease-in-out infinite' }} />
+                <div style={{ width: '1px', height: '50px', background: 'linear-gradient(180deg, #C9A84C, transparent)', animation: 'rrScrollPulse 2s ease-in-out infinite' }} />
               </div>
             )}
           </div>

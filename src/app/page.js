@@ -268,22 +268,30 @@ function Orb({ hue = 0, hoverIntensity = 0.2, rotateOnHover = true, forceHoverSt
     let currentRot = 0;
     const rotationSpeed = 0.3;
 
-    const handleMouseMove = (e) => {
+    const getUVHover = (clientX, clientY) => {
       const rect = container.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
       const width = rect.width;
       const height = rect.height;
       const size = Math.min(width, height);
       const uvX = ((x - width / 2) / size) * 2.0;
       const uvY = ((y - height / 2) / size) * 2.0;
-      targetHover = Math.sqrt(uvX * uvX + uvY * uvY) < 0.8 ? 1 : 0;
+      return Math.sqrt(uvX * uvX + uvY * uvY) < 0.8 ? 1 : 0;
     };
 
+    const handleMouseMove = (e) => {
+      targetHover = getUVHover(e.clientX, e.clientY);
+    };
     const handleMouseLeave = () => { targetHover = 0; };
 
-    container.addEventListener('mousemove', handleMouseMove);
-    container.addEventListener('mouseleave', handleMouseLeave);
+    const handleTouchStart = (e) => {
+      const t = e.touches[0];
+      targetHover = getUVHover(t.clientX, t.clientY);
+    };
+    const handleTouchMove = (e) => {
+      const t = e.touches[0];
+      targetHover = getUVHover(t.clientX, t.clientY
 
     let rafId;
     const update = (t) => {

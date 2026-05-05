@@ -1179,7 +1179,7 @@ export default function HomePage() {
             <>
               <div style={{
                 position: 'absolute',
-                top: '38%',
+                top: '28%',
                 left: '50%',
                 transform: 'translate(-50%, -50%)',
                 width: mobileOrbSize,
@@ -1204,9 +1204,9 @@ export default function HomePage() {
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                justifyContent: 'center',
+                justifyContent: 'flex-end',
                 minHeight: '100svh',
-                padding: '5rem 2rem 3rem',
+                padding: '0 2rem 7rem',
               }}>
                 <div style={{ marginBottom: '0.8rem', width: '100%' }}>
                   {[

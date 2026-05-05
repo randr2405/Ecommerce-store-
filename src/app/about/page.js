@@ -634,14 +634,15 @@ function BallpitBackground({ className = '' }) {
     if (!canvas) return;
     instanceRef.current = createBallpit(canvas, {
       followCursor: true,
-      count: 180,
+      count: 200,
       colors: [0xC9A84C, 0x8B6914, 0xEDD070, 0xA07828, 0xF5E6B8, 0x6B4E0A, 0x3D2A05],
       ambientColor: 0xfff8e7,
       ambientIntensity: 1.2,
       lightIntensity: 220,
       materialParams: { metalness: 0.5, roughness: 0.3, clearcoat: 1, clearcoatRoughness: 0.08 },
-      minSize: 0.35,
-      maxSize: 1.05,
+      minSize: 0.15,
+      maxSize: 0.55,
+      size0: 0.6,
       gravity: 0.4,
       friction: 0.998,
       wallBounce: 0.92,
@@ -653,7 +654,7 @@ function BallpitBackground({ className = '' }) {
     <canvas
       ref={canvasRef}
       className={className}
-      style={{ position: 'fixed', inset: 0, width: '100%', height: '100%', zIndex: 0, pointerEvents: 'none' }}
+      style={{ position: 'fixed', inset: 0, width: '100%', height: '100%', zIndex: 0, pointerEvents: 'all' }}
     />
   );
 }
@@ -873,18 +874,6 @@ function FloatingSlab({ children, driftX = 0, driftY = 0, driftRot = 0, delay = 
   return <div style={{ transform: `translate(${pos.x}px,${pos.y}px) rotate(${pos.rot}deg)`, willChange: 'transform', ...style }}>{children}</div>;
 }
 
-function OrbitRing({ size, tilt, speed, color, style = {} }) {
-  const [rot, setRot] = useState(0);
-  const rRef = useRef(0);
-  useEffect(() => {
-    let raf;
-    const loop = () => { rRef.current += speed; setRot(rRef.current); raf = requestAnimationFrame(loop); };
-    raf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf);
-  }, [speed]);
-  return <div style={{ width: size, height: size, borderRadius: '50%', border: `1px solid ${color}`, transform: `rotateX(${tilt}deg) rotateZ(${rot}deg)`, willChange: 'transform', position: 'absolute', ...style }} />;
-}
-
 function GlassPanel({ children, index = 0, visible = true, delay = 0, style = {} }) {
   const [hov, setHov] = useState(false);
   const [mouse, setMouse] = useState({ x: 0, y: 0 });
@@ -967,39 +956,10 @@ export default function AboutPage() {
         />
       )}
 
-      <div style={{ position: 'fixed', inset: 0, background: 'rgba(3,2,10,0.55)', zIndex: 1, pointerEvents: 'none' }} />
+      <div style={{ position: 'fixed', inset: 0, background: 'rgba(3,2,10,0.45)', zIndex: 1, pointerEvents: 'none' }} />
 
-      <section style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', perspective: '1200px', zIndex: 2 }}>
-
-        <FloatingSlab driftX={6} driftY={10} driftRot={0.3} delay={0} style={{ position: 'absolute', top: '15%', left: '8%', zIndex: 3 }}>
-          <OrbitRing size="180px" tilt={65} speed={0.12} color="rgba(201,168,76,0.15)" />
-        </FloatingSlab>
-        <FloatingSlab driftX={8} driftY={14} driftRot={-0.2} delay={1} style={{ position: 'absolute', bottom: '18%', right: '7%', zIndex: 3 }}>
-          <OrbitRing size="250px" tilt={45} speed={-0.08} color="rgba(201,168,76,0.1)" />
-        </FloatingSlab>
-        <FloatingSlab driftX={4} driftY={8} delay={2} style={{ position: 'absolute', top: '42%', right: '14%', zIndex: 3 }}>
-          <OrbitRing size="120px" tilt={30} speed={0.18} color="rgba(255,255,255,0.05)" />
-        </FloatingSlab>
-        <FloatingSlab driftX={10} driftY={6} driftRot={-0.2} delay={0.5} style={{ position: 'absolute', bottom: '38%', left: '5%', zIndex: 3 }}>
-          <OrbitRing size="200px" tilt={70} speed={-0.1} color="rgba(201,168,76,0.08)" />
-        </FloatingSlab>
-        <FloatingSlab driftX={5} driftY={9} delay={1.5} style={{ position: 'absolute', top: '25%', left: '20%', zIndex: 3 }}>
-          <OrbitRing size="90px" tilt={20} speed={0.22} color="rgba(201,168,76,0.12)" />
-        </FloatingSlab>
-
-        {[
-          { top: '12%', left: '35%', w: '60px', rot: '-20deg', delay: 0.8 },
-          { top: '75%', left: '22%', w: '40px', rot: '15deg', delay: 1.2 },
-          { top: '30%', right: '24%', w: '80px', rot: '-8deg', delay: 0.4 },
-          { top: '65%', right: '18%', w: '50px', rot: '25deg', delay: 1.6 },
-          { top: '88%', left: '55%', w: '35px', rot: '-12deg', delay: 2.0 },
-        ].map((f, i) => (
-          <FloatingSlab key={i} driftX={5} driftY={12} delay={f.delay} style={{ position: 'absolute', top: f.top, left: f.left, right: f.right, zIndex: 3 }}>
-            <div style={{ width: f.w, height: '1px', background: 'rgba(201,168,76,0.3)', transform: `rotate(${f.rot})` }} />
-          </FloatingSlab>
-        ))}
-
-        <div style={{ position: 'relative', zIndex: 4, transform: `translateY(${-scroll * 0.12}px)`, textAlign: 'center', padding: '2rem' }}>
+      <section style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', zIndex: 2, pointerEvents: 'none' }}>
+        <div style={{ position: 'relative', zIndex: 4, transform: `translateY(${-scroll * 0.12}px)`, textAlign: 'center', padding: '2rem', pointerEvents: 'none' }}>
 
           <FloatingSlab driftY={5} driftX={2} delay={0.3}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '1rem', marginBottom: '3rem', opacity: heroVis ? 1 : 0, transform: heroVis ? 'none' : 'translateY(20px)', transition: 'opacity 1s ease 0.2s,transform 1s ease 0.2s' }}>
@@ -1202,12 +1162,6 @@ export default function AboutPage() {
       </section>
 
       <section style={{ padding: '10rem 2rem', position: 'relative', zIndex: 2, textAlign: 'center' }}>
-        <FloatingSlab driftY={12} driftX={5} delay={0} style={{ position: 'absolute', top: '10%', left: '5%' }}>
-          <OrbitRing size="160px" tilt={55} speed={0.1} color="rgba(201,168,76,0.1)" />
-        </FloatingSlab>
-        <FloatingSlab driftY={10} driftX={-6} delay={2} style={{ position: 'absolute', bottom: '10%', right: '5%' }}>
-          <OrbitRing size="200px" tilt={40} speed={-0.07} color="rgba(201,168,76,0.08)" />
-        </FloatingSlab>
         <FloatingSlab driftY={10} driftX={2} delay={0.5}>
           <div style={{ maxWidth: '750px', margin: '0 auto' }}>
             <p style={{ fontSize: '0.49rem', color: 'rgba(201,168,76,0.5)', letterSpacing: '0.5em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', marginBottom: '2.5rem' }}>Ready to Explore?</p>

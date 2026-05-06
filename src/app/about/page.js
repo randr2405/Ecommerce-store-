@@ -298,7 +298,6 @@ function onPointerClick(e) {
 
 function onTouchStart(e) {
   if (!e.touches.length) return;
-  e.preventDefault();
   pointerPos.set(e.touches[0].clientX, e.touches[0].clientY);
   for (const [elem, state] of pointerMap) {
     const rect = elem.getBoundingClientRect();
@@ -313,7 +312,6 @@ function onTouchStart(e) {
 
 function onTouchMove(e) {
   if (!e.touches.length) return;
-  e.preventDefault();
   pointerPos.set(e.touches[0].clientX, e.touches[0].clientY);
   for (const [elem, state] of pointerMap) {
     const rect = elem.getBoundingClientRect();
@@ -362,8 +360,6 @@ class BallPhysics {
     this.driftData = new Float32Array(3 * config.count).fill(0);
     this.center = new Vector3();
     this.interactionActive = false;
-    // Text exclusion zone: balls avoid the center rectangle
-    // These are in world-space units; updated on resize
     this.textZone = { x: 0, y: 0, halfW: 0, halfH: 0, enabled: true };
     this.#init();
     this.setSizes();
@@ -373,11 +369,9 @@ class BallPhysics {
     const { config: c, positionData: p, driftData: d } = this;
     for (let i = 0; i < c.count; i++) {
       const b = 3 * i;
-      // Spawn balls outside the text zone by preferring edges
       p[b]     = randFloatSpread(2 * c.maxX);
       p[b + 1] = randFloatSpread(2 * c.maxY);
       p[b + 2] = randFloatSpread(2 * c.maxZ);
-      // Slower drift on mobile (config.mobileDriftScale applied below)
       const driftScale = c.mobileDriftScale ?? 1;
       d[b]     = randFloatSpread(0.012) * driftScale;
       d[b + 1] = randFloatSpread(0.012) * driftScale;
@@ -392,7 +386,6 @@ class BallPhysics {
 
   update(e) {
     const { config: c, positionData: pos, sizeData: sz, velocityData: vel, driftData: drift, textZone: tz } = this;
-    // Cap delta so a tab becoming visible after a long pause doesn't cause a huge jump
     const dt = Math.min(e.delta, 0.05);
 
     for (let i = 0; i < c.count; i++) {
@@ -409,7 +402,6 @@ class BallPhysics {
 
       _vA.add(_vD);
 
-      // Wrap-around boundaries
       if (_vA.x > c.maxX + sz[i]) _vA.x = -c.maxX - sz[i];
       else if (_vA.x < -c.maxX - sz[i]) _vA.x = c.maxX + sz[i];
       if (_vA.y > c.maxY + sz[i]) _vA.y = -c.maxY - sz[i];
@@ -417,14 +409,12 @@ class BallPhysics {
       if (_vA.z > c.maxZ + sz[i]) _vA.z = -c.maxZ - sz[i];
       else if (_vA.z < -c.maxZ - sz[i]) _vA.z = c.maxZ + sz[i];
 
-      // TEXT EXCLUSION ZONE — push balls away from center text area
       if (tz.enabled && tz.halfW > 0) {
         const dx = _vA.x - tz.x;
         const dy = _vA.y - tz.y;
         const ex = tz.halfW + sz[i];
         const ey = tz.halfH + sz[i];
         if (Math.abs(dx) < ex && Math.abs(dy) < ey) {
-          // Push out on shortest axis
           const overlapX = ex - Math.abs(dx);
           const overlapY = ey - Math.abs(dy);
           if (overlapX < overlapY) {
@@ -443,7 +433,6 @@ class BallPhysics {
       _vD.toArray(vel, b);
     }
 
-    // Cursor / touch repulsion
     if (this.interactionActive) {
       for (let i = 0; i < c.count; i++) {
         const b = 3 * i;
@@ -461,7 +450,6 @@ class BallPhysics {
       }
     }
 
-    // Ball–ball collisions (lite)
     for (let i = 0; i < c.count; i++) {
       const b = 3 * i;
       _vA.fromArray(pos, b);
@@ -543,7 +531,7 @@ function createBallpit(canvas, userConfig = {}) {
   const isMobile = window.innerWidth <= 768;
 
   const config = {
-    count: isMobile ? 40 : 80,           // Fewer balls on mobile
+    count: isMobile ? 40 : 80,
     colors: [0xC9A84C, 0x8B6914, 0xEDD070, 0xA07828, 0xF5E6B8, 0x6B4E0A, 0x3D2A05],
     ambientColor: 0xfff8e7,
     ambientIntensity: 1.2,
@@ -554,13 +542,13 @@ function createBallpit(canvas, userConfig = {}) {
     gravity: 0,
     friction: 0.998,
     wallBounce: 0.92,
-    maxVelocity: isMobile ? 0.032 : 0.08,  // Much slower on mobile
+    maxVelocity: isMobile ? 0.032 : 0.08,
     repulseRadius: 2.2,
     repulseStrength: 0.28,
     maxX: 5,
     maxY: 5,
     maxZ: 2,
-    mobileDriftScale: isMobile ? 0.28 : 1, // Drift speed multiplier — very slow on mobile
+    mobileDriftScale: isMobile ? 0.28 : 1,
     controlSphere0: false,
     followCursor: false,
     ...userConfig
@@ -615,28 +603,32 @@ function createBallpit(canvas, userConfig = {}) {
   const plane = new Plane(new Vector3(0, 0, 1), 0);
   const hitPoint = new Vector3();
 
-  canvas.style.touchAction = 'none';
   canvas.style.userSelect = 'none';
 
-  const pointer = createPointer({
-    domElement: canvas,
-    onMove() {
-      raycaster.setFromCamera(pointer.nPosition, app.camera);
-      app.camera.getWorldDirection(plane.normal);
-      raycaster.ray.intersectPlane(plane, hitPoint);
-      physics.center.copy(hitPoint);
-      physics.interactionActive = true;
-    },
-    onLeave() {
-      physics.interactionActive = false;
-    }
-  });
+  let pointer = null;
 
-  // Helper: update the text exclusion zone from world-space sizes
+  if (!isMobile) {
+    canvas.style.touchAction = 'none';
+    pointer = createPointer({
+      domElement: canvas,
+      onMove() {
+        raycaster.setFromCamera(pointer.nPosition, app.camera);
+        app.camera.getWorldDirection(plane.normal);
+        raycaster.ray.intersectPlane(plane, hitPoint);
+        physics.center.copy(hitPoint);
+        physics.interactionActive = true;
+      },
+      onLeave() {
+        physics.interactionActive = false;
+      }
+    });
+  } else {
+    canvas.style.touchAction = 'pan-y';
+    canvas.style.pointerEvents = 'none';
+  }
+
   function updateTextZone(wWidth, wHeight) {
     const isMob = window.innerWidth <= 768;
-    // The text block is roughly centred; estimate its world-space footprint.
-    // On mobile the text is smaller so the zone is tighter.
     physics.textZone.x = 0;
     physics.textZone.y = 0;
     physics.textZone.halfW = isMob ? wWidth * 0.30 : wWidth * 0.22;
@@ -661,12 +653,11 @@ function createBallpit(canvas, userConfig = {}) {
     updateTextZone(e.wWidth, e.wHeight);
   };
 
-  // Initial zone setup after first resize
   updateTextZone(app.size.wWidth, app.size.wHeight);
 
   return {
     three: app,
-    dispose() { pointer.dispose(); app.dispose(); }
+    dispose() { pointer?.dispose(); app.dispose(); }
   };
 }
 
@@ -685,9 +676,8 @@ function BallpitHero({ children }) {
     <section style={{ minHeight: '100vh', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}>
       <canvas
         ref={canvasRef}
-        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 0, pointerEvents: 'all' }}
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 0 }}
       />
-      {/* Stronger centre vignette on mobile to further separate text from balls */}
       <div style={{
         position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none',
         background: 'radial-gradient(ellipse 55% 45% at 50% 50%, rgba(3,2,10,0.82) 0%, rgba(3,2,10,0.55) 50%, rgba(3,2,10,0.18) 100%)',
@@ -929,6 +919,7 @@ function GlassPanel({ children, index = 0, visible = true, delay = 0, style = {}
       <div style={{
         background: hov ? 'rgba(201,168,76,0.055)' : 'rgba(255,255,255,0.022)',
         backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
         border: '1px solid', borderColor: hov ? 'rgba(201,168,76,0.55)' : 'rgba(255,255,255,0.07)',
         position: 'relative', overflow: 'hidden',
         transform: `rotateX(${hov ? mouse.y * -16 : 0}deg) rotateY(${hov ? mouse.x * 20 : 0}deg) translateZ(${hov ? 16 : 0}px) translateY(${visible ? 0 : 50}px)`,
@@ -937,7 +928,7 @@ function GlassPanel({ children, index = 0, visible = true, delay = 0, style = {}
           ? 'background 0.3s, border-color 0.3s, box-shadow 0.3s, transform 0.08s'
           : `background 0.5s, border-color 0.5s, box-shadow 0.5s, opacity 0.85s ease ${d}s, transform 0.85s cubic-bezier(0.16,1,0.3,1) ${d}s`,
         boxShadow: hov ? '0 40px 100px rgba(0,0,0,0.65), 0 0 0 1px rgba(201,168,76,0.18), inset 0 1px 0 rgba(201,168,76,0.12)' : '0 8px 40px rgba(0,0,0,0.35)',
-        cursor: 'none',
+        cursor: 'default',
       }}>
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: `linear-gradient(90deg,transparent,rgba(201,168,76,${hov ? 0.55 : 0.12}),transparent)`, transition: 'all 0.4s' }} />
         <div style={{ position: 'absolute', top: 0, left: hov ? '100%' : '-100%', width: '60%', height: '100%', background: 'linear-gradient(90deg,transparent,rgba(201,168,76,0.04),transparent)', transition: 'left 0.8s ease', pointerEvents: 'none' }} />
@@ -1004,7 +995,6 @@ export default function AboutPage() {
             </div>
           </FloatingSlab>
 
-          {/* Text block wrapped in a backdrop so it always reads cleanly over balls */}
           <div style={{
             display: 'inline-block',
             padding: isMobile ? '1.2rem 2rem 1.6rem' : '1.5rem 3rem 2rem',

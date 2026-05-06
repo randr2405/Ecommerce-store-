@@ -351,7 +351,7 @@ function isInRect(rect) {
 const { randFloat, randFloatSpread } = MathUtils;
 const _vA = new Vector3(), _vB = new Vector3(), _vC = new Vector3();
 const _vD = new Vector3(), _vE = new Vector3(), _vF = new Vector3();
-const _vG = new Vector3(), _vH = new Vector3(), _vI = new Vector3();
+const _vG = new Vector3(), _vH = new Vector3();
 
 class BallPhysics {
   constructor(config) {
@@ -362,6 +362,9 @@ class BallPhysics {
     this.driftData = new Float32Array(3 * config.count).fill(0);
     this.center = new Vector3();
     this.interactionActive = false;
+    // Text exclusion zone: balls avoid the center rectangle
+    // These are in world-space units; updated on resize
+    this.textZone = { x: 0, y: 0, halfW: 0, halfH: 0, enabled: true };
     this.#init();
     this.setSizes();
   }
@@ -370,12 +373,15 @@ class BallPhysics {
     const { config: c, positionData: p, driftData: d } = this;
     for (let i = 0; i < c.count; i++) {
       const b = 3 * i;
+      // Spawn balls outside the text zone by preferring edges
       p[b]     = randFloatSpread(2 * c.maxX);
       p[b + 1] = randFloatSpread(2 * c.maxY);
       p[b + 2] = randFloatSpread(2 * c.maxZ);
-      d[b]     = randFloatSpread(0.012);
-      d[b + 1] = randFloatSpread(0.012);
-      d[b + 2] = randFloatSpread(0.006);
+      // Slower drift on mobile (config.mobileDriftScale applied below)
+      const driftScale = c.mobileDriftScale ?? 1;
+      d[b]     = randFloatSpread(0.012) * driftScale;
+      d[b + 1] = randFloatSpread(0.012) * driftScale;
+      d[b + 2] = randFloatSpread(0.006) * driftScale;
     }
   }
 
@@ -385,31 +391,53 @@ class BallPhysics {
   }
 
   update(e) {
-    const { config: c, positionData: pos, sizeData: sz, velocityData: vel, driftData: drift } = this;
+    const { config: c, positionData: pos, sizeData: sz, velocityData: vel, driftData: drift, textZone: tz } = this;
+    // Cap delta so a tab becoming visible after a long pause doesn't cause a huge jump
+    const dt = Math.min(e.delta, 0.05);
 
     for (let i = 0; i < c.count; i++) {
       const b = 3 * i;
       _vA.fromArray(pos, b);
       _vD.fromArray(vel, b);
 
-      // Apply gentle drift (random float direction per ball)
-      _vD.x += drift[b]     * e.delta * 60;
-      _vD.y += drift[b + 1] * e.delta * 60;
-      _vD.z += drift[b + 2] * e.delta * 60;
+      _vD.x += drift[b]     * dt * 60;
+      _vD.y += drift[b + 1] * dt * 60;
+      _vD.z += drift[b + 2] * dt * 60;
 
-      // Dampen so balls don't accelerate forever
       _vD.multiplyScalar(0.985);
       _vD.clampLength(0, c.maxVelocity);
 
       _vA.add(_vD);
 
-      // Soft wrap-around boundaries (balls that exit one side re-enter the other)
+      // Wrap-around boundaries
       if (_vA.x > c.maxX + sz[i]) _vA.x = -c.maxX - sz[i];
       else if (_vA.x < -c.maxX - sz[i]) _vA.x = c.maxX + sz[i];
       if (_vA.y > c.maxY + sz[i]) _vA.y = -c.maxY - sz[i];
       else if (_vA.y < -c.maxY - sz[i]) _vA.y = c.maxY + sz[i];
       if (_vA.z > c.maxZ + sz[i]) _vA.z = -c.maxZ - sz[i];
       else if (_vA.z < -c.maxZ - sz[i]) _vA.z = c.maxZ + sz[i];
+
+      // TEXT EXCLUSION ZONE — push balls away from center text area
+      if (tz.enabled && tz.halfW > 0) {
+        const dx = _vA.x - tz.x;
+        const dy = _vA.y - tz.y;
+        const ex = tz.halfW + sz[i];
+        const ey = tz.halfH + sz[i];
+        if (Math.abs(dx) < ex && Math.abs(dy) < ey) {
+          // Push out on shortest axis
+          const overlapX = ex - Math.abs(dx);
+          const overlapY = ey - Math.abs(dy);
+          if (overlapX < overlapY) {
+            const push = overlapX * (dx >= 0 ? 1 : -1);
+            _vA.x += push;
+            _vD.x += push * 0.08;
+          } else {
+            const push = overlapY * (dy >= 0 ? 1 : -1);
+            _vA.y += push;
+            _vD.y += push * 0.08;
+          }
+        }
+      }
 
       _vA.toArray(pos, b);
       _vD.toArray(vel, b);
@@ -421,17 +449,14 @@ class BallPhysics {
         const b = 3 * i;
         _vA.fromArray(pos, b);
         _vD.fromArray(vel, b);
-
         _vC.copy(_vA).sub(this.center);
         const dist = _vC.length();
         const repulseRadius = sz[i] + c.repulseRadius;
-
         if (dist < repulseRadius && dist > 0.001) {
           const force = (repulseRadius - dist) / repulseRadius;
           _vF.copy(_vC).normalize().multiplyScalar(force * c.repulseStrength);
           _vD.add(_vF);
         }
-
         _vD.toArray(vel, b);
       }
     }
@@ -515,24 +540,27 @@ class SubsurfaceMaterial extends MeshPhysicalMaterial {
 const _dummy = new Object3D();
 
 function createBallpit(canvas, userConfig = {}) {
+  const isMobile = window.innerWidth <= 768;
+
   const config = {
-    count: 80,
+    count: isMobile ? 40 : 80,           // Fewer balls on mobile
     colors: [0xC9A84C, 0x8B6914, 0xEDD070, 0xA07828, 0xF5E6B8, 0x6B4E0A, 0x3D2A05],
     ambientColor: 0xfff8e7,
     ambientIntensity: 1.2,
     lightIntensity: 180,
     materialParams: { metalness: 0.5, roughness: 0.3, clearcoat: 0, clearcoatRoughness: 0 },
-    minSize: 0.12,
-    maxSize: 0.48,
+    minSize: isMobile ? 0.10 : 0.12,
+    maxSize: isMobile ? 0.36 : 0.48,
     gravity: 0,
     friction: 0.998,
     wallBounce: 0.92,
-    maxVelocity: 0.08,
+    maxVelocity: isMobile ? 0.032 : 0.08,  // Much slower on mobile
     repulseRadius: 2.2,
     repulseStrength: 0.28,
     maxX: 5,
     maxY: 5,
     maxZ: 2,
+    mobileDriftScale: isMobile ? 0.28 : 1, // Drift speed multiplier — very slow on mobile
     controlSphere0: false,
     followCursor: false,
     ...userConfig
@@ -604,6 +632,17 @@ function createBallpit(canvas, userConfig = {}) {
     }
   });
 
+  // Helper: update the text exclusion zone from world-space sizes
+  function updateTextZone(wWidth, wHeight) {
+    const isMob = window.innerWidth <= 768;
+    // The text block is roughly centred; estimate its world-space footprint.
+    // On mobile the text is smaller so the zone is tighter.
+    physics.textZone.x = 0;
+    physics.textZone.y = 0;
+    physics.textZone.halfW = isMob ? wWidth * 0.30 : wWidth * 0.22;
+    physics.textZone.halfH = isMob ? wHeight * 0.20 : wHeight * 0.25;
+  }
+
   app.onBeforeRender = (e) => {
     physics.update(e);
     for (let i = 0; i < config.count; i++) {
@@ -619,7 +658,11 @@ function createBallpit(canvas, userConfig = {}) {
   app.onAfterResize = (e) => {
     config.maxX = e.wWidth / 2;
     config.maxY = e.wHeight / 2;
+    updateTextZone(e.wWidth, e.wHeight);
   };
+
+  // Initial zone setup after first resize
+  updateTextZone(app.size.wWidth, app.size.wHeight);
 
   return {
     three: app,
@@ -644,7 +687,11 @@ function BallpitHero({ children }) {
         ref={canvasRef}
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 0, pointerEvents: 'all' }}
       />
-      <div style={{ position: 'absolute', inset: 0, background: 'rgba(3,2,10,0.45)', zIndex: 1, pointerEvents: 'none' }} />
+      {/* Stronger centre vignette on mobile to further separate text from balls */}
+      <div style={{
+        position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none',
+        background: 'radial-gradient(ellipse 55% 45% at 50% 50%, rgba(3,2,10,0.82) 0%, rgba(3,2,10,0.55) 50%, rgba(3,2,10,0.18) 100%)',
+      }} />
       <div style={{ position: 'relative', zIndex: 2, pointerEvents: 'none' }}>
         {children}
       </div>
@@ -948,35 +995,45 @@ export default function AboutPage() {
       )}
 
       <BallpitHero>
-        <div style={{ transform: `translateY(${-scroll * 0.12}px)`, textAlign: 'center', padding: '2rem' }}>
+        <div style={{ transform: `translateY(${-scroll * 0.12}px)`, textAlign: 'center', padding: isMobile ? '1.5rem' : '2rem' }}>
           <FloatingSlab driftY={5} driftX={2} delay={0.3}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '1rem', marginBottom: '3rem', opacity: heroVis ? 1 : 0, transform: heroVis ? 'none' : 'translateY(20px)', transition: 'opacity 1s ease 0.2s,transform 1s ease 0.2s' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '1rem', marginBottom: isMobile ? '1.8rem' : '3rem', opacity: heroVis ? 1 : 0, transform: heroVis ? 'none' : 'translateY(20px)', transition: 'opacity 1s ease 0.2s,transform 1s ease 0.2s' }}>
               <div style={{ width: '28px', height: '1px', background: 'linear-gradient(90deg,transparent,#C9A84C)' }} />
               <p style={{ fontSize: '0.5rem', color: '#C9A84C', letterSpacing: '0.58em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', fontWeight: 300 }}>Who We Are</p>
               <div style={{ width: '28px', height: '1px', background: 'linear-gradient(90deg,#C9A84C,transparent)' }} />
             </div>
           </FloatingSlab>
 
-          <FloatingSlab driftY={10} driftX={4} delay={0}>
-            <div style={{ overflow: 'hidden' }}>
-              <h1 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: 'clamp(3.5rem,11vw,9.5rem)', fontWeight: 300, lineHeight: 0.9, color: 'rgba(255,255,255,0.93)', letterSpacing: '-0.02em', display: 'block', opacity: heroVis ? 1 : 0, transform: heroVis ? 'none' : 'translateY(80px)', transition: 'opacity 1.2s cubic-bezier(0.16,1,0.3,1) 0.3s,transform 1.2s cubic-bezier(0.16,1,0.3,1) 0.3s', textShadow: '0 0 80px rgba(255,255,255,0.07)' }}>About</h1>
-            </div>
-          </FloatingSlab>
+          {/* Text block wrapped in a backdrop so it always reads cleanly over balls */}
+          <div style={{
+            display: 'inline-block',
+            padding: isMobile ? '1.2rem 2rem 1.6rem' : '1.5rem 3rem 2rem',
+            borderRadius: '4px',
+            background: 'rgba(3,2,10,0.55)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+          }}>
+            <FloatingSlab driftY={10} driftX={4} delay={0}>
+              <div style={{ overflow: 'hidden' }}>
+                <h1 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: isMobile ? 'clamp(3.8rem,16vw,6rem)' : 'clamp(3.5rem,11vw,9.5rem)', fontWeight: 300, lineHeight: 0.9, color: 'rgba(255,255,255,0.93)', letterSpacing: '-0.02em', display: 'block', opacity: heroVis ? 1 : 0, transform: heroVis ? 'none' : 'translateY(80px)', transition: 'opacity 1.2s cubic-bezier(0.16,1,0.3,1) 0.3s,transform 1.2s cubic-bezier(0.16,1,0.3,1) 0.3s', textShadow: '0 0 80px rgba(255,255,255,0.07)' }}>About</h1>
+              </div>
+            </FloatingSlab>
 
-          <FloatingSlab driftY={14} driftX={-6} delay={1.5}>
-            <div style={{ overflow: 'hidden' }}>
-              <h1 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: 'clamp(3.5rem,11vw,9.5rem)', fontWeight: 300, lineHeight: 0.9, color: '#C9A84C', letterSpacing: '-0.02em', fontStyle: 'italic', display: 'block', opacity: heroVis ? 1 : 0, transform: heroVis ? 'none' : 'translateY(80px)', transition: 'opacity 1.2s cubic-bezier(0.16,1,0.3,1) 0.52s,transform 1.2s cubic-bezier(0.16,1,0.3,1) 0.52s', textShadow: '0 0 100px rgba(201,168,76,0.65),0 0 200px rgba(201,168,76,0.2)' }}>Us</h1>
-            </div>
-          </FloatingSlab>
+            <FloatingSlab driftY={14} driftX={-6} delay={1.5}>
+              <div style={{ overflow: 'hidden' }}>
+                <h1 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: isMobile ? 'clamp(3.8rem,16vw,6rem)' : 'clamp(3.5rem,11vw,9.5rem)', fontWeight: 300, lineHeight: 0.9, color: '#C9A84C', letterSpacing: '-0.02em', fontStyle: 'italic', display: 'block', opacity: heroVis ? 1 : 0, transform: heroVis ? 'none' : 'translateY(80px)', transition: 'opacity 1.2s cubic-bezier(0.16,1,0.3,1) 0.52s,transform 1.2s cubic-bezier(0.16,1,0.3,1) 0.52s', textShadow: '0 0 100px rgba(201,168,76,0.65),0 0 200px rgba(201,168,76,0.2)' }}>Us</h1>
+              </div>
+            </FloatingSlab>
+          </div>
 
-          <div style={{ marginTop: '5rem', opacity: heroVis ? 0.45 : 0, transition: 'opacity 1s ease 2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.8rem' }}>
+          <div style={{ marginTop: isMobile ? '3rem' : '5rem', opacity: heroVis ? 0.45 : 0, transition: 'opacity 1s ease 2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.8rem' }}>
             <p style={{ fontSize: '0.43rem', color: '#C9A84C', letterSpacing: '0.5em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif' }}>Drift down</p>
             <div style={{ width: '1px', height: '60px', background: 'linear-gradient(180deg,#C9A84C,transparent)', animation: 'aboutPulse 2s ease-in-out infinite' }} />
           </div>
         </div>
       </BallpitHero>
 
-      <section ref={foundRef} style={{ padding: '10rem 3rem', position: 'relative', zIndex: 2, maxWidth: '1100px', margin: '0 auto' }}>
+      <section ref={foundRef} style={{ padding: isMobile ? '6rem 1.5rem' : '10rem 3rem', position: 'relative', zIndex: 2, maxWidth: '1100px', margin: '0 auto' }}>
         <FloatingSlab driftY={7} delay={0.2}>
           <div style={{ textAlign: 'center', marginBottom: '6rem', opacity: foundVis ? 1 : 0, transform: foundVis ? 'none' : 'translateY(30px)', transition: 'opacity 0.9s,transform 0.9s' }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '1.5rem', marginBottom: '1rem' }}>
@@ -1040,7 +1097,7 @@ export default function AboutPage() {
           <FloatingSlab driftY={9} driftX={2} delay={0.6}>
             <GlassPanel index={2} visible={foundVis} delay={0.4}>
               {(hov) => (
-                <div style={{ padding: '3.5rem 4rem', textAlign: 'center' }}>
+                <div style={{ padding: isMobile ? '2.5rem 1.5rem' : '3.5rem 4rem', textAlign: 'center' }}>
                   <p style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: 'clamp(1.1rem,2.5vw,1.6rem)', fontWeight: 300, fontStyle: 'italic', color: hov ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.5)', lineHeight: 1.8, transition: 'color 0.4s', maxWidth: '720px', margin: '0 auto' }}>
                     "Where athletic performance meets everyday elegance — where functionality embraces fashion, and every piece tells the story of{' '}
                     <span style={{ color: '#C9A84C', fontStyle: 'normal' }}>two passions perfectly combined.</span>"
@@ -1052,7 +1109,7 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <section ref={whatRef} style={{ padding: '8rem 3rem', position: 'relative', zIndex: 2, maxWidth: '1100px', margin: '0 auto' }}>
+      <section ref={whatRef} style={{ padding: isMobile ? '5rem 1.5rem' : '8rem 3rem', position: 'relative', zIndex: 2, maxWidth: '1100px', margin: '0 auto' }}>
         <FloatingSlab driftY={6} delay={0.2}>
           <div style={{ textAlign: 'center', marginBottom: '5rem', opacity: whatVis ? 1 : 0, transform: whatVis ? 'none' : 'translateY(30px)', transition: 'opacity 0.9s,transform 0.9s' }}>
             <h2 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: 'clamp(2rem,5vw,3.8rem)', fontWeight: 300, color: 'rgba(255,255,255,0.88)' }}>What Sets Us Apart</h2>
@@ -1083,7 +1140,7 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <section ref={collRef} style={{ padding: '8rem 3rem', position: 'relative', zIndex: 2, maxWidth: '1200px', margin: '0 auto' }}>
+      <section ref={collRef} style={{ padding: isMobile ? '5rem 1.5rem' : '8rem 3rem', position: 'relative', zIndex: 2, maxWidth: '1200px', margin: '0 auto' }}>
         <FloatingSlab driftY={7} delay={0.1}>
           <div style={{ marginBottom: '5rem', opacity: collVis ? 1 : 0, transform: collVis ? 'none' : 'translateY(30px)', transition: 'opacity 0.9s,transform 0.9s' }}>
             <p style={{ fontSize: '0.49rem', color: 'rgba(201,168,76,0.5)', letterSpacing: '0.5em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', marginBottom: '0.8rem' }}>Collections</p>
@@ -1102,10 +1159,10 @@ export default function AboutPage() {
             <FloatingSlab key={col.title} driftY={6 + i * 2} driftX={i % 2 === 0 ? 3 : -3} delay={i * 0.28}>
               <GlassPanel index={i} visible={collVis} delay={i * 0.12}>
                 {(hov) => (
-                  <div style={{ padding: '3rem 2rem' }}>
+                  <div style={{ padding: isMobile ? '2rem 1.2rem' : '3rem 2rem' }}>
                     <p style={{ fontSize: '0.43rem', color: hov ? 'rgba(201,168,76,0.75)' : 'rgba(201,168,76,0.38)', letterSpacing: '0.38em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', marginBottom: '1.5rem', transition: 'color 0.3s' }}>{col.tag}</p>
                     <span style={{ fontSize: '2rem', display: 'block', marginBottom: '1rem', transform: hov ? 'translateY(-4px)' : 'none', transition: 'transform 0.4s' }}>{col.icon}</span>
-                    <h3 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: '1.7rem', fontWeight: 300, color: hov ? '#fff' : 'rgba(255,255,255,0.72)', marginBottom: '0.8rem', transition: 'color 0.3s' }}>{col.title}</h3>
+                    <h3 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: isMobile ? '1.3rem' : '1.7rem', fontWeight: 300, color: hov ? '#fff' : 'rgba(255,255,255,0.72)', marginBottom: '0.8rem', transition: 'color 0.3s' }}>{col.title}</h3>
                     <p style={{ fontSize: '0.6rem', color: hov ? 'rgba(255,255,255,0.38)' : 'rgba(255,255,255,0.18)', lineHeight: 2, transition: 'color 0.4s' }}>{col.desc}</p>
                     <div style={{ marginTop: '1.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: hov ? 1 : 0, transform: hov ? 'translateX(0)' : 'translateX(-10px)', transition: 'all 0.4s' }}>
                       <div style={{ width: '18px', height: '1px', background: '#C9A84C' }} />
@@ -1119,7 +1176,7 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <section ref={valRef} style={{ padding: '8rem 3rem 12rem', position: 'relative', zIndex: 2, maxWidth: '1100px', margin: '0 auto' }}>
+      <section ref={valRef} style={{ padding: isMobile ? '5rem 1.5rem 8rem' : '8rem 3rem 12rem', position: 'relative', zIndex: 2, maxWidth: '1100px', margin: '0 auto' }}>
         <FloatingSlab driftY={8} delay={0}>
           <div style={{ textAlign: 'center', marginBottom: '6rem', opacity: valVis ? 1 : 0, transform: valVis ? 'none' : 'translateY(30px)', transition: 'opacity 0.9s,transform 0.9s' }}>
             <h2 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: 'clamp(2rem,5vw,3.8rem)', fontWeight: 300, color: 'rgba(255,255,255,0.88)' }}>Our Values</h2>
@@ -1136,7 +1193,7 @@ export default function AboutPage() {
             <FloatingSlab key={v.title} driftY={8 + i * 2} driftX={i % 2 === 0 ? -5 : 5} driftRot={i % 2 === 0 ? 0.14 : -0.14} delay={i * 0.4}>
               <GlassPanel index={i} visible={valVis} delay={i * 0.14}>
                 {(hov) => (
-                  <div style={{ padding: '3.5rem 3rem', position: 'relative' }}>
+                  <div style={{ padding: isMobile ? '2.5rem 2rem' : '3.5rem 3rem', position: 'relative' }}>
                     <div style={{ position: 'absolute', bottom: '0.5rem', right: '1.5rem', fontFamily: 'Cormorant Garamond,serif', fontSize: '5rem', fontWeight: 300, color: hov ? 'rgba(201,168,76,0.1)' : 'rgba(201,168,76,0.04)', lineHeight: 1, userSelect: 'none', pointerEvents: 'none', transition: 'color 0.4s' }}>{v.sym}</div>
                     <div style={{ width: hov ? '50px' : '20px', height: '1px', background: '#C9A84C', marginBottom: '2rem', transition: 'width 0.5s cubic-bezier(0.16,1,0.3,1)' }} />
                     <h3 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: '1.8rem', fontWeight: 300, color: hov ? '#fff' : '#C9A84C', marginBottom: '1rem', transition: 'color 0.3s' }}>{v.title}</h3>
@@ -1149,7 +1206,7 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <section style={{ padding: '10rem 2rem', position: 'relative', zIndex: 2, textAlign: 'center' }}>
+      <section style={{ padding: isMobile ? '6rem 1.5rem' : '10rem 2rem', position: 'relative', zIndex: 2, textAlign: 'center' }}>
         <FloatingSlab driftY={10} driftX={2} delay={0.5}>
           <div style={{ maxWidth: '750px', margin: '0 auto' }}>
             <p style={{ fontSize: '0.49rem', color: 'rgba(201,168,76,0.5)', letterSpacing: '0.5em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', marginBottom: '2.5rem' }}>Ready to Explore?</p>

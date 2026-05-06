@@ -359,47 +359,85 @@ class BallPhysics {
     this.positionData = new Float32Array(3 * config.count).fill(0);
     this.velocityData = new Float32Array(3 * config.count).fill(0);
     this.sizeData = new Float32Array(config.count).fill(1);
+    this.driftData = new Float32Array(3 * config.count).fill(0);
     this.center = new Vector3();
+    this.interactionActive = false;
     this.#init();
     this.setSizes();
   }
 
   #init() {
-    const { config: c, positionData: p } = this;
-    this.center.toArray(p, 0);
-    for (let i = 1; i < c.count; i++) {
+    const { config: c, positionData: p, driftData: d } = this;
+    for (let i = 0; i < c.count; i++) {
       const b = 3 * i;
-      p[b] = randFloatSpread(2 * c.maxX);
+      p[b]     = randFloatSpread(2 * c.maxX);
       p[b + 1] = randFloatSpread(2 * c.maxY);
       p[b + 2] = randFloatSpread(2 * c.maxZ);
+      d[b]     = randFloatSpread(0.012);
+      d[b + 1] = randFloatSpread(0.012);
+      d[b + 2] = randFloatSpread(0.006);
     }
   }
 
   setSizes() {
     const { config: c, sizeData: s } = this;
-    s[0] = c.size0;
-    for (let i = 1; i < c.count; i++) s[i] = randFloat(c.minSize, c.maxSize);
+    for (let i = 0; i < c.count; i++) s[i] = randFloat(c.minSize, c.maxSize);
   }
 
   update(e) {
-    const { config: c, center, positionData: pos, sizeData: sz, velocityData: vel } = this;
-    let start = 0;
-    if (c.controlSphere0) {
-      start = 1;
-      _vA.fromArray(pos, 0).lerp(center, 0.1).toArray(pos, 0);
-      _vD.set(0, 0, 0).toArray(vel, 0);
-    }
-    for (let i = start; i < c.count; i++) {
+    const { config: c, positionData: pos, sizeData: sz, velocityData: vel, driftData: drift } = this;
+
+    for (let i = 0; i < c.count; i++) {
       const b = 3 * i;
       _vA.fromArray(pos, b);
       _vD.fromArray(vel, b);
-      _vD.y -= e.delta * c.gravity * sz[i];
-      _vD.multiplyScalar(c.friction).clampLength(0, c.maxVelocity);
+
+      // Apply gentle drift (random float direction per ball)
+      _vD.x += drift[b]     * e.delta * 60;
+      _vD.y += drift[b + 1] * e.delta * 60;
+      _vD.z += drift[b + 2] * e.delta * 60;
+
+      // Dampen so balls don't accelerate forever
+      _vD.multiplyScalar(0.985);
+      _vD.clampLength(0, c.maxVelocity);
+
       _vA.add(_vD);
+
+      // Soft wrap-around boundaries (balls that exit one side re-enter the other)
+      if (_vA.x > c.maxX + sz[i]) _vA.x = -c.maxX - sz[i];
+      else if (_vA.x < -c.maxX - sz[i]) _vA.x = c.maxX + sz[i];
+      if (_vA.y > c.maxY + sz[i]) _vA.y = -c.maxY - sz[i];
+      else if (_vA.y < -c.maxY - sz[i]) _vA.y = c.maxY + sz[i];
+      if (_vA.z > c.maxZ + sz[i]) _vA.z = -c.maxZ - sz[i];
+      else if (_vA.z < -c.maxZ - sz[i]) _vA.z = c.maxZ + sz[i];
+
       _vA.toArray(pos, b);
       _vD.toArray(vel, b);
     }
-    for (let i = start; i < c.count; i++) {
+
+    // Cursor / touch repulsion
+    if (this.interactionActive) {
+      for (let i = 0; i < c.count; i++) {
+        const b = 3 * i;
+        _vA.fromArray(pos, b);
+        _vD.fromArray(vel, b);
+
+        _vC.copy(_vA).sub(this.center);
+        const dist = _vC.length();
+        const repulseRadius = sz[i] + c.repulseRadius;
+
+        if (dist < repulseRadius && dist > 0.001) {
+          const force = (repulseRadius - dist) / repulseRadius;
+          _vF.copy(_vC).normalize().multiplyScalar(force * c.repulseStrength);
+          _vD.add(_vF);
+        }
+
+        _vD.toArray(vel, b);
+      }
+    }
+
+    // Ball–ball collisions (lite)
+    for (let i = 0; i < c.count; i++) {
       const b = 3 * i;
       _vA.fromArray(pos, b);
       _vD.fromArray(vel, b);
@@ -412,36 +450,19 @@ class BallPhysics {
         _vC.copy(_vB).sub(_vA);
         const dist = _vC.length();
         const sum = ri + rj;
-        if (dist < sum) {
+        if (dist < sum && dist > 0.001) {
           const overlap = sum - dist;
           _vF.copy(_vC).normalize().multiplyScalar(0.5 * overlap);
-          _vG.copy(_vF).multiplyScalar(Math.max(_vD.length(), 1));
-          _vH.copy(_vF).multiplyScalar(Math.max(_vE.length(), 1));
-          _vA.sub(_vF); _vD.sub(_vG); _vA.toArray(pos, b); _vD.toArray(vel, b);
-          _vB.add(_vF); _vE.add(_vH); _vB.toArray(pos, bj); _vE.toArray(vel, bj);
-        }
-      }
-      if (c.controlSphere0) {
-        const sphere0 = _vI.fromArray(pos, 0);
-        _vC.copy(sphere0).sub(_vA);
-        const d = _vC.length();
-        const s0 = ri + sz[0];
-        if (d < s0) {
-          const diff = s0 - d;
-          _vF.copy(_vC.normalize()).multiplyScalar(diff);
-          _vG.copy(_vF).multiplyScalar(Math.max(_vD.length(), 2));
+          _vG.copy(_vF).multiplyScalar(Math.max(_vD.length(), 0.5));
+          _vH.copy(_vF).multiplyScalar(Math.max(_vE.length(), 0.5));
           _vA.sub(_vF); _vD.sub(_vG);
+          _vB.add(_vF); _vE.add(_vH);
+          _vB.toArray(pos, bj);
+          _vE.toArray(vel, bj);
         }
       }
-      if (Math.abs(_vA.x) + ri > c.maxX) { _vA.x = Math.sign(_vA.x) * (c.maxX - ri); _vD.x = -_vD.x * c.wallBounce; }
-      if (c.gravity === 0) {
-        if (Math.abs(_vA.y) + ri > c.maxY) { _vA.y = Math.sign(_vA.y) * (c.maxY - ri); _vD.y = -_vD.y * c.wallBounce; }
-      } else if (_vA.y - ri < -c.maxY) {
-        _vA.y = -c.maxY + ri; _vD.y = -_vD.y * c.wallBounce;
-      }
-      const maxBound = Math.max(c.maxZ, c.maxSize);
-      if (Math.abs(_vA.z) + ri > maxBound) { _vA.z = Math.sign(_vA.z) * (c.maxZ - ri); _vD.z = -_vD.z * c.wallBounce; }
-      _vA.toArray(pos, b); _vD.toArray(vel, b);
+      _vA.toArray(pos, b);
+      _vD.toArray(vel, b);
     }
   }
 }
@@ -495,24 +516,25 @@ const _dummy = new Object3D();
 
 function createBallpit(canvas, userConfig = {}) {
   const config = {
-    count: 70,
+    count: 80,
     colors: [0xC9A84C, 0x8B6914, 0xEDD070, 0xA07828, 0xF5E6B8, 0x6B4E0A, 0x3D2A05],
     ambientColor: 0xfff8e7,
     ambientIntensity: 1.2,
     lightIntensity: 180,
     materialParams: { metalness: 0.5, roughness: 0.3, clearcoat: 0, clearcoatRoughness: 0 },
-    minSize: 0.1,
-    maxSize: 0.42,
-    size0: 0.45,
-    gravity: 0.4,
+    minSize: 0.12,
+    maxSize: 0.48,
+    gravity: 0,
     friction: 0.998,
     wallBounce: 0.92,
-    maxVelocity: 0.15,
+    maxVelocity: 0.08,
+    repulseRadius: 2.2,
+    repulseStrength: 0.28,
     maxX: 5,
     maxY: 5,
     maxZ: 2,
     controlSphere0: false,
-    followCursor: true,
+    followCursor: false,
     ...userConfig
   };
 
@@ -575,10 +597,10 @@ function createBallpit(canvas, userConfig = {}) {
       app.camera.getWorldDirection(plane.normal);
       raycaster.ray.intersectPlane(plane, hitPoint);
       physics.center.copy(hitPoint);
-      config.controlSphere0 = true;
+      physics.interactionActive = true;
     },
     onLeave() {
-      config.controlSphere0 = false;
+      physics.interactionActive = false;
     }
   });
 
@@ -586,7 +608,7 @@ function createBallpit(canvas, userConfig = {}) {
     physics.update(e);
     for (let i = 0; i < config.count; i++) {
       _dummy.position.fromArray(physics.positionData, 3 * i);
-      _dummy.scale.setScalar(i === 0 && !config.followCursor ? 0 : physics.sizeData[i]);
+      _dummy.scale.setScalar(physics.sizeData[i]);
       _dummy.updateMatrix();
       spheres.setMatrixAt(i, _dummy.matrix);
       if (i === 0) pointLight.position.copy(_dummy.position);

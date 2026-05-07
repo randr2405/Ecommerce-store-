@@ -433,7 +433,7 @@ export default function ContactPage() {
             fontWeight: '600',
             transition: 'opacity 0.2s',
           }}
-          //test
+          
           onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
           onMouseLeave={e => e.currentTarget.style.opacity = '1'}
         >

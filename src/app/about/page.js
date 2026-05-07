@@ -1101,13 +1101,11 @@ export default function AboutPage() {
   const [scroll, setScroll] = useState(0);
   const [foundVis, setFoundVis] = useState(false);
   const [collVis, setCollVis] = useState(false);
-  const [valVis, setValVis] = useState(false);
   const [whatVis, setWhatVis] = useState(false);
   const isMobile = useIsMobile();
 
   const foundRef = useRef(null);
   const collRef = useRef(null);
-  const valRef = useRef(null);
   const whatRef = useRef(null);
 
   useEffect(() => {
@@ -1119,13 +1117,12 @@ export default function AboutPage() {
     };
     const o1 = observe(foundRef, setFoundVis);
     const o2 = observe(collRef, setCollVis);
-    const o3 = observe(valRef, setValVis);
-    const o4 = observe(whatRef, setWhatVis);
+    const o3 = observe(whatRef, setWhatVis);
     const onScroll = () => setScroll(window.scrollY);
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => {
       clearTimeout(t);
-      [o1, o2, o3, o4].forEach(o => o.disconnect());
+      [o1, o2, o3].forEach(o => o.disconnect());
       window.removeEventListener('scroll', onScroll);
     };
   }, []);
@@ -1301,7 +1298,7 @@ export default function AboutPage() {
 
       <section ref={collRef} style={{ padding: isMobile ? '5rem 1.5rem' : '8rem 3rem', position: 'relative', zIndex: 2, maxWidth: '1200px', margin: '0 auto' }}>
         <FloatingSlab driftY={7} delay={0.1}>
-          <div style={{ marginBottom: '5rem', opacity: collVis ? 1 : 0, transform: collVis ? 'none' : 'translateY(30px)', transition: 'opacity 0.9s,transform 0.9s' }}>
+          <div style={{ textAlign: 'center', marginBottom: '5rem', opacity: collVis ? 1 : 0, transform: collVis ? 'none' : 'translateY(30px)', transition: 'opacity 0.9s,transform 0.9s' }}>
             <p style={{ fontSize: '0.49rem', color: 'rgba(201,168,76,0.5)', letterSpacing: '0.5em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', marginBottom: '0.8rem' }}>Collections</p>
             <h2 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: 'clamp(2rem,5vw,3.8rem)', fontWeight: 300, color: 'rgba(255,255,255,0.88)' }}>
               Designed for Every Aspect<br /><span style={{ color: '#C9A84C', fontStyle: 'italic' }}>of Your Active Life</span>
@@ -1335,43 +1332,10 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <section ref={valRef} style={{ padding: isMobile ? '5rem 1.5rem 8rem' : '8rem 3rem 12rem', position: 'relative', zIndex: 2, maxWidth: '1100px', margin: '0 auto' }}>
-        <FloatingSlab driftY={8} delay={0}>
-          <div style={{ textAlign: 'center', marginBottom: '6rem', opacity: valVis ? 1 : 0, transform: valVis ? 'none' : 'translateY(30px)', transition: 'opacity 0.9s,transform 0.9s' }}>
-            <h2 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: 'clamp(2rem,5vw,3.8rem)', fontWeight: 300, color: 'rgba(255,255,255,0.88)' }}>Our Values</h2>
-            <p style={{ fontSize: '0.58rem', color: 'rgba(255,255,255,0.18)', letterSpacing: '0.15em', marginTop: '1rem', fontFamily: 'Montserrat,sans-serif', fontWeight: 200 }}>What drives every decision we make</p>
-          </div>
-        </FloatingSlab>
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2,1fr)', gap: '1.5rem' }}>
-          {[
-            { title: 'Quality', desc: 'Only the finest materials, constructed to outlast trends and time.', sym: 'Ⅰ' },
-            { title: 'Design', desc: 'Style meets function — every piece is entirely intentional.', sym: 'Ⅱ' },
-            { title: 'Customer Focus', desc: 'You are at the heart of everything we create and do.', sym: 'Ⅲ' },
-            { title: 'Innovation', desc: 'Always improving, always evolving, never standing still.', sym: 'Ⅳ' },
-          ].map((v, i) => (
-            <FloatingSlab key={v.title} driftY={8 + i * 2} driftX={i % 2 === 0 ? -5 : 5} driftRot={i % 2 === 0 ? 0.14 : -0.14} delay={i * 0.4}>
-              <GlassPanel index={i} visible={valVis} delay={i * 0.14}>
-                {(hov) => (
-                  <div style={{ padding: isMobile ? '2.5rem 2rem' : '3.5rem 3rem', position: 'relative' }}>
-                    <div style={{ position: 'absolute', bottom: '0.5rem', right: '1.5rem', fontFamily: 'Cormorant Garamond,serif', fontSize: '5rem', fontWeight: 300, color: hov ? 'rgba(201,168,76,0.1)' : 'rgba(201,168,76,0.04)', lineHeight: 1, userSelect: 'none', pointerEvents: 'none', transition: 'color 0.4s' }}>{v.sym}</div>
-                    <div style={{ width: hov ? '50px' : '20px', height: '1px', background: '#C9A84C', marginBottom: '2rem', transition: 'width 0.5s cubic-bezier(0.16,1,0.3,1)' }} />
-                    <h3 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: '1.8rem', fontWeight: 300, color: hov ? '#fff' : '#C9A84C', marginBottom: '1rem', transition: 'color 0.3s' }}>{v.title}</h3>
-                    <p style={{ fontSize: '0.64rem', color: hov ? 'rgba(255,255,255,0.44)' : 'rgba(255,255,255,0.2)', lineHeight: 2.1, letterSpacing: '0.04em', transition: 'color 0.4s' }}>{v.desc}</p>
-                  </div>
-                )}
-              </GlassPanel>
-            </FloatingSlab>
-          ))}
-        </div>
-      </section>
-
       <section style={{ padding: isMobile ? '6rem 1.5rem' : '10rem 2rem', position: 'relative', zIndex: 2, textAlign: 'center' }}>
         <FloatingSlab driftY={10} driftX={2} delay={0.5}>
           <div style={{ maxWidth: '750px', margin: '0 auto' }}>
             <p style={{ fontSize: '0.49rem', color: 'rgba(201,168,76,0.5)', letterSpacing: '0.5em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', marginBottom: '2.5rem' }}>Ready to Explore?</p>
-            <p style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: 'clamp(1.8rem,4.5vw,3.2rem)', fontWeight: 300, fontStyle: 'italic', color: 'rgba(255,255,255,0.8)', lineHeight: 1.7, marginBottom: '3.5rem' }}>
-              "Premium clothing that combines{' '}<span style={{ color: '#C9A84C', fontStyle: 'normal' }}>elegance with comfort</span>, designed for those who live without compromise."
-            </p>
             <div style={{ display: 'flex', gap: '1.4rem', justifyContent: 'center', flexWrap: 'wrap' }}>
               <Link href="/shop" className="rr-btn-primary">Shop the Collection</Link>
               <Link href="/contact" className="rr-btn-ghost">Get in Touch</Link>

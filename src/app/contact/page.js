@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import emailjs from '@emailjs/browser';
 
 const LetterGlitch = ({
-  glitchColors = ['#C9A84C', '#8B6914', '#1A1A0A'],
+  glitchColors = ['#C9A84C', '#7A5F1A', '#1A1A0A'],
   className = '',
   glitchSpeed = 50,
   centerVignette = false,
@@ -182,10 +183,29 @@ const LetterGlitch = ({
 export default function ContactPage() {
   const [formData, setFormData] = useState({ name: '', email: '', message: '' });
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setSubmitted(true);
+  const handleSubmit = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      await emailjs.send(
+        process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID,
+        process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID,
+        {
+          from_name: formData.name,
+          from_email: formData.email,
+          message: formData.message,
+        },
+        process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY
+      );
+      setSubmitted(true);
+    } catch (err) {
+      setError('Something went wrong. Please try again or email us directly.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -277,22 +297,6 @@ export default function ContactPage() {
                 </div>
               </div>
             ))}
-
-            <div style={{ borderTop: '1px solid rgba(201,168,76,0.15)', paddingTop: '2rem', marginTop: '1rem' }}>
-              <p style={{ fontSize: '0.65rem', letterSpacing: '0.25em', textTransform: 'uppercase', color: '#C9A84C', marginBottom: '1rem' }}>
-                Business Hours
-              </p>
-              {[
-                { day: 'Monday – Friday', hours: '8:00 AM – 5:00 PM' },
-                { day: 'Saturday', hours: '9:00 AM – 2:00 PM' },
-                { day: 'Sunday', hours: 'Closed' },
-              ].map(h => (
-                <div key={h.day} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
-                  <p style={{ fontSize: '0.78rem', color: '#888' }}>{h.day}</p>
-                  <p style={{ fontSize: '0.78rem', color: h.hours === 'Closed' ? '#555' : '#ccc' }}>{h.hours}</p>
-                </div>
-              ))}
-            </div>
           </div>
 
           <div style={{ border: '1px solid rgba(201,168,76,0.2)', padding: '3rem', background: '#0F0F0F' }}>
@@ -374,12 +378,24 @@ export default function ContactPage() {
                   />
                 </div>
 
+                {error && (
+                  <p style={{ fontSize: '0.78rem', color: '#c0392b', marginBottom: '1rem', lineHeight: 1.6 }}>
+                    {error}
+                  </p>
+                )}
+
                 <button
                   onClick={handleSubmit}
+                  disabled={loading || !formData.name || !formData.email || !formData.message}
                   className="btn-gold"
-                  style={{ width: '100%', cursor: 'pointer', border: 'none' }}
+                  style={{
+                    width: '100%',
+                    cursor: loading || !formData.name || !formData.email || !formData.message ? 'not-allowed' : 'pointer',
+                    border: 'none',
+                    opacity: loading || !formData.name || !formData.email || !formData.message ? 0.6 : 1,
+                  }}
                 >
-                  Send Message
+                  {loading ? 'Sending...' : 'Send Message'}
                 </button>
               </>
             )}

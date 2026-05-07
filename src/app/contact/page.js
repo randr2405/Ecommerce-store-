@@ -2,7 +2,235 @@
 
 import { useState, useRef, useEffect } from 'react';
 import emailjs from '@emailjs/browser';
-import Grainient from './Grainient';
+
+const hexToRgbArr = hex => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!result) return [1, 1, 1];
+  return [parseInt(result[1], 16) / 255, parseInt(result[2], 16) / 255, parseInt(result[3], 16) / 255];
+};
+
+const grainientVertex = `#version 300 es
+in vec2 position;
+void main() {
+  gl_Position = vec4(position, 0.0, 1.0);
+}
+`;
+
+const grainientFragment = `#version 300 es
+precision highp float;
+uniform vec2 iResolution;
+uniform float iTime;
+uniform float uTimeSpeed;
+uniform float uColorBalance;
+uniform float uWarpStrength;
+uniform float uWarpFrequency;
+uniform float uWarpSpeed;
+uniform float uWarpAmplitude;
+uniform float uBlendAngle;
+uniform float uBlendSoftness;
+uniform float uRotationAmount;
+uniform float uNoiseScale;
+uniform float uGrainAmount;
+uniform float uGrainScale;
+uniform float uGrainAnimated;
+uniform float uContrast;
+uniform float uGamma;
+uniform float uSaturation;
+uniform vec2 uCenterOffset;
+uniform float uZoom;
+uniform vec3 uColor1;
+uniform vec3 uColor2;
+uniform vec3 uColor3;
+out vec4 fragColor;
+#define S(a,b,t) smoothstep(a,b,t)
+mat2 Rot(float a){float s=sin(a),c=cos(a);return mat2(c,-s,s,c);}
+vec2 hash(vec2 p){p=vec2(dot(p,vec2(2127.1,81.17)),dot(p,vec2(1269.5,283.37)));return fract(sin(p)*43758.5453);}
+float noise(vec2 p){vec2 i=floor(p),f=fract(p),u=f*f*(3.0-2.0*f);float n=mix(mix(dot(-1.0+2.0*hash(i+vec2(0.0,0.0)),f-vec2(0.0,0.0)),dot(-1.0+2.0*hash(i+vec2(1.0,0.0)),f-vec2(1.0,0.0)),u.x),mix(dot(-1.0+2.0*hash(i+vec2(0.0,1.0)),f-vec2(0.0,1.0)),dot(-1.0+2.0*hash(i+vec2(1.0,1.0)),f-vec2(1.0,1.0)),u.x),u.y);return 0.5+0.5*n;}
+void mainImage(out vec4 o, vec2 C){
+  float t=iTime*uTimeSpeed;
+  vec2 uv=C/iResolution.xy;
+  float ratio=iResolution.x/iResolution.y;
+  vec2 tuv=uv-0.5+uCenterOffset;
+  tuv/=max(uZoom,0.001);
+  float degree=noise(vec2(t*0.1,tuv.x*tuv.y)*uNoiseScale);
+  tuv.y*=1.0/ratio;
+  tuv*=Rot(radians((degree-0.5)*uRotationAmount+180.0));
+  tuv.y*=ratio;
+  float frequency=uWarpFrequency;
+  float ws=max(uWarpStrength,0.001);
+  float amplitude=uWarpAmplitude/ws;
+  float warpTime=t*uWarpSpeed;
+  tuv.x+=sin(tuv.y*frequency+warpTime)/amplitude;
+  tuv.y+=sin(tuv.x*(frequency*1.5)+warpTime)/(amplitude*0.5);
+  vec3 colLav=uColor1;
+  vec3 colOrg=uColor2;
+  vec3 colDark=uColor3;
+  float b=uColorBalance;
+  float s=max(uBlendSoftness,0.0);
+  mat2 blendRot=Rot(radians(uBlendAngle));
+  float blendX=(tuv*blendRot).x;
+  float edge0=-0.3-b-s;
+  float edge1=0.2-b+s;
+  float v0=0.5-b+s;
+  float v1=-0.3-b-s;
+  vec3 layer1=mix(colDark,colOrg,S(edge0,edge1,blendX));
+  vec3 layer2=mix(colOrg,colLav,S(edge0,edge1,blendX));
+  vec3 col=mix(layer1,layer2,S(v0,v1,tuv.y));
+  vec2 grainUv=uv*max(uGrainScale,0.001);
+  if(uGrainAnimated>0.5){grainUv+=vec2(iTime*0.05);}
+  float grain=fract(sin(dot(grainUv,vec2(12.9898,78.233)))*43758.5453);
+  col+=(grain-0.5)*uGrainAmount;
+  col=(col-0.5)*uContrast+0.5;
+  float luma=dot(col,vec3(0.2126,0.7152,0.0722));
+  col=mix(vec3(luma),col,uSaturation);
+  col=pow(max(col,0.0),vec3(1.0/max(uGamma,0.001)));
+  col=clamp(col,0.0,1.0);
+  o=vec4(col,1.0);
+}
+void main(){
+  vec4 o=vec4(0.0);
+  mainImage(o,gl_FragCoord.xy);
+  fragColor=o;
+}
+`;
+
+function Grainient({
+  timeSpeed = 0.25,
+  colorBalance = 0.0,
+  warpStrength = 1.0,
+  warpFrequency = 5.0,
+  warpSpeed = 2.0,
+  warpAmplitude = 50.0,
+  blendAngle = 0.0,
+  blendSoftness = 0.05,
+  rotationAmount = 500.0,
+  noiseScale = 2.0,
+  grainAmount = 0.1,
+  grainScale = 2.0,
+  grainAnimated = false,
+  contrast = 1.5,
+  gamma = 1.0,
+  saturation = 1.0,
+  centerX = 0.0,
+  centerY = 0.0,
+  zoom = 0.9,
+  color1 = '#FF9FFC',
+  color2 = '#5227FF',
+  color3 = '#B497CF',
+  className = ''
+}) {
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    let canvas, gl, program, raf, ro;
+
+    const container = containerRef.current;
+    canvas = document.createElement('canvas');
+    canvas.style.position = 'absolute';
+    canvas.style.inset = '0';
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+    canvas.style.display = 'block';
+    container.appendChild(canvas);
+
+    gl = canvas.getContext('webgl2', { alpha: true, antialias: false });
+    if (!gl) return;
+
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    const compileShader = (src, type) => {
+      const s = gl.createShader(type);
+      gl.shaderSource(s, src);
+      gl.compileShader(s);
+      return s;
+    };
+
+    const vs = compileShader(grainientVertex, gl.VERTEX_SHADER);
+    const fs = compileShader(grainientFragment, gl.FRAGMENT_SHADER);
+    program = gl.createProgram();
+    gl.attachShader(program, vs);
+    gl.attachShader(program, fs);
+    gl.linkProgram(program);
+    gl.useProgram(program);
+
+    const positions = new Float32Array([-1, -1, 3, -1, -1, 3]);
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+    const posLoc = gl.getAttribLocation(program, 'position');
+    gl.enableVertexAttribArray(posLoc);
+    gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+
+    const u = name => gl.getUniformLocation(program, name);
+
+    const setSize = () => {
+      const rect = container.getBoundingClientRect();
+      const w = Math.max(1, Math.floor(rect.width));
+      const h = Math.max(1, Math.floor(rect.height));
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      gl.viewport(0, 0, canvas.width, canvas.height);
+      gl.useProgram(program);
+      gl.uniform2f(u('iResolution'), canvas.width, canvas.height);
+    };
+
+    ro = new ResizeObserver(setSize);
+    ro.observe(container);
+    setSize();
+
+    gl.uniform1f(u('uTimeSpeed'), timeSpeed);
+    gl.uniform1f(u('uColorBalance'), colorBalance);
+    gl.uniform1f(u('uWarpStrength'), warpStrength);
+    gl.uniform1f(u('uWarpFrequency'), warpFrequency);
+    gl.uniform1f(u('uWarpSpeed'), warpSpeed);
+    gl.uniform1f(u('uWarpAmplitude'), warpAmplitude);
+    gl.uniform1f(u('uBlendAngle'), blendAngle);
+    gl.uniform1f(u('uBlendSoftness'), blendSoftness);
+    gl.uniform1f(u('uRotationAmount'), rotationAmount);
+    gl.uniform1f(u('uNoiseScale'), noiseScale);
+    gl.uniform1f(u('uGrainAmount'), grainAmount);
+    gl.uniform1f(u('uGrainScale'), grainScale);
+    gl.uniform1f(u('uGrainAnimated'), grainAnimated ? 1.0 : 0.0);
+    gl.uniform1f(u('uContrast'), contrast);
+    gl.uniform1f(u('uGamma'), gamma);
+    gl.uniform1f(u('uSaturation'), saturation);
+    gl.uniform2f(u('uCenterOffset'), centerX, centerY);
+    gl.uniform1f(u('uZoom'), zoom);
+    gl.uniform3fv(u('uColor1'), new Float32Array(hexToRgbArr(color1)));
+    gl.uniform3fv(u('uColor2'), new Float32Array(hexToRgbArr(color2)));
+    gl.uniform3fv(u('uColor3'), new Float32Array(hexToRgbArr(color3)));
+
+    const iTimeLoc = u('iTime');
+    const t0 = performance.now();
+    const loop = t => {
+      gl.useProgram(program);
+      gl.uniform1f(iTimeLoc, (t - t0) * 0.001);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+      if (ro) ro.disconnect();
+      if (canvas && canvas.parentNode) canvas.parentNode.removeChild(canvas);
+    };
+  }, [
+    timeSpeed, colorBalance, warpStrength, warpFrequency, warpSpeed,
+    warpAmplitude, blendAngle, blendSoftness, rotationAmount, noiseScale,
+    grainAmount, grainScale, grainAnimated, contrast, gamma, saturation,
+    centerX, centerY, zoom, color1, color2, color3
+  ]);
+
+  return (
+    <div
+      ref={containerRef}
+      className={className}
+      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+    />
+  );
+}
 
 const LetterGlitch = ({
   glitchColors = ['#C9A84C', '#7A5F1A', '#1A1A0A'],
@@ -205,8 +433,6 @@ export default function ContactPage() {
       setSubmitted(true);
     } catch (err) {
       console.log('EmailJS error:', JSON.stringify(err));
-      console.log('Status:', err.status);
-      console.log('Text:', err.text);
       setError('Something went wrong. Please try again or email us directly.');
     } finally {
       setLoading(false);
@@ -216,7 +442,6 @@ export default function ContactPage() {
   return (
     <>
       <style>{`
-        /* ── Mobile nav ── */
         .hamburger {
           display: none;
           flex-direction: column;
@@ -239,7 +464,6 @@ export default function ContactPage() {
         .hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
         .hamburger.open span:nth-child(2) { opacity: 0; }
         .hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
-
         .mobile-nav {
           display: none;
           position: fixed;
@@ -262,58 +486,35 @@ export default function ContactPage() {
           transition: color 0.2s;
         }
         .mobile-nav a:hover { color: #C9A84C; }
-
-        /* ── Contact grid ── */
         .contact-grid {
           display: grid;
           grid-template-columns: 1fr 1.5fr;
           gap: 5rem;
           align-items: start;
         }
-
-        /* ── WhatsApp section inner ── */
         .whatsapp-inner {
           position: relative;
           z-index: 1;
           text-align: center;
           padding: 4rem 2rem;
         }
-
         @media (max-width: 768px) {
           .hamburger { display: flex; }
           .desktop-nav { display: none !important; }
-
-          .contact-grid {
-            grid-template-columns: 1fr;
-            gap: 3rem;
-          }
-
-          .hero-section {
-            padding: 4rem 1.5rem !important;
-          }
-
-          .contact-section {
-            padding: 4rem 1.5rem !important;
-          }
-
-          .form-box {
-            padding: 2rem 1.5rem !important;
-          }
-
-          .whatsapp-inner {
-            padding: 3rem 1.5rem;
-          }
+          .contact-grid { grid-template-columns: 1fr; gap: 3rem; }
+          .hero-section { padding: 4rem 1.5rem !important; }
+          .contact-section { padding: 4rem 1.5rem !important; }
+          .form-box { padding: 2rem 1.5rem !important; }
+          .whatsapp-inner { padding: 3rem 1.5rem; }
         }
       `}</style>
 
-      {/* ── Mobile nav overlay ── */}
       <div className={`mobile-nav ${menuOpen ? 'open' : ''}`}>
         <a href="/shop" onClick={() => setMenuOpen(false)}>Shop</a>
         <a href="/about" onClick={() => setMenuOpen(false)}>About</a>
         <a href="/contact" onClick={() => setMenuOpen(false)}>Contact</a>
       </div>
 
-      {/* ── Navbar (mobile hamburger injected via CSS; desktop nav hidden via class) ── */}
       <div style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -324,8 +525,6 @@ export default function ContactPage() {
         <a href="/" style={{ textDecoration: 'none', color: '#C9A84C', fontFamily: 'Montserrat, sans-serif', fontWeight: 700, fontSize: '1.1rem', letterSpacing: '0.1em' }}>
           R&R <span style={{ color: '#F5F0E8', fontWeight: 300 }}>AGENCIES</span>
         </a>
-
-        {/* Desktop nav */}
         <nav className="desktop-nav" style={{ display: 'flex', gap: '2.5rem' }}>
           {['Shop', 'About', 'Contact'].map(item => (
             <a key={item} href={`/${item.toLowerCase()}`} style={{
@@ -340,8 +539,6 @@ export default function ContactPage() {
             </a>
           ))}
         </nav>
-
-        {/* Hamburger */}
         <button className={`hamburger ${menuOpen ? 'open' : ''}`} onClick={() => setMenuOpen(v => !v)} aria-label="Toggle menu">
           <span /><span /><span />
         </button>
@@ -349,7 +546,6 @@ export default function ContactPage() {
 
       <div style={{ paddingTop: '70px' }}>
 
-        {/* ── Hero ── */}
         <section className="hero-section" style={{
           position: 'relative',
           padding: '6rem 2rem',
@@ -380,11 +576,8 @@ export default function ContactPage() {
           </div>
         </section>
 
-        {/* ── Contact form + details ── */}
         <section className="contact-section" style={{ padding: '6rem 2rem', maxWidth: '1100px', margin: '0 auto' }}>
           <div className="contact-grid">
-
-            {/* Details */}
             <div>
               <p className="section-label" style={{ marginBottom: '2rem' }}>Our Details</p>
               {[
@@ -419,7 +612,6 @@ export default function ContactPage() {
               ))}
             </div>
 
-            {/* Form */}
             <div className="form-box" style={{ border: '1px solid rgba(201,168,76,0.2)', padding: '3rem', background: '#0F0F0F' }}>
               {submitted ? (
                 <div style={{ textAlign: 'center', padding: '3rem 0' }}>
@@ -441,7 +633,6 @@ export default function ContactPage() {
                 <>
                   <p className="section-label" style={{ marginBottom: '0.5rem' }}>Send a Message</p>
                   <h2 style={{ fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', color: '#F5F0E8', marginBottom: '2rem' }}>We'd Love to Hear From You</h2>
-
                   {[
                     { key: 'name', label: 'Name', type: 'text', placeholder: 'Your full name' },
                     { key: 'email', label: 'Email', type: 'email', placeholder: 'your@email.com' },
@@ -466,7 +657,6 @@ export default function ContactPage() {
                       />
                     </div>
                   ))}
-
                   <div style={{ marginBottom: '2rem' }}>
                     <label style={{ fontSize: '0.65rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#C9A84C', display: 'block', marginBottom: '0.5rem' }}>
                       Message *
@@ -486,20 +676,20 @@ export default function ContactPage() {
                       onBlur={e => e.target.style.borderColor = 'rgba(201,168,76,0.2)'}
                     />
                   </div>
-
                   {error && (
                     <p style={{ fontSize: '0.78rem', color: '#c0392b', marginBottom: '1rem', lineHeight: 1.6 }}>
                       {error}
                     </p>
                   )}
-
                   <button
                     onClick={handleSubmit}
                     disabled={loading || !formData.name || !formData.email || !formData.message}
                     className="btn-gold"
                     style={{
-                      width: '100%', cursor: loading || !formData.name || !formData.email || !formData.message ? 'not-allowed' : 'pointer',
-                      border: 'none', opacity: loading || !formData.name || !formData.email || !formData.message ? 0.6 : 1,
+                      width: '100%',
+                      cursor: loading || !formData.name || !formData.email || !formData.message ? 'not-allowed' : 'pointer',
+                      border: 'none',
+                      opacity: loading || !formData.name || !formData.email || !formData.message ? 0.6 : 1,
                     }}
                   >
                     {loading ? 'Sending...' : 'Send Message'}
@@ -510,46 +700,39 @@ export default function ContactPage() {
           </div>
         </section>
 
-        {/* ── WhatsApp section with Grainient background ── */}
         <section style={{
           position: 'relative',
           borderTop: '1px solid rgba(201,168,76,0.15)',
           overflow: 'hidden',
         }}>
-          {/* Grainient background — themed to gold/dark */}
-          <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
-            <Grainient
-              color1="#C9A84C"
-              color2="#1A1A0A"
-              color3="#7A5F1A"
-              timeSpeed={0.25}
-              colorBalance={0}
-              warpStrength={1}
-              warpFrequency={5}
-              warpSpeed={2}
-              warpAmplitude={50}
-              blendAngle={0}
-              blendSoftness={0.05}
-              rotationAmount={500}
-              noiseScale={2}
-              grainAmount={0.12}
-              grainScale={2}
-              grainAnimated={false}
-              contrast={1.5}
-              gamma={1}
-              saturation={0.7}
-              centerX={0}
-              centerY={0}
-              zoom={0.9}
-            />
-            {/* Dark overlay so text stays readable */}
-            <div style={{
-              position: 'absolute', inset: 0,
-              background: 'linear-gradient(135deg, rgba(5,5,5,0.78) 0%, rgba(10,10,5,0.65) 50%, rgba(5,5,5,0.78) 100%)',
-            }} />
-          </div>
-
-          {/* Content */}
+          <Grainient
+            color1="#C9A84C"
+            color2="#1A1A0A"
+            color3="#7A5F1A"
+            timeSpeed={0.25}
+            colorBalance={0}
+            warpStrength={1}
+            warpFrequency={5}
+            warpSpeed={2}
+            warpAmplitude={50}
+            blendAngle={0}
+            blendSoftness={0.05}
+            rotationAmount={500}
+            noiseScale={2}
+            grainAmount={0.12}
+            grainScale={2}
+            grainAnimated={false}
+            contrast={1.5}
+            gamma={1}
+            saturation={0.7}
+            centerX={0}
+            centerY={0}
+            zoom={0.9}
+          />
+          <div style={{
+            position: 'absolute', inset: 0, zIndex: 0,
+            background: 'linear-gradient(135deg, rgba(5,5,5,0.78) 0%, rgba(10,10,5,0.65) 50%, rgba(5,5,5,0.78) 100%)',
+          }} />
           <div className="whatsapp-inner">
             <p className="section-label">Stay Connected</p>
             <h2 style={{ fontSize: 'clamp(1.4rem, 4vw, 1.8rem)', color: '#F5F0E8', margin: '0.5rem 0 1rem' }}>Join Our WhatsApp Group</h2>

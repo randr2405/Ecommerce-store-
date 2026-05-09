@@ -91,7 +91,7 @@ function FilterPill({ label, active, onClick }) {
   );
 }
 
-function BorderGlowCard({ children, hovered }) {
+function BorderGlowCard({ children }) {
   const cardRef = useRef(null);
 
   const handlePointerMove = useCallback((e) => {
@@ -113,10 +113,17 @@ function BorderGlowCard({ children, hovered }) {
     card.style.setProperty('--cursor-angle', `${angle.toFixed(3)}deg`);
   }, []);
 
+  const handleTouchMove = useCallback((e) => {
+    if (!e.touches.length) return;
+    const touch = e.touches[0];
+    handlePointerMove({ clientX: touch.clientX, clientY: touch.clientY });
+  }, [handlePointerMove]);
+
   return (
     <div
       ref={cardRef}
       onPointerMove={handlePointerMove}
+      onTouchMove={handleTouchMove}
       style={{
         position: 'relative',
         borderRadius: '0px',
@@ -196,8 +203,9 @@ function ProductCard({ product, index }) {
   const [hovered, setHovered]   = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [visible, setVisible]   = useState(false);
-  const cardRef  = useRef(null);
-  const obsRef   = useRef(null);
+  const cardRef    = useRef(null);
+  const obsRef     = useRef(null);
+  const resetTimer = useRef(null);
 
   useEffect(() => {
     obsRef.current = new IntersectionObserver(
@@ -208,6 +216,10 @@ function ProductCard({ product, index }) {
     return () => obsRef.current?.disconnect();
   }, []);
 
+  useEffect(() => {
+    return () => { if (resetTimer.current) clearTimeout(resetTimer.current); };
+  }, []);
+
   const handleMouseMove = useCallback((e) => {
     const rect = cardRef.current?.getBoundingClientRect();
     if (!rect) return;
@@ -215,6 +227,39 @@ function ProductCard({ product, index }) {
       x: (e.clientX - rect.left) / rect.width  - 0.5,
       y: (e.clientY - rect.top)  / rect.height - 0.5,
     });
+  }, []);
+
+  const handleTouchStart = useCallback((e) => {
+    if (resetTimer.current) clearTimeout(resetTimer.current);
+    setHovered(true);
+    if (e.touches.length > 0) {
+      const touch = e.touches[0];
+      const rect = cardRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setMousePos({
+        x: (touch.clientX - rect.left) / rect.width  - 0.5,
+        y: (touch.clientY - rect.top)  / rect.height - 0.5,
+      });
+    }
+  }, []);
+
+  const handleTouchMove = useCallback((e) => {
+    if (e.touches.length > 0) {
+      const touch = e.touches[0];
+      const rect = cardRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setMousePos({
+        x: (touch.clientX - rect.left) / rect.width  - 0.5,
+        y: (touch.clientY - rect.top)  / rect.height - 0.5,
+      });
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    resetTimer.current = setTimeout(() => {
+      setHovered(false);
+      setMousePos({ x: 0, y: 0 });
+    }, 320);
   }, []);
 
   const availableSizes = product.sizes
@@ -228,12 +273,15 @@ function ProductCard({ product, index }) {
 
   return (
     <Link href={`/shop/${encodeURIComponent(product.name)}`} style={{ textDecoration: 'none', display: 'block' }}>
-      <BorderGlowCard hovered={hovered}>
+      <BorderGlowCard>
         <div
           ref={cardRef}
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => { setHovered(false); setMousePos({ x: 0, y: 0 }); }}
           onMouseMove={handleMouseMove}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
           style={{ perspective: '1000px' }}
         >
           <div style={{
@@ -254,7 +302,7 @@ function ProductCard({ product, index }) {
             opacity: visible ? 1 : 0,
             transition: visible
               ? hovered
-                ? 'border-color 0.25s, background 0.25s, box-shadow 0.25s, transform 0.07s ease'
+                ? 'border-color 0.25s, background 0.25s, box-shadow 0.25s, transform 0.12s ease'
                 : `border-color 0.45s, background 0.45s, box-shadow 0.45s, transform 0.6s cubic-bezier(0.16,1,0.3,1) ${stagger}s, opacity 0.6s ease ${stagger}s`
               : `opacity 0.6s ease ${stagger}s, transform 0.8s cubic-bezier(0.16,1,0.3,1) ${stagger}s`,
             boxShadow: hovered
@@ -711,7 +759,6 @@ export default function ShopPage() {
         }
       `}</style>
 
-      {/* Mobile nav overlay */}
       <div className={`mobile-nav ${menuOpen ? 'open' : ''}`}>
         <a href="/" onClick={() => setMenuOpen(false)}>Home</a>
         <a href="/shop" className="active-nav" onClick={() => setMenuOpen(false)}>Shop</a>
@@ -719,7 +766,6 @@ export default function ShopPage() {
         <a href="/contact" onClick={() => setMenuOpen(false)}>Contact</a>
       </div>
 
-      {/* Navbar */}
       <div style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -757,7 +803,6 @@ export default function ShopPage() {
         </button>
       </div>
 
-      {/* Custom cursor — desktop only */}
       {!cursor.isMobile && (
         <>
           <div style={{
@@ -783,7 +828,6 @@ export default function ShopPage() {
         </>
       )}
 
-      {/* Hero */}
       <section className="hero-section" style={{
         padding: '7rem 2rem 6rem',
         textAlign: 'center',
@@ -858,7 +902,6 @@ export default function ShopPage() {
         </div>
       </section>
 
-      {/* Filter bar */}
       <div style={{
         borderBottom: '1px solid rgba(201,168,76,0.08)',
         background: 'rgba(5,4,3,0.98)',
@@ -926,7 +969,6 @@ export default function ShopPage() {
         </div>
       </div>
 
-      {/* Product grid */}
       <section className="shop-section">
         {loading ? (
           <LoadingState />

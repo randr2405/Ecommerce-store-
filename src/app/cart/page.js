@@ -326,6 +326,13 @@ function FloatingLinesHero({ children }) {
         }}
       />
       <div style={{
+        position: 'absolute',
+        inset: 0,
+        zIndex: 1,
+        background: 'radial-gradient(ellipse 70% 80% at 50% 50%, rgba(10,10,10,0.78) 0%, rgba(10,10,10,0.0) 100%)',
+        pointerEvents: 'none',
+      }} />
+      <div style={{
         position: 'relative',
         zIndex: 2,
         isolation: 'isolate',

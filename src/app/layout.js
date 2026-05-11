@@ -1,14 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Toaster } from 'react-hot-toast';
 import './globals.css';
+import './PillNav.css';
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
-        <Navbar />
+        <PillNav />
         <main>{children}</main>
         <Footer />
         <Toaster
@@ -29,8 +30,25 @@ export default function RootLayout({ children }) {
   );
 }
 
-function Navbar() {
+const NAV_ITEMS = [
+  { label: 'Home',    href: '/' },
+  { label: 'Shop',    href: '/shop' },
+  { label: 'About',   href: '/about' },
+  { label: 'Contact', href: '/contact' },
+];
+
+function PillNav() {
   const [cartCount, setCartCount] = useState(0);
+  const [activeHref, setActiveHref] = useState('/');
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [hoveredIndex, setHoveredIndex] = useState(null);
+  const mobileRef = useRef(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setActiveHref(window.location.pathname);
+    }
+  }, []);
 
   useEffect(() => {
     const updateCount = () => {
@@ -38,98 +56,88 @@ function Navbar() {
       const total = cart.reduce((sum, item) => sum + item.quantity, 0);
       setCartCount(total);
     };
-
     updateCount();
-
-    // Update count whenever storage changes (e.g. adding to cart in another tab)
     window.addEventListener('storage', updateCount);
-
-    // Also update on a custom event fired when cart changes in the same tab
     window.addEventListener('cartUpdated', updateCount);
-
     return () => {
       window.removeEventListener('storage', updateCount);
       window.removeEventListener('cartUpdated', updateCount);
     };
   }, []);
 
-  return (
-    <nav style={{
-      position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-      background: 'rgba(10,10,10,0.95)',
-      backdropFilter: 'blur(10px)',
-      borderBottom: '1px solid rgba(201,168,76,0.2)',
-      padding: '0 2rem',
-      height: '70px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-    }}>
-      {/* Logo */}
-      <a href="/" style={{ textDecoration: 'none' }}>
-        <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.5rem', color: '#C9A84C', letterSpacing: '0.2em', fontWeight: 600 }}>
-          R&amp;R <span style={{ color: '#F5F0E8', fontWeight: 300 }}>AGENCIES</span>
-        </div>
-      </a>
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (mobileRef.current && !mobileRef.current.contains(e.target)) {
+        setMobileOpen(false);
+      }
+    };
+    if (mobileOpen) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [mobileOpen]);
 
-      {/* Nav Links */}
-      <div style={{ display: 'flex', gap: '2.5rem', alignItems: 'center' }}>
-        {[
-          { label: 'Shop', href: '/shop' },
-          { label: 'About', href: '/about' },
-          { label: 'Contact', href: '/contact' },
-        ].map(link => (
-          <a
-            key={link.href}
-            href={link.href}
-            style={{
-              fontFamily: 'Montserrat, sans-serif',
-              fontSize: '0.7rem',
-              letterSpacing: '0.2em',
-              textTransform: 'uppercase',
-              color: '#F5F0E8',
-              textDecoration: 'none',
-              transition: 'color 0.2s',
-            }}
-            onMouseEnter={e => e.target.style.color = '#C9A84C'}
-            onMouseLeave={e => e.target.style.color = '#F5F0E8'}
+  return (
+    <>
+      <nav className="rr-pill-nav">
+        <a href="/" className="rr-pill-logo">
+          R&amp;R <span>AGENCIES</span>
+        </a>
+
+        <div className="rr-pill-track">
+          {NAV_ITEMS.map((item, i) => (
+            <a
+              key={item.href}
+              href={item.href}
+              className={`rr-pill${activeHref === item.href ? ' rr-pill--active' : ''}${hoveredIndex === i ? ' rr-pill--hovered' : ''}`}
+              onMouseEnter={() => setHoveredIndex(i)}
+              onMouseLeave={() => setHoveredIndex(null)}
+            >
+              <span className="rr-pill-bubble" aria-hidden="true" />
+              <span className="rr-pill-label">{item.label}</span>
+            </a>
+          ))}
+        </div>
+
+        <div className="rr-pill-icons">
+          <a href="/profile" title="Profile" className="rr-pill-icon-link">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+            </svg>
+          </a>
+          <a href="/cart" title="Cart" className="rr-pill-icon-link rr-pill-icon-cart">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <path d="M16 10a4 4 0 01-8 0" />
+            </svg>
+            {cartCount > 0 && (
+              <span className="rr-cart-badge">{cartCount > 99 ? '99+' : cartCount}</span>
+            )}
+          </a>
+
+          <button
+            className={`rr-hamburger${mobileOpen ? ' rr-hamburger--open' : ''}`}
+            onClick={() => setMobileOpen(v => !v)}
+            aria-label="Toggle menu"
           >
-            {link.label}
+            <span /><span /><span />
+          </button>
+        </div>
+      </nav>
+
+      <div className={`rr-mobile-menu${mobileOpen ? ' rr-mobile-menu--open' : ''}`} ref={mobileRef}>
+        {NAV_ITEMS.map(item => (
+          <a
+            key={item.href}
+            href={item.href}
+            className={`rr-mobile-link${activeHref === item.href ? ' rr-mobile-link--active' : ''}`}
+            onClick={() => setMobileOpen(false)}
+          >
+            {item.label}
           </a>
         ))}
       </div>
-
-      {/* Icons */}
-      <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-        <a href="/profile" title="Profile" style={{ color: '#F5F0E8', textDecoration: 'none', fontSize: '1.1rem' }}>👤</a>
-
-        {/* Cart icon with badge */}
-        <a href="/cart" title="Cart" style={{ color: '#C9A84C', textDecoration: 'none', fontSize: '1.1rem', position: 'relative' }}>
-          🛒
-          {cartCount > 0 && (
-            <span style={{
-              position: 'absolute',
-              top: '-8px',
-              right: '-8px',
-              background: '#C9A84C',
-              color: '#0A0A0A',
-              fontSize: '0.55rem',
-              fontFamily: 'Montserrat, sans-serif',
-              fontWeight: 700,
-              width: '16px',
-              height: '16px',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              letterSpacing: 0,
-            }}>
-              {cartCount > 99 ? '99+' : cartCount}
-            </span>
-          )}
-        </a>
-      </div>
-    </nav>
+    </>
   );
 }
 
@@ -143,8 +151,6 @@ function Footer() {
     }}>
       <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '3rem', marginBottom: '3rem' }}>
-
-          {/* Brand */}
           <div>
             <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.4rem', color: '#C9A84C', letterSpacing: '0.2em', marginBottom: '1rem' }}>
               R&amp;R AGENCIES
@@ -153,14 +159,13 @@ function Footer() {
               Premium sport &amp; lifestyle clothing. Based in Verulam, South Africa.
             </p>
           </div>
-
-          {/* Quick Links */}
           <div>
             <p style={{ fontSize: '0.65rem', letterSpacing: '0.3em', textTransform: 'uppercase', color: '#C9A84C', marginBottom: '1.2rem' }}>Navigate</p>
             {[
-              { label: 'Shop', href: '/shop' },
-              { label: 'About Us', href: '/about' },
-              { label: 'Contact Us', href: '/contact' },
+              { label: 'Home',           href: '/' },
+              { label: 'Shop',           href: '/shop' },
+              { label: 'About Us',       href: '/about' },
+              { label: 'Contact Us',     href: '/contact' },
               { label: 'Returns Policy', href: '/returns' },
             ].map(link => (
               <div key={link.href} style={{ marginBottom: '0.6rem' }}>
@@ -175,8 +180,6 @@ function Footer() {
               </div>
             ))}
           </div>
-
-          {/* Contact */}
           <div>
             <p style={{ fontSize: '0.65rem', letterSpacing: '0.3em', textTransform: 'uppercase', color: '#C9A84C', marginBottom: '1.2rem' }}>Contact</p>
             <p style={{ fontSize: '0.75rem', color: '#888', marginBottom: '0.6rem' }}>SBDC Building, 2 Columbus Rd,<br />Verulam, Unit 13</p>
@@ -184,7 +187,6 @@ function Footer() {
             <p style={{ fontSize: '0.75rem', color: '#888' }}>081 336 5266</p>
           </div>
         </div>
-
         <div style={{ borderTop: '1px solid rgba(201,168,76,0.15)', paddingTop: '1.5rem', textAlign: 'center' }}>
           <p style={{ fontSize: '0.65rem', color: '#555', letterSpacing: '0.1em' }}>
             © {new Date().getFullYear()} R&amp;R AGENCIES. ALL RIGHTS RESERVED. · randragencies.online

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import PixelBlast from '@/components/PixelBlast';
 
 export default function CheckoutPage() {
   const [cart, setCart] = useState([]);
@@ -93,25 +94,58 @@ export default function CheckoutPage() {
   return (
     <div style={{ paddingTop: '70px' }}>
 
-      {/* HERO */}
       <section style={{
+        position: 'relative',
         padding: '6rem 2rem',
         textAlign: 'center',
         borderBottom: '1px solid rgba(201,168,76,0.15)',
-        background: 'linear-gradient(135deg, #0A0A0A 0%, #1A1A0A 50%, #0A0A0A 100%)',
+        background: '#0A0A0A',
+        overflow: 'hidden',
       }}>
-        <p className="section-label">Final Step</p>
-        <h1 style={{ fontSize: 'clamp(2.5rem, 6vw, 5rem)', color: '#F5F0E8', marginTop: '0.5rem' }}>Checkout</h1>
-        <div className="divider-gold" />
-        <p style={{ fontSize: '0.85rem', color: '#999', maxWidth: '500px', margin: '0 auto', lineHeight: 1.9 }}>
-          Complete your details below and proceed to secure payment via PayFast.
-        </p>
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 0,
+        }}>
+          <PixelBlast
+            variant="circle"
+            pixelSize={4}
+            color="#C9A84C"
+            patternScale={1.8}
+            patternDensity={0.72}
+            pixelSizeJitter={0.4}
+            enableRipples={true}
+            rippleSpeed={0.25}
+            rippleThickness={0.08}
+            rippleIntensityScale={0.9}
+            edgeFade={0.18}
+            speed={0.18}
+            transparent={true}
+            style={{ width: '100%', height: '100%' }}
+          />
+        </div>
+
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 1,
+          background: 'radial-gradient(ellipse 65% 75% at 50% 50%, rgba(10,10,10,0.82) 0%, rgba(10,10,10,0.1) 100%)',
+          pointerEvents: 'none',
+        }} />
+
+        <div style={{ position: 'relative', zIndex: 2 }}>
+          <p className="section-label">Final Step</p>
+          <h1 style={{ fontSize: 'clamp(2.5rem, 6vw, 5rem)', color: '#F5F0E8', marginTop: '0.5rem' }}>Checkout</h1>
+          <div className="divider-gold" />
+          <p style={{ fontSize: '0.85rem', color: '#999', maxWidth: '500px', margin: '0 auto', lineHeight: 1.9 }}>
+            Complete your details below and proceed to secure payment via PayFast.
+          </p>
+        </div>
       </section>
 
       <section style={{ padding: '4rem 2rem 6rem', maxWidth: '1100px', margin: '0 auto' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: '3rem', alignItems: 'start' }}>
 
-          {/* FORM */}
           <div style={{ border: '1px solid rgba(201,168,76,0.2)', padding: '3rem', background: '#0F0F0F' }}>
             <p className="section-label" style={{ marginBottom: '0.5rem' }}>Your Details</p>
             <h2 style={{ fontSize: '1.8rem', color: '#F5F0E8', marginBottom: '2rem' }}>Delivery Information</h2>
@@ -216,7 +250,6 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          {/* ORDER SUMMARY */}
           <div style={{
             border: '1px solid rgba(201,168,76,0.2)',
             padding: '2.5rem',

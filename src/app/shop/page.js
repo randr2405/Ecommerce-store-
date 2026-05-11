@@ -335,36 +335,96 @@ function Prism({
 function PrismHero({ children }) {
   return (
     <div style={{ position: 'relative', overflow: 'hidden', background: '#040302' }}>
-      <Prism
-        animationType="rotate"
-        glow={1.2}
-        noise={0.3}
-        transparent={true}
-        scale={3.6}
-        hueShift={0.6}
-        colorFrequency={1.2}
-        bloom={1.1}
-        timeScale={0.4}
-      />
       <div style={{
-        position: 'absolute', inset: 0, zIndex: 2,
+        position: 'absolute',
+        left: '-8%',
+        top: 0,
+        bottom: 0,
+        width: '46%',
+        zIndex: 1,
+        pointerEvents: 'none',
+      }}>
+        <Prism
+          animationType="rotate"
+          glow={1.3}
+          noise={0.28}
+          transparent={true}
+          scale={3.8}
+          hueShift={0.18}
+          colorFrequency={1.15}
+          bloom={1.15}
+          timeScale={0.38}
+        />
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'linear-gradient(to right, transparent 30%, #040302 100%)',
+          pointerEvents: 'none',
+          zIndex: 2,
+        }} />
+      </div>
+
+      <div style={{
+        position: 'absolute',
+        right: '-8%',
+        top: 0,
+        bottom: 0,
+        width: '46%',
+        zIndex: 1,
+        pointerEvents: 'none',
+      }}>
+        <Prism
+          animationType="rotate"
+          glow={1.3}
+          noise={0.28}
+          transparent={true}
+          scale={3.8}
+          hueShift={0.95}
+          colorFrequency={1.15}
+          bloom={1.15}
+          timeScale={0.44}
+        />
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'linear-gradient(to left, transparent 30%, #040302 100%)',
+          pointerEvents: 'none',
+          zIndex: 2,
+        }} />
+      </div>
+
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        zIndex: 2,
         backgroundImage: 'linear-gradient(rgba(201,168,76,0.07) 1px,transparent 1px),linear-gradient(90deg,rgba(201,168,76,0.07) 1px,transparent 1px)',
         backgroundSize: '80px 80px',
         transform: 'perspective(700px) rotateX(60deg) translateZ(-60px) scale(2)',
         transformOrigin: '50% 100%',
-        opacity: 0.5, pointerEvents: 'none', mixBlendMode: 'overlay',
+        opacity: 0.5,
+        pointerEvents: 'none',
+        mixBlendMode: 'overlay',
       }} />
+
       <div style={{
-        position: 'absolute', inset: 0, zIndex: 3,
-        background: 'radial-gradient(ellipse 80% 70% at 50% 50%, transparent 10%, rgba(4,3,2,0.35) 55%, rgba(4,3,2,0.82) 100%)',
+        position: 'absolute',
+        inset: 0,
+        zIndex: 3,
+        background: 'radial-gradient(ellipse 55% 75% at 50% 50%, rgba(4,3,2,0.65) 0%, transparent 80%)',
         pointerEvents: 'none',
       }} />
+
       <div style={{
-        position: 'absolute', bottom: 0, left: 0, right: 0,
-        height: '110px', zIndex: 4,
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: '110px',
+        zIndex: 4,
         background: 'linear-gradient(to bottom, transparent, #040302)',
         pointerEvents: 'none',
       }} />
+
       <div style={{ position: 'relative', zIndex: 5 }}>{children}</div>
     </div>
   );
@@ -590,6 +650,7 @@ export default function ShopPage() {
           .shop-section{padding:3rem 1rem 5rem;}
           .hero-section{padding:5rem 1.5rem 4rem!important;}
           .hero-h1{font-size:clamp(2.5rem,12vw,5rem)!important;}
+          .prism-side{display:none!important;}
         }
         @media(max-width:480px){.product-grid{grid-template-columns:1fr!important;}}
         @media(min-width:769px){*{cursor:none!important;}select{cursor:none!important;}}

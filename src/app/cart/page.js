@@ -317,6 +317,14 @@ function FloatingLinesHero({ children }) {
       borderBottom: '1px solid rgba(201,168,76,0.15)',
       background: '#0A0A0A',
     }}>
+      <div
+        ref={canvasWrapRef}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 0,
+        }}
+      />
       <div style={{
         position: 'relative',
         zIndex: 2,

@@ -594,7 +594,6 @@ export default function ShopPage() {
   const [activeCategory, setActiveCategory] = useState('All');
   const [sortBy, setSortBy] = useState('default');
   const [heroVisible, setHeroVisible] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
   const cursor = useCursor();
 
   useEffect(() => { const t = setTimeout(() => setHeroVisible(true), 80); return () => clearTimeout(t); }, []);
@@ -606,8 +605,6 @@ export default function ShopPage() {
       finally { setLoading(false); }
     })();
   }, []);
-
-  useEffect(() => { document.body.style.overflow = menuOpen ? 'hidden' : ''; return () => { document.body.style.overflow = ''; }; }, [menuOpen]);
 
   const categories = ['All', ...Array.from(new Set(products.map((p) => p.category).filter(Boolean)))];
   const filtered = products
@@ -621,26 +618,15 @@ export default function ShopPage() {
     });
 
   return (
-    <div style={{ paddingTop: '70px', background: '#040302', minHeight: '100vh', overflowX: 'hidden' }}>
+    <div style={{ background: '#040302', minHeight: '100vh', overflowX: 'hidden' }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Montserrat:wght@200;300;400;500&display=swap');
         @keyframes rrPulse{from{opacity:0.1;transform:translate(-50%,-50%) scale(0.95);}to{opacity:0.5;transform:translate(-50%,-50%) scale(1.05);}}
         @keyframes rrScrollPulse{0%,100%{opacity:0.8;transform:scaleY(1);}50%{opacity:0.1;transform:scaleY(0.2);}}
-        @keyframes menuSlideIn{from{opacity:0;transform:translateX(100%);}to{opacity:1;transform:translateX(0);}}
-        .hamburger{display:none;flex-direction:column;justify-content:center;gap:5px;background:none;border:none;cursor:pointer;padding:4px;z-index:200;}
-        .hamburger span{display:block;width:24px;height:2px;background:#C9A84C;transition:all 0.3s ease;transform-origin:center;}
-        .hamburger.open span:nth-child(1){transform:translateY(7px) rotate(45deg);}
-        .hamburger.open span:nth-child(2){opacity:0;}
-        .hamburger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg);}
-        .mobile-nav{display:none;position:fixed;inset:0;background:rgba(4,3,2,0.97);z-index:150;flex-direction:column;align-items:center;justify-content:center;gap:2.5rem;}
-        .mobile-nav.open{display:flex;animation:menuSlideIn 0.35s cubic-bezier(0.16,1,0.3,1);}
-        .mobile-nav a{font-size:1.5rem;letter-spacing:0.25em;text-transform:uppercase;color:#F5F0E8;text-decoration:none;font-family:Montserrat,sans-serif;font-weight:200;transition:color 0.2s;}
-        .mobile-nav a:hover,.mobile-nav a.active-nav{color:#C9A84C;}
         .filter-bar-inner{max-width:1380px;margin:0 auto;padding:1.2rem 4rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;}
         .product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:2px;background:rgba(201,168,76,0.04);}
         .shop-section{padding:5rem 4rem 8rem;max-width:1380px;margin:0 auto;}
         @media(max-width:768px){
-          .hamburger{display:flex!important;}.desktop-nav{display:none!important;}
           .filter-bar-inner{padding:1rem 1.5rem;flex-direction:column;align-items:flex-start;}
           .filter-pills{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:4px;width:100%;}
           .filter-pills::-webkit-scrollbar{display:none;}
@@ -650,36 +636,11 @@ export default function ShopPage() {
           .shop-section{padding:3rem 1rem 5rem;}
           .hero-section{padding:5rem 1.5rem 4rem!important;}
           .hero-h1{font-size:clamp(2.5rem,12vw,5rem)!important;}
-          .prism-side{display:none!important;}
         }
         @media(max-width:480px){.product-grid{grid-template-columns:1fr!important;}}
         @media(min-width:769px){*{cursor:none!important;}select{cursor:none!important;}}
         select option{background:#080604;color:#888;}
       `}</style>
-
-      <div className={`mobile-nav ${menuOpen ? 'open' : ''}`}>
-        <a href="/" onClick={() => setMenuOpen(false)}>Home</a>
-        <a href="/shop" className="active-nav" onClick={() => setMenuOpen(false)}>Shop</a>
-        <a href="/about" onClick={() => setMenuOpen(false)}>About</a>
-        <a href="/contact" onClick={() => setMenuOpen(false)}>Contact</a>
-      </div>
-
-      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 2rem', height: '70px', background: 'rgba(4,3,2,0.92)', backdropFilter: 'blur(8px)', borderBottom: '1px solid rgba(201,168,76,0.12)' }}>
-        <a href="/" style={{ textDecoration: 'none', color: '#C9A84C', fontFamily: 'Montserrat,sans-serif', fontWeight: 700, fontSize: '1.1rem', letterSpacing: '0.1em' }}>
-          R&R <span style={{ color: '#F5F0E8', fontWeight: 300 }}>AGENCIES</span>
-        </a>
-        <nav className="desktop-nav" style={{ display: 'flex', gap: '2.5rem' }}>
-          {['Shop', 'About', 'Contact'].map((item) => (
-            <a key={item} href={`/${item.toLowerCase()}`} style={{ fontSize: '0.7rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: item === 'Shop' ? '#C9A84C' : '#ccc', textDecoration: 'none', fontFamily: 'Montserrat,sans-serif', transition: 'color 0.2s' }}
-              onMouseEnter={(e) => e.target.style.color = '#C9A84C'}
-              onMouseLeave={(e) => e.target.style.color = item === 'Shop' ? '#C9A84C' : '#ccc'}
-            >{item}</a>
-          ))}
-        </nav>
-        <button className={`hamburger ${menuOpen ? 'open' : ''}`} onClick={() => setMenuOpen((v) => !v)} aria-label="Toggle menu" style={{ display: 'none' }}>
-          <span /><span /><span />
-        </button>
-      </div>
 
       {!cursor.isMobile && (<>
         <div style={{ position: 'fixed', left: cursor.pos.x, top: cursor.pos.y, width: cursor.hovered ? '5px' : '8px', height: cursor.hovered ? '5px' : '8px', background: '#C9A84C', borderRadius: '50%', pointerEvents: 'none', zIndex: 9999, transform: 'translate(-50%,-50%)', opacity: cursor.visible ? 1 : 0, transition: 'opacity 0.3s,width 0.2s,height 0.2s', mixBlendMode: 'difference' }} />
@@ -705,7 +666,7 @@ export default function ShopPage() {
         </section>
       </PrismHero>
 
-      <div style={{ borderBottom: '1px solid rgba(201,168,76,0.08)', background: 'rgba(5,4,3,0.98)', backdropFilter: 'blur(16px)', position: 'sticky', top: '70px', zIndex: 10 }}>
+      <div style={{ borderBottom: '1px solid rgba(201,168,76,0.08)', background: 'rgba(5,4,3,0.98)', backdropFilter: 'blur(16px)', position: 'sticky', top: 0, zIndex: 10 }}>
         <div className="filter-bar-inner">
           <div className="filter-pills">
             <div className="filter-pills-inner">

@@ -198,6 +198,8 @@ function FloatingLinesHero({ children }) {
     renderer.domElement.style.inset = '0';
     renderer.domElement.style.width = '100%';
     renderer.domElement.style.height = '100%';
+    renderer.domElement.style.zIndex = '0';
+    renderer.domElement.style.pointerEvents = 'none';
     container.appendChild(renderer.domElement);
 
     const gradientVec3s = Array.from({ length: MAX_GRADIENT_STOPS }, () => new Vector3(1, 1, 1));
@@ -273,8 +275,8 @@ function FloatingLinesHero({ children }) {
 
     const handlePointerLeave = () => { targetInfluenceRef.current = 0.0; };
 
-    renderer.domElement.addEventListener('pointermove', handlePointerMove);
-    renderer.domElement.addEventListener('pointerleave', handlePointerLeave);
+    container.addEventListener('pointermove', handlePointerMove);
+    container.addEventListener('pointerleave', handlePointerLeave);
 
     let raf = 0;
     const renderLoop = () => {
@@ -295,8 +297,8 @@ function FloatingLinesHero({ children }) {
       active = false;
       cancelAnimationFrame(raf);
       if (ro) ro.disconnect();
-      renderer.domElement.removeEventListener('pointermove', handlePointerMove);
-      renderer.domElement.removeEventListener('pointerleave', handlePointerLeave);
+      container.removeEventListener('pointermove', handlePointerMove);
+      container.removeEventListener('pointerleave', handlePointerLeave);
       geometry.dispose();
       material.dispose();
       renderer.dispose();
@@ -316,7 +318,12 @@ function FloatingLinesHero({ children }) {
       borderBottom: '1px solid rgba(201,168,76,0.15)',
       background: '#0A0A0A',
     }}>
-      <div style={{ position: 'relative', zIndex: 1 }}>
+      <div style={{
+        position: 'relative',
+        zIndex: 2,
+        isolation: 'isolate',
+        pointerEvents: 'auto',
+      }}>
         {children}
       </div>
     </div>

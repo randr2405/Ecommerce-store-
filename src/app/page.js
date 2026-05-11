@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import Link from 'next/link';
 import gsap from 'gsap';
 import { Renderer, Triangle, Program, Mesh, Vec3 } from 'ogl';
@@ -280,22 +280,11 @@ function Orb({ hue = 0, hoverIntensity = 0.2, rotateOnHover = true, forceHoverSt
       return Math.sqrt(uvX * uvX + uvY * uvY) < 0.8 ? 1 : 0;
     };
 
-    const handleMouseMove = (e) => {
-      targetHover = getUVHover(e.clientX, e.clientY);
-    };
+    const handleMouseMove = (e) => { targetHover = getUVHover(e.clientX, e.clientY); };
     const handleMouseLeave = () => { targetHover = 0; };
-
-    const handleTouchStart = (e) => {
-      const t = e.touches[0];
-      targetHover = getUVHover(t.clientX, t.clientY);
-    };
-    const handleTouchMove = (e) => {
-      const t = e.touches[0];
-      targetHover = getUVHover(t.clientX, t.clientY);
-    };
-    const handleTouchEnd = () => {
-      setTimeout(() => { targetHover = 0; }, 800);
-    };
+    const handleTouchStart = (e) => { const t = e.touches[0]; targetHover = getUVHover(t.clientX, t.clientY); };
+    const handleTouchMove = (e) => { const t = e.touches[0]; targetHover = getUVHover(t.clientX, t.clientY); };
+    const handleTouchEnd = () => { setTimeout(() => { targetHover = 0; }, 800); };
 
     container.addEventListener('mousemove', handleMouseMove);
     container.addEventListener('mouseleave', handleMouseLeave);
@@ -387,7 +376,7 @@ function TargetCursor({ targetSelector = 'a, button', spinDuration = 2, hideDefa
   const tickerFnRef = useRef(null);
   const activeStrengthRef = useRef(0);
 
-  const isMobile = useMemo(() => {
+  const isMobile = React.useMemo(() => {
     if (typeof window === 'undefined') return false;
     const hasTouchScreen = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
     const isSmallScreen = window.innerWidth <= 768;
@@ -395,7 +384,7 @@ function TargetCursor({ targetSelector = 'a, button', spinDuration = 2, hideDefa
     return (hasTouchScreen && isSmallScreen) || /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua.toLowerCase());
   }, []);
 
-  const constants = useMemo(() => ({ borderWidth: 3, cornerSize: 12 }), []);
+  const constants = React.useMemo(() => ({ borderWidth: 3, cornerSize: 12 }), []);
 
   const moveCursor = useCallback((x, y) => {
     if (!cursorRef.current) return;
@@ -558,120 +547,6 @@ function TargetCursor({ targetSelector = 'a, button', spinDuration = 2, hideDefa
   );
 }
 
-function MobileNav({ items }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      <button
-        onClick={() => setOpen(o => !o)}
-        style={{
-          background: 'none', border: 'none', cursor: 'pointer',
-          display: 'flex', flexDirection: 'column', gap: '5px', padding: '4px',
-        }}
-        aria-label="Toggle menu"
-      >
-        {[0, 1, 2].map(i => (
-          <span key={i} style={{
-            display: 'block', width: '22px', height: '1px', background: '#C9A84C',
-            transition: 'all 0.3s',
-            transform: open
-              ? i === 0 ? 'rotate(45deg) translate(4px, 4px)'
-                : i === 2 ? 'rotate(-45deg) translate(4px, -4px)'
-                : 'scaleX(0)'
-              : 'none',
-            opacity: open && i === 1 ? 0 : 1,
-          }} />
-        ))}
-      </button>
-      {open && (
-        <div style={{
-          position: 'fixed', top: '60px', left: 0, right: 0,
-          background: 'rgba(4,3,2,0.98)', backdropFilter: 'blur(20px)',
-          borderBottom: '1px solid rgba(201,168,76,0.12)',
-          padding: '1.5rem 0', zIndex: 999,
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0',
-        }}>
-          {items.map((item) => (
-            <Link key={item.label} href={item.href} onClick={() => setOpen(false)} style={{
-              width: '100%', textAlign: 'center', padding: '1rem 2rem',
-              fontSize: '0.65rem', fontFamily: 'Montserrat, sans-serif',
-              fontWeight: 300, letterSpacing: '0.3em', textTransform: 'uppercase',
-              color: 'rgba(201,168,76,0.8)', textDecoration: 'none',
-              borderBottom: '1px solid rgba(201,168,76,0.06)',
-            }}>{item.label}</Link>
-          ))}
-          <Link href="/shop" onClick={() => setOpen(false)} style={{
-            marginTop: '1rem',
-            fontSize: '0.6rem', fontFamily: 'Montserrat, sans-serif', fontWeight: 400,
-            letterSpacing: '0.3em', textTransform: 'uppercase', color: '#C9A84C', textDecoration: 'none',
-            border: '1px solid rgba(201,168,76,0.4)', padding: '0.6rem 1.5rem',
-          }}>Shop</Link>
-        </div>
-      )}
-    </>
-  );
-}
-
-function GooeyNav({ items, initialActiveIndex = 0 }) {
-  const [active, setActive] = useState(initialActiveIndex);
-  const [particles, setParticles] = useState([]);
-  const isMobile = useIsMobile();
-  const colors = ['#C9A84C', '#8B6914', '#EDD070', '#A07828'];
-  const handleClick = (index) => {
-    if (index === active) return;
-    const newParticles = Array.from({ length: 12 }, (_, i) => ({
-      id: Date.now() + i, color: colors[i % colors.length],
-      x: Math.random() * 60 - 30, y: Math.random() * 40 - 20, size: 4 + Math.random() * 6,
-    }));
-    setParticles(newParticles);
-    setTimeout(() => setParticles([]), 600);
-    setActive(index);
-  };
-  return (
-    <nav style={{
-      position: 'fixed', top: 0, left: 0, right: 0, height: '60px',
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: '0 1.5rem', background: 'rgba(4,3,2,0.92)',
-      backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(201,168,76,0.12)', zIndex: 1000,
-    }}>
-      <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.4rem', fontWeight: 300, color: '#C9A84C', letterSpacing: '0.08em' }}>R&amp;R</div>
-      {isMobile ? (
-        <MobileNav items={items} />
-      ) : (
-        <>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', position: 'relative' }}>
-            {items.map((item, i) => (
-              <Link key={item.label} href={item.href} onClick={() => handleClick(i)} style={{
-                position: 'relative', padding: '0.6rem 1.2rem', fontSize: '0.52rem',
-                fontFamily: 'Montserrat, sans-serif', fontWeight: active === i ? 500 : 300,
-                letterSpacing: '0.3em', textTransform: 'uppercase',
-                color: active === i ? '#080604' : 'rgba(201,168,76,0.6)', textDecoration: 'none',
-                transition: 'color 0.3s', zIndex: 1,
-              }}>
-                {active === i && <span style={{ position: 'absolute', inset: 0, background: '#C9A84C', borderRadius: '2px', zIndex: -1, animation: 'navPillIn 0.35s cubic-bezier(0.16,1,0.3,1)' }} />}
-                {item.label}
-                {active === i && particles.map(p => (
-                  <span key={p.id} style={{
-                    position: 'absolute', left: '50%', top: '50%',
-                    width: p.size, height: p.size, borderRadius: '50%', background: p.color,
-                    transform: `translate(${p.x}px, ${p.y}px)`,
-                    animation: 'particlePop 0.6s ease-out forwards', pointerEvents: 'none', zIndex: 10,
-                  }} />
-                ))}
-              </Link>
-            ))}
-          </div>
-          <Link href="/shop" style={{
-            fontSize: '0.48rem', fontFamily: 'Montserrat, sans-serif', fontWeight: 400,
-            letterSpacing: '0.3em', textTransform: 'uppercase', color: '#C9A84C', textDecoration: 'none',
-            border: '1px solid rgba(201,168,76,0.4)', padding: '0.5rem 1.1rem', transition: 'all 0.3s',
-          }}>Shop</Link>
-        </>
-      )}
-    </nav>
-  );
-}
-
 function LiquidChrome({ baseColor = [0.1, 0.1, 0.1], speed = 0.2, amplitude = 0.3, frequencyX = 3, frequencyY = 3, interactive = true }) {
   const containerRef = useRef(null);
   const isMobile = useIsMobile();
@@ -822,26 +697,16 @@ function CategoryCard({ cat, index, sectionProgress }) {
         onMouseLeave={() => { if (isMobile) return; setHovered(false); setMousePos({ x: 0, y: 0 }); if (glowRef.current) glowRef.current.style.background = 'none'; }}
         onMouseMove={handleMouseMove}
         style={{
-          perspective: '900px',
-          transformStyle: 'preserve-3d',
+          perspective: '900px', transformStyle: 'preserve-3d',
           transform: `translateY(${enterY}px) rotateY(${tiltY}deg) rotateX(${tiltX}deg) ${hovered ? 'translateZ(16px)' : ''}`,
           opacity: enterOp,
-          transition: hovered
-            ? 'transform 0.07s ease, box-shadow 0.4s'
-            : 'transform 0.9s cubic-bezier(0.16,1,0.3,1), opacity 0.9s, box-shadow 0.4s',
-          willChange: 'transform',
-          position: 'relative',
-          overflow: 'hidden',
-          background: hovered
-            ? 'linear-gradient(135deg, rgba(12,9,4,0.98) 0%, rgba(20,14,5,0.98) 100%)'
-            : 'linear-gradient(135deg, rgba(8,6,3,0.97) 0%, rgba(12,9,4,0.97) 100%)',
-          boxShadow: hovered
-            ? '0 40px 80px rgba(0,0,0,0.7), 0 0 60px rgba(201,168,76,0.08), inset 0 1px 0 rgba(201,168,76,0.15)'
-            : '0 4px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(201,168,76,0.05)',
+          transition: hovered ? 'transform 0.07s ease, box-shadow 0.4s' : 'transform 0.9s cubic-bezier(0.16,1,0.3,1), opacity 0.9s, box-shadow 0.4s',
+          willChange: 'transform', position: 'relative', overflow: 'hidden',
+          background: hovered ? 'linear-gradient(135deg, rgba(12,9,4,0.98) 0%, rgba(20,14,5,0.98) 100%)' : 'linear-gradient(135deg, rgba(8,6,3,0.97) 0%, rgba(12,9,4,0.97) 100%)',
+          boxShadow: hovered ? '0 40px 80px rgba(0,0,0,0.7), 0 0 60px rgba(201,168,76,0.08), inset 0 1px 0 rgba(201,168,76,0.15)' : '0 4px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(201,168,76,0.05)',
           border: `1px solid ${hovered ? 'rgba(201,168,76,0.3)' : 'rgba(201,168,76,0.08)'}`,
           padding: isMobile ? '2rem 1.5rem' : '3.5rem 2.4rem',
-          cursor: 'pointer',
-          minHeight: isMobile ? 'auto' : undefined,
+          cursor: 'pointer', minHeight: isMobile ? 'auto' : undefined,
         }}
       >
         <div ref={glowRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none', transition: 'background 0.1s', zIndex: 0 }} />
@@ -850,41 +715,22 @@ function CategoryCard({ cat, index, sectionProgress }) {
         {[['top', 'left'], ['top', 'right'], ['bottom', 'left'], ['bottom', 'right']].map(([v, h], ci) => (
           <div key={ci} style={{
             position: 'absolute', [v]: 0, [h]: 0,
-            width: hovered ? '32px' : '12px',
-            height: hovered ? '32px' : '12px',
+            width: hovered ? '32px' : '12px', height: hovered ? '32px' : '12px',
             borderTop: v === 'top' ? `1px solid ${hovered ? '#C9A84C' : 'rgba(201,168,76,0.3)'}` : 'none',
             borderBottom: v === 'bottom' ? `1px solid ${hovered ? '#C9A84C' : 'rgba(201,168,76,0.3)'}` : 'none',
             borderLeft: h === 'left' ? `1px solid ${hovered ? '#C9A84C' : 'rgba(201,168,76,0.3)'}` : 'none',
             borderRight: h === 'right' ? `1px solid ${hovered ? '#C9A84C' : 'rgba(201,168,76,0.3)'}` : 'none',
-            transition: 'all 0.5s cubic-bezier(0.16,1,0.3,1)',
-            zIndex: 1,
+            transition: 'all 0.5s cubic-bezier(0.16,1,0.3,1)', zIndex: 1,
           }} />
         ))}
         <div style={{ position: 'relative', zIndex: 2 }}>
           <p style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '0.6rem', color: hovered ? '#C9A84C' : 'rgba(201,168,76,0.22)', letterSpacing: '0.3em', marginBottom: isMobile ? '1rem' : '1.8rem', transition: 'color 0.4s' }}>
             {String(index + 1).padStart(2, '0')}
           </p>
-          <span style={{
-            fontSize: isMobile ? '2rem' : '3rem', display: 'block', marginBottom: isMobile ? '1rem' : '1.8rem',
-            transform: hovered ? 'scale(1.15) rotate(-8deg)' : 'scale(1)',
-            transition: 'transform 0.55s cubic-bezier(0.16,1,0.3,1)',
-            filter: hovered ? 'drop-shadow(0 0 16px rgba(201,168,76,0.5))' : 'none',
-          }}>{cat.icon}</span>
-          <h3 style={{
-            fontFamily: 'Cormorant Garamond, serif', fontSize: isMobile ? '1.4rem' : '1.95rem', fontWeight: 300,
-            color: hovered ? '#FFFFFF' : '#C8BC9E',
-            marginBottom: '0.7rem', transition: 'color 0.3s',
-            textShadow: hovered ? '0 0 40px rgba(255,255,255,0.18)' : 'none',
-          }}>{cat.label}</h3>
-          <p style={{ fontSize: '0.6rem', color: hovered ? 'rgba(201,168,76,0.5)' : 'rgba(100,90,70,0.8)', letterSpacing: '0.1em', lineHeight: 2, transition: 'color 0.3s' }}>
-            {cat.desc}
-          </p>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: '0.6rem', marginTop: isMobile ? '1.2rem' : '2rem',
-            opacity: isMobile ? 1 : hovered ? 1 : 0,
-            transform: isMobile ? 'none' : hovered ? 'translateX(0)' : 'translateX(-14px)',
-            transition: 'all 0.45s cubic-bezier(0.16,1,0.3,1)',
-          }}>
+          <span style={{ fontSize: isMobile ? '2rem' : '3rem', display: 'block', marginBottom: isMobile ? '1rem' : '1.8rem', transform: hovered ? 'scale(1.15) rotate(-8deg)' : 'scale(1)', transition: 'transform 0.55s cubic-bezier(0.16,1,0.3,1)', filter: hovered ? 'drop-shadow(0 0 16px rgba(201,168,76,0.5))' : 'none' }}>{cat.icon}</span>
+          <h3 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: isMobile ? '1.4rem' : '1.95rem', fontWeight: 300, color: hovered ? '#FFFFFF' : '#C8BC9E', marginBottom: '0.7rem', transition: 'color 0.3s', textShadow: hovered ? '0 0 40px rgba(255,255,255,0.18)' : 'none' }}>{cat.label}</h3>
+          <p style={{ fontSize: '0.6rem', color: hovered ? 'rgba(201,168,76,0.5)' : 'rgba(100,90,70,0.8)', letterSpacing: '0.1em', lineHeight: 2, transition: 'color 0.3s' }}>{cat.desc}</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginTop: isMobile ? '1.2rem' : '2rem', opacity: isMobile ? 1 : hovered ? 1 : 0, transform: isMobile ? 'none' : hovered ? 'translateX(0)' : 'translateX(-14px)', transition: 'all 0.45s cubic-bezier(0.16,1,0.3,1)' }}>
             <div style={{ width: '22px', height: '1px', background: '#C9A84C' }} />
             <span style={{ fontSize: '0.5rem', color: '#C9A84C', letterSpacing: '0.35em', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif' }}>Explore</span>
           </div>
@@ -929,24 +775,14 @@ function ValueCard({ value, index, sectionProgress }) {
       onMouseLeave={() => { if (isMobile) return; setHovered(false); setMousePos({ x: 0, y: 0 }); if (glowRef.current) glowRef.current.style.background = 'none'; }}
       onMouseMove={handleMouseMove}
       style={{
-        perspective: '900px',
-        transformStyle: 'preserve-3d',
+        perspective: '900px', transformStyle: 'preserve-3d',
         transform: `translateY(${entryY}px) rotateY(${tiltY}deg) rotateX(${tiltX}deg) ${hovered ? 'translateZ(14px)' : ''}`,
         opacity: cardP,
-        transition: hovered
-          ? 'transform 0.07s ease, box-shadow 0.4s'
-          : 'transform 0.9s cubic-bezier(0.16,1,0.3,1), opacity 0.9s, box-shadow 0.4s',
-        willChange: 'transform',
-        position: 'relative',
-        overflow: 'hidden',
-        textAlign: 'center',
-        background: hovered
-          ? 'linear-gradient(135deg, rgba(14,10,4,0.96) 0%, rgba(22,16,5,0.96) 100%)'
-          : 'linear-gradient(135deg, rgba(6,5,2,0.85) 0%, rgba(10,8,3,0.85) 100%)',
+        transition: hovered ? 'transform 0.07s ease, box-shadow 0.4s' : 'transform 0.9s cubic-bezier(0.16,1,0.3,1), opacity 0.9s, box-shadow 0.4s',
+        willChange: 'transform', position: 'relative', overflow: 'hidden', textAlign: 'center',
+        background: hovered ? 'linear-gradient(135deg, rgba(14,10,4,0.96) 0%, rgba(22,16,5,0.96) 100%)' : 'linear-gradient(135deg, rgba(6,5,2,0.85) 0%, rgba(10,8,3,0.85) 100%)',
         backdropFilter: 'blur(16px)',
-        boxShadow: hovered
-          ? '0 40px 80px rgba(0,0,0,0.8), 0 0 60px rgba(201,168,76,0.07), inset 0 1px 0 rgba(201,168,76,0.12)'
-          : '0 4px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(201,168,76,0.04)',
+        boxShadow: hovered ? '0 40px 80px rgba(0,0,0,0.8), 0 0 60px rgba(201,168,76,0.07), inset 0 1px 0 rgba(201,168,76,0.12)' : '0 4px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(201,168,76,0.04)',
         border: `1px solid ${hovered ? 'rgba(201,168,76,0.28)' : 'rgba(201,168,76,0.07)'}`,
         padding: isMobile ? '2.5rem 1.5rem' : '3.8rem 2.2rem',
         cursor: 'default',
@@ -958,41 +794,21 @@ function ValueCard({ value, index, sectionProgress }) {
       {[['top', 'left'], ['top', 'right'], ['bottom', 'left'], ['bottom', 'right']].map(([v, h], ci) => (
         <div key={ci} style={{
           position: 'absolute', [v]: 0, [h]: 0,
-          width: hovered ? '28px' : '10px',
-          height: hovered ? '28px' : '10px',
+          width: hovered ? '28px' : '10px', height: hovered ? '28px' : '10px',
           borderTop: v === 'top' ? `1px solid ${hovered ? '#C9A84C' : 'rgba(201,168,76,0.25)'}` : 'none',
           borderBottom: v === 'bottom' ? `1px solid ${hovered ? '#C9A84C' : 'rgba(201,168,76,0.25)'}` : 'none',
           borderLeft: h === 'left' ? `1px solid ${hovered ? '#C9A84C' : 'rgba(201,168,76,0.25)'}` : 'none',
           borderRight: h === 'right' ? `1px solid ${hovered ? '#C9A84C' : 'rgba(201,168,76,0.25)'}` : 'none',
-          transition: 'all 0.5s cubic-bezier(0.16,1,0.3,1)',
-          zIndex: 1,
+          transition: 'all 0.5s cubic-bezier(0.16,1,0.3,1)', zIndex: 1,
         }} />
       ))}
       <div style={{ position: 'absolute', top: '-1rem', right: '1rem', fontFamily: 'Cormorant Garamond, serif', fontSize: isMobile ? '4rem' : '5.5rem', fontWeight: 300, color: hovered ? 'rgba(201,168,76,0.09)' : 'rgba(201,168,76,0.03)', transition: 'color 0.5s', userSelect: 'none', pointerEvents: 'none', zIndex: 0 }}>{romans[index]}</div>
       <div style={{ position: 'relative', zIndex: 2 }}>
-        <div style={{
-          fontSize: '1.6rem', color: hovered ? '#C9A84C' : 'rgba(201,168,76,0.3)',
-          marginBottom: '1.6rem',
-          transform: hovered ? 'scale(1.2) rotate(15deg)' : 'scale(1) rotate(0deg)',
-          transition: 'all 0.55s cubic-bezier(0.16,1,0.3,1)',
-          filter: hovered ? 'drop-shadow(0 0 12px rgba(201,168,76,0.6))' : 'none',
-          display: 'block',
-        }}>{icons[index]}</div>
+        <div style={{ fontSize: '1.6rem', color: hovered ? '#C9A84C' : 'rgba(201,168,76,0.3)', marginBottom: '1.6rem', transform: hovered ? 'scale(1.2) rotate(15deg)' : 'scale(1) rotate(0deg)', transition: 'all 0.55s cubic-bezier(0.16,1,0.3,1)', filter: hovered ? 'drop-shadow(0 0 12px rgba(201,168,76,0.6))' : 'none', display: 'block' }}>{icons[index]}</div>
         <div style={{ width: hovered ? '55px' : '18px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: '0 auto 1.8rem', transition: 'width 0.55s cubic-bezier(0.16,1,0.3,1)' }} />
-        <h3 style={{
-          fontFamily: 'Cormorant Garamond, serif', fontSize: isMobile ? '1.4rem' : '1.6rem', fontWeight: 300,
-          color: hovered ? '#FFFFFF' : '#C8BC9E',
-          marginBottom: '1rem', transition: 'color 0.3s',
-          textShadow: hovered ? '0 0 40px rgba(255,255,255,0.15)' : 'none',
-          letterSpacing: '0.02em',
-        }}>{value.title}</h3>
+        <h3 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: isMobile ? '1.4rem' : '1.6rem', fontWeight: 300, color: hovered ? '#FFFFFF' : '#C8BC9E', marginBottom: '1rem', transition: 'color 0.3s', textShadow: hovered ? '0 0 40px rgba(255,255,255,0.15)' : 'none', letterSpacing: '0.02em' }}>{value.title}</h3>
         <p style={{ fontSize: '0.62rem', color: hovered ? 'rgba(201,168,76,0.45)' : 'rgba(100,90,70,0.75)', lineHeight: 2.1, letterSpacing: '0.06em', transition: 'color 0.3s' }}>{value.desc}</p>
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem', marginTop: '1.8rem',
-          opacity: isMobile ? 1 : hovered ? 1 : 0,
-          transform: isMobile ? 'none' : hovered ? 'translateY(0)' : 'translateY(8px)',
-          transition: 'all 0.45s cubic-bezier(0.16,1,0.3,1)',
-        }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem', marginTop: '1.8rem', opacity: isMobile ? 1 : hovered ? 1 : 0, transform: isMobile ? 'none' : hovered ? 'translateY(0)' : 'translateY(8px)', transition: 'all 0.45s cubic-bezier(0.16,1,0.3,1)' }}>
           <div style={{ width: '16px', height: '1px', background: '#C9A84C' }} />
           <span style={{ fontSize: '0.46rem', color: '#C9A84C', letterSpacing: '0.38em', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif' }}>Our Commitment</span>
           <div style={{ width: '16px', height: '1px', background: '#C9A84C' }} />
@@ -1093,27 +909,16 @@ export default function HomePage() {
 
   const handleHeroMouseLeave = useCallback(() => setOrbHovered(false), []);
 
-  const handleHeroTouchStart = useCallback((e) => {
+  const handleHeroTouchStart = useCallback(() => {
     if (!isMobile) return;
     if (mobileOrbTimerRef.current) clearTimeout(mobileOrbTimerRef.current);
     setMobileOrbActive(true);
-    mobileOrbTimerRef.current = setTimeout(() => {
-      setMobileOrbActive(false);
-    }, 1200);
+    mobileOrbTimerRef.current = setTimeout(() => setMobileOrbActive(false), 1200);
   }, [isMobile]);
 
   useEffect(() => {
-    return () => {
-      if (mobileOrbTimerRef.current) clearTimeout(mobileOrbTimerRef.current);
-    };
+    return () => { if (mobileOrbTimerRef.current) clearTimeout(mobileOrbTimerRef.current); };
   }, []);
-
-  const navItems = [
-    { label: 'Home', href: '/' },
-    { label: 'Shop', href: '/shop' },
-    { label: 'About', href: '/about' },
-    { label: 'Contact', href: '/contact' },
-  ];
 
   const categories = [
     { label: 'Menswear', desc: 'Sport & lifestyle essentials for the modern man', icon: '👔' },
@@ -1139,11 +944,9 @@ export default function HomePage() {
   const brandTilt = (brandScroll - 0.5) * 14;
   const brandScale = 0.88 + brandScroll * 0.24;
 
-  const mobileOrbSize = 'min(100vw, 420px)';
-
   return (
     <ClickSpark sparkColor="#C9A84C" sparkSize={7} sparkRadius={14} sparkCount={8} duration={400}>
-      <div style={{ paddingTop: '60px', background: '#040302', overflowX: 'hidden' }}>
+      <div style={{ paddingTop: '70px', background: '#040302', overflowX: 'hidden' }}>
 
         {!isMobile && (
           <TargetCursor
@@ -1155,8 +958,6 @@ export default function HomePage() {
           />
         )}
 
-        <GooeyNav items={navItems} initialActiveIndex={0} />
-
         <section
           ref={(el) => { heroRef.current = el; heroSectionRef.current = el; }}
           onMouseMove={handleHeroMouseMove}
@@ -1164,51 +965,19 @@ export default function HomePage() {
           onTouchStart={handleHeroTouchStart}
           style={{
             minHeight: isMobile ? '100svh' : '85vh',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            textAlign: 'center',
-            padding: isMobile ? '0' : '3rem 2rem',
-            position: 'relative',
-            overflow: 'hidden',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            textAlign: 'center', padding: isMobile ? '0' : '3rem 2rem',
+            position: 'relative', overflow: 'hidden',
           }}
         >
           <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(201,168,76,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(201,168,76,0.03) 1px, transparent 1px)', backgroundSize: '88px 88px', transform: `perspective(800px) rotateX(${55 + heroScroll * 14}deg) translateZ(-80px) scale(2.2)`, transformOrigin: '50% 100%', opacity: 0.5, zIndex: 1, pointerEvents: 'none' }} />
 
           {isMobile ? (
             <>
-              <div style={{
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                width: 'min(115vw, 520px)',
-                height: 'min(115vw, 520px)',
-                zIndex: 2,
-                pointerEvents: 'none',
-              }}>
-                <Orb
-                  hue={0}
-                  hoverIntensity={0.3}
-                  rotateOnHover={false}
-                  forceHoverState={mobileOrbActive}
-                  backgroundColor="#040302"
-                />
+              <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 'min(115vw, 520px)', height: 'min(115vw, 520px)', zIndex: 2, pointerEvents: 'none' }}>
+                <Orb hue={0} hoverIntensity={0.3} rotateOnHover={false} forceHoverState={mobileOrbActive} backgroundColor="#040302" />
               </div>
-
-              <div style={{
-                maxWidth: '100%',
-                width: '100%',
-                position: 'relative',
-                zIndex: 4,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                minHeight: '100svh',
-                padding: '5rem 2rem 3rem',
-                marginTop: '6rem',
-              }}>
+              <div style={{ maxWidth: '100%', width: '100%', position: 'relative', zIndex: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100svh', padding: '5rem 2rem 3rem', marginTop: '6rem' }}>
                 <div style={{ marginBottom: '0.8rem', width: '100%' }}>
                   {[
                     { text: 'R&R', gold: true, delay: 0.35 },
@@ -1217,27 +986,13 @@ export default function HomePage() {
                   ].map((word, i) => (
                     <div key={i} style={{ overflow: 'hidden', lineHeight: 1.05 }}>
                       <div style={{ opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'none' : 'translateY(100%)', transition: `opacity 1.2s cubic-bezier(0.16,1,0.3,1) ${word.delay}s, transform 1.2s cubic-bezier(0.16,1,0.3,1) ${word.delay}s` }}>
-                        <span style={{
-                          fontFamily: 'Cormorant Garamond, serif',
-                          fontSize: 'clamp(3rem, 16vw, 5rem)',
-                          fontWeight: word.gold ? 300 : 400,
-                          color: word.gold ? '#C9A84C' : '#FFFFFF',
-                          display: 'block',
-                          letterSpacing: word.gold ? '-0.02em' : '-0.01em',
-                          textShadow: word.gold
-                            ? '0 0 80px rgba(201,168,76,0.7), 0 0 160px rgba(201,168,76,0.4)'
-                            : '0 0 12px rgba(0,0,0,1), 0 0 24px rgba(0,0,0,1), 0 0 40px rgba(0,0,0,1)',
-                          lineHeight: 1.05,
-                        }} dangerouslySetInnerHTML={{ __html: word.text }} />
+                        <span style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(3rem, 16vw, 5rem)', fontWeight: word.gold ? 300 : 400, color: word.gold ? '#C9A84C' : '#FFFFFF', display: 'block', letterSpacing: word.gold ? '-0.02em' : '-0.01em', textShadow: word.gold ? '0 0 80px rgba(201,168,76,0.7), 0 0 160px rgba(201,168,76,0.4)' : '0 0 12px rgba(0,0,0,1), 0 0 24px rgba(0,0,0,1), 0 0 40px rgba(0,0,0,1)', lineHeight: 1.05 }} dangerouslySetInnerHTML={{ __html: word.text }} />
                       </div>
                     </div>
                   ))}
                 </div>
-
                 <div style={{ width: heroVisible ? '70px' : '0px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: '1rem auto', transition: 'width 1.6s cubic-bezier(0.16,1,0.3,1) 0.9s' }} />
-
                 <p style={{ fontSize: '0.5rem', color: 'rgba(255,255,255,0.8)', letterSpacing: '0.25em', textTransform: 'uppercase', marginBottom: '0', fontFamily: 'Montserrat, sans-serif', fontWeight: 200, opacity: heroVisible ? 1 : 0, transition: 'opacity 1s ease 1.2s' }}>Own the Look · Own the Moment</p>
-
                 <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap', marginTop: '5rem', opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'none' : 'translateY(20px)', transition: 'opacity 1s ease 1.5s, transform 1s ease 1.5s' }}>
                   <Link href="/shop" className="rr-btn-primary">Shop the Collection</Link>
                   <Link href="/about" className="rr-btn-outline">Our Story</Link>
@@ -1246,38 +1001,11 @@ export default function HomePage() {
             </>
           ) : (
             <>
-              <div style={{
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                width: '950px',
-                height: '950px',
-                zIndex: 2,
-                pointerEvents: 'none',
-              }}>
-                <Orb
-                  hue={0}
-                  hoverIntensity={0.3}
-                  rotateOnHover={true}
-                  forceHoverState={orbHovered}
-                  backgroundColor="#040302"
-                />
+              <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '950px', height: '950px', zIndex: 2, pointerEvents: 'none' }}>
+                <Orb hue={0} hoverIntensity={0.3} rotateOnHover={true} forceHoverState={orbHovered} backgroundColor="#040302" />
               </div>
-
               <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: '680px', height: '680px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(201,168,76,0.04) 0%, rgba(201,168,76,0.01) 40%, transparent 65%)', pointerEvents: 'none', zIndex: 3, animation: 'rrBloom 4s ease-in-out infinite alternate' }} />
-
-              <div style={{
-                maxWidth: '820px',
-                width: '100%',
-                position: 'relative',
-                zIndex: 4,
-                transform: `translateY(${heroTranslateY}px)`,
-                opacity: heroOpacity,
-                willChange: 'transform, opacity',
-                backfaceVisibility: 'hidden',
-                padding: '2.5rem 4rem',
-              }}>
+              <div style={{ maxWidth: '820px', width: '100%', position: 'relative', zIndex: 4, transform: `translateY(${heroTranslateY}px)`, opacity: heroOpacity, willChange: 'transform, opacity', backfaceVisibility: 'hidden', padding: '2.5rem 4rem' }}>
                 <div style={{ marginBottom: '1.2rem' }}>
                   {[
                     { text: 'R&R', gold: true, delay: 0.35 },
@@ -1353,16 +1081,7 @@ export default function HomePage() {
 
         <section style={{ padding: isMobile ? '7rem 1.5rem' : '14rem 2rem', textAlign: 'center', borderTop: '1px solid rgba(201,168,76,0.1)', position: 'relative', zIndex: 2, overflow: 'hidden' }}>
           <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
-            <LineWaves
-              speed={0.3}
-              innerLineCount={isMobile ? 30 : 50}
-              warpIntensity={1.6}
-              color1="#C9A84C"
-              color2="#8B6914"
-              brightness={0.8}
-              enableMouseInteraction={!isMobile}
-              mouseInfluence={2.5}
-            />
+            <LineWaves speed={0.3} innerLineCount={isMobile ? 30 : 50} warpIntensity={1.6} color1="#C9A84C" color2="#8B6914" brightness={0.8} enableMouseInteraction={!isMobile} mouseInfluence={2.5} />
           </div>
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(4,3,2,0.2)', zIndex: 1, pointerEvents: 'none' }} />
           <div style={{ position: 'relative', zIndex: 2 }}>
@@ -1379,147 +1098,39 @@ export default function HomePage() {
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Montserrat:wght@200;300;400;500&display=swap');
 
-          @media (min-width: 769px) {
-            * { cursor: none !important; }
-          }
+          @media (min-width: 769px) { * { cursor: none !important; } }
 
           html { scroll-behavior: smooth; }
           *, *::before, *::after { box-sizing: border-box; }
 
-          .tc-wrapper {
-            position: fixed;
-            top: 0; left: 0;
-            width: 0; height: 0;
-            pointer-events: none;
-            z-index: 99999;
-            will-change: transform;
-          }
-
-          .tc-dot {
-            position: absolute;
-            width: 5px; height: 5px;
-            border-radius: 50%;
-            background: #C9A84C;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            box-shadow: 0 0 8px rgba(201,168,76,0.8), 0 0 16px rgba(201,168,76,0.4);
-          }
-
-          .tc-corner {
-            position: absolute;
-            width: 12px; height: 12px;
-            border-color: #C9A84C;
-            border-style: solid;
-            border-width: 0;
-            will-change: transform;
-            filter: drop-shadow(0 0 4px rgba(201,168,76,0.6));
-          }
-
+          .tc-wrapper { position: fixed; top: 0; left: 0; width: 0; height: 0; pointer-events: none; z-index: 99999; will-change: transform; }
+          .tc-dot { position: absolute; width: 5px; height: 5px; border-radius: 50%; background: #C9A84C; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 8px rgba(201,168,76,0.8), 0 0 16px rgba(201,168,76,0.4); }
+          .tc-corner { position: absolute; width: 12px; height: 12px; border-color: #C9A84C; border-style: solid; border-width: 0; will-change: transform; filter: drop-shadow(0 0 4px rgba(201,168,76,0.6)); }
           .tc-tl { border-top-width: 2px; border-left-width: 2px; transform: translate(-18px, -18px); }
           .tc-tr { border-top-width: 2px; border-right-width: 2px; transform: translate(6px, -18px); }
           .tc-br { border-bottom-width: 2px; border-right-width: 2px; transform: translate(6px, 6px); }
           .tc-bl { border-bottom-width: 2px; border-left-width: 2px; transform: translate(-18px, 6px); }
 
-          @keyframes rrMarquee {
-            from { transform: translateX(0); }
-            to   { transform: translateX(-50%); }
-          }
-          @keyframes rrScrollPulse {
-            0%,100% { opacity: 0.8; transform: scaleY(1); }
-            50%     { opacity: 0.1; transform: scaleY(0.2); }
-          }
-          @keyframes rrBloom {
-            from { opacity: 0.6; transform: translate(-50%,-50%) scale(0.95); }
-            to   { opacity: 1.0; transform: translate(-50%,-50%) scale(1.05); }
-          }
-          @keyframes navPillIn {
-            from { transform: scaleX(0.6); opacity: 0; }
-            to   { transform: scaleX(1); opacity: 1; }
-          }
-          @keyframes particlePop {
-            0%   { transform: translate(0, 0) scale(1); opacity: 1; }
-            100% { transform: translate(var(--px, 20px), var(--py, -20px)) scale(0); opacity: 0; }
-          }
+          @keyframes rrMarquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+          @keyframes rrScrollPulse { 0%,100% { opacity: 0.8; transform: scaleY(1); } 50% { opacity: 0.1; transform: scaleY(0.2); } }
+          @keyframes rrBloom { from { opacity: 0.6; transform: translate(-50%,-50%) scale(0.95); } to { opacity: 1.0; transform: translate(-50%,-50%) scale(1.05); } }
           @keyframes sparkFly {
-            0%   { transform: translate(-50%,-50%) scale(1); opacity: 1; }
-            100% {
-              transform: translate(
-                calc(-50% + cos(var(--angle)) * var(--radius) * 3),
-                calc(-50% + sin(var(--angle)) * var(--radius) * 3)
-              ) scale(0);
-              opacity: 0;
-            }
+            0% { transform: translate(-50%,-50%) scale(1); opacity: 1; }
+            100% { transform: translate(calc(-50% + cos(var(--angle)) * var(--radius) * 3), calc(-50% + sin(var(--angle)) * var(--radius) * 3)) scale(0); opacity: 0; }
           }
 
-          .rr-btn-primary {
-            display: inline-block;
-            padding: 1rem 2.4rem;
-            background: #C9A84C;
-            color: #080604;
-            font-family: 'Montserrat', sans-serif;
-            font-size: 0.57rem; font-weight: 600;
-            letter-spacing: 0.4em; text-transform: uppercase;
-            text-decoration: none;
-            position: relative; overflow: hidden;
-            transition: transform 0.35s cubic-bezier(0.16,1,0.3,1), box-shadow 0.35s;
-            box-shadow: 0 8px 40px rgba(201,168,76,0.3);
-            white-space: nowrap;
-          }
-          .rr-btn-primary::before {
-            content: '';
-            position: absolute; inset: 0;
-            background: #EDD070;
-            transform: translateX(-101%);
-            transition: transform 0.55s cubic-bezier(0.16,1,0.3,1);
-          }
+          .rr-btn-primary { display: inline-block; padding: 1rem 2.4rem; background: #C9A84C; color: #080604; font-family: 'Montserrat', sans-serif; font-size: 0.57rem; font-weight: 600; letter-spacing: 0.4em; text-transform: uppercase; text-decoration: none; position: relative; overflow: hidden; transition: transform 0.35s cubic-bezier(0.16,1,0.3,1), box-shadow 0.35s; box-shadow: 0 8px 40px rgba(201,168,76,0.3); white-space: nowrap; }
+          .rr-btn-primary::before { content: ''; position: absolute; inset: 0; background: #EDD070; transform: translateX(-101%); transition: transform 0.55s cubic-bezier(0.16,1,0.3,1); }
           .rr-btn-primary:hover::before { transform: translateX(0); }
-          .rr-btn-primary:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 25px 60px rgba(201,168,76,0.35);
-          }
+          .rr-btn-primary:hover { transform: translateY(-5px); box-shadow: 0 25px 60px rgba(201,168,76,0.35); }
 
-          .rr-btn-outline {
-            display: inline-block;
-            padding: 1rem 2.4rem;
-            border: 1px solid rgba(201,168,76,0.7);
-            color: #C9A84C;
-            font-family: 'Montserrat', sans-serif;
-            font-size: 0.57rem; font-weight: 300;
-            letter-spacing: 0.4em; text-transform: uppercase;
-            text-decoration: none;
-            position: relative; overflow: hidden;
-            transition: border-color 0.4s, transform 0.35s cubic-bezier(0.16,1,0.3,1), box-shadow 0.35s;
-            white-space: nowrap;
-          }
-          .rr-btn-outline::before {
-            content: '';
-            position: absolute; inset: 0;
-            background: rgba(201,168,76,0.08);
-            transform: scaleX(0); transform-origin: left;
-            transition: transform 0.55s cubic-bezier(0.16,1,0.3,1);
-          }
+          .rr-btn-outline { display: inline-block; padding: 1rem 2.4rem; border: 1px solid rgba(201,168,76,0.7); color: #C9A84C; font-family: 'Montserrat', sans-serif; font-size: 0.57rem; font-weight: 300; letter-spacing: 0.4em; text-transform: uppercase; text-decoration: none; position: relative; overflow: hidden; transition: border-color 0.4s, transform 0.35s cubic-bezier(0.16,1,0.3,1), box-shadow 0.35s; white-space: nowrap; }
+          .rr-btn-outline::before { content: ''; position: absolute; inset: 0; background: rgba(201,168,76,0.08); transform: scaleX(0); transform-origin: left; transition: transform 0.55s cubic-bezier(0.16,1,0.3,1); }
           .rr-btn-outline:hover::before { transform: scaleX(1); }
-          .rr-btn-outline:hover {
-            border-color: #C9A84C;
-            transform: translateY(-5px);
-            box-shadow: 0 20px 50px rgba(201,168,76,0.15);
-          }
+          .rr-btn-outline:hover { border-color: #C9A84C; transform: translateY(-5px); box-shadow: 0 20px 50px rgba(201,168,76,0.15); }
 
-          @media (max-width: 768px) {
-            .rr-btn-primary, .rr-btn-outline {
-              padding: 0.9rem 1.8rem;
-              font-size: 0.54rem;
-              letter-spacing: 0.2em;
-            }
-          }
-
-          @media (max-width: 480px) {
-            .rr-btn-primary, .rr-btn-outline {
-              padding: 0.8rem 1.4rem;
-              font-size: 0.5rem;
-              letter-spacing: 0.18em;
-            }
-          }
+          @media (max-width: 768px) { .rr-btn-primary, .rr-btn-outline { padding: 0.9rem 1.8rem; font-size: 0.54rem; letter-spacing: 0.2em; } }
+          @media (max-width: 480px) { .rr-btn-primary, .rr-btn-outline { padding: 0.8rem 1.4rem; font-size: 0.5rem; letter-spacing: 0.18em; } }
         `}</style>
       </div>
     </ClickSpark>

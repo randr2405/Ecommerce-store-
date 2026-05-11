@@ -174,6 +174,7 @@ function hexToVec3(hex) {
 
 function FloatingLinesHero({ children }) {
   const containerRef = useRef(null);
+  const canvasWrapRef = useRef(null);
   const targetMouseRef = useRef(new Vector2(-1000, -1000));
   const currentMouseRef = useRef(new Vector2(-1000, -1000));
   const targetInfluenceRef = useRef(0);
@@ -185,7 +186,8 @@ function FloatingLinesHero({ children }) {
 
   useEffect(() => {
     const container = containerRef.current;
-    if (!container) return;
+    const canvasWrap = canvasWrapRef.current;
+    if (!container || !canvasWrap) return;
 
     let active = true;
     const scene = new Scene();
@@ -194,13 +196,10 @@ function FloatingLinesHero({ children }) {
 
     const renderer = new WebGLRenderer({ antialias: true, alpha: false });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    renderer.domElement.style.position = 'absolute';
-    renderer.domElement.style.inset = '0';
     renderer.domElement.style.width = '100%';
     renderer.domElement.style.height = '100%';
-    renderer.domElement.style.zIndex = '0';
-    renderer.domElement.style.pointerEvents = 'none';
-    container.appendChild(renderer.domElement);
+    renderer.domElement.style.display = 'block';
+    canvasWrap.appendChild(renderer.domElement);
 
     const gradientVec3s = Array.from({ length: MAX_GRADIENT_STOPS }, () => new Vector3(1, 1, 1));
     const stops = linesGradient.slice(0, MAX_GRADIENT_STOPS);

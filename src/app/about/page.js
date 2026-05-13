@@ -31,6 +31,34 @@ function hexToRgb(hex) {
   return { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) };
 }
 
+function ClickSpark({ children, sparkColor = '#C9A84C', sparkSize = 8, sparkRadius = 14, sparkCount = 8, duration = 400 }) {
+  const [sparks, setSparks] = useState([]);
+  const handleClick = useCallback((e) => {
+    const id = Date.now() + Math.random();
+    const newSparks = Array.from({ length: sparkCount }, (_, i) => ({
+      id: id + i, x: e.clientX, y: e.clientY, angle: (360 / sparkCount) * i,
+    }));
+    setSparks(prev => [...prev, ...newSparks]);
+    setTimeout(() => setSparks(prev => prev.filter(s => !newSparks.find(ns => ns.id === s.id))), duration);
+  }, [sparkCount, duration]);
+  return (
+    <div onClick={handleClick} style={{ position: 'relative' }}>
+      {children}
+      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 99999 }}>
+        {sparks.map(spark => (
+          <div key={spark.id} style={{
+            position: 'absolute', left: spark.x, top: spark.y,
+            width: sparkSize, height: sparkSize, borderRadius: '50%',
+            background: sparkColor, transform: 'translate(-50%, -50%)',
+            animation: `sparkFly ${duration}ms ease-out forwards`,
+            '--angle': `${spark.angle}deg`, '--radius': `${sparkRadius}px`,
+          }} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function DotGrid({
   dotSize = 6,
   gap = 28,
@@ -1128,307 +1156,310 @@ export default function AboutPage() {
   }, []);
 
   return (
-    <div style={{ paddingTop: '70px', background: '#03020a', minHeight: '100vh', overflowX: 'hidden' }}>
+    <ClickSpark sparkColor="#C9A84C" sparkSize={7} sparkRadius={14} sparkCount={8} duration={400}>
+      <div style={{ paddingTop: '70px', background: '#03020a', minHeight: '100vh', overflowX: 'hidden' }}>
 
-      {!isMobile && (
-        <TargetCursor
-          targetSelector="a, button"
-          spinDuration={2.4}
-          hideDefaultCursor={true}
-          hoverDuration={0.18}
-          parallaxOn={true}
-        />
-      )}
+        {!isMobile && (
+          <TargetCursor
+            targetSelector="a, button"
+            spinDuration={2.4}
+            hideDefaultCursor={true}
+            hoverDuration={0.18}
+            parallaxOn={true}
+          />
+        )}
 
-      <BallpitHero>
-        <div style={{ transform: `translateY(${-scroll * 0.12}px)`, textAlign: 'center', padding: isMobile ? '1.5rem' : '2rem' }}>
-          <FloatingSlab driftY={5} driftX={2} delay={0.3}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '1rem', marginBottom: isMobile ? '1.8rem' : '3rem', opacity: heroVis ? 1 : 0, transform: heroVis ? 'none' : 'translateY(20px)', transition: 'opacity 1s ease 0.2s,transform 1s ease 0.2s' }}>
-              <div style={{ width: '28px', height: '1px', background: 'linear-gradient(90deg,transparent,#C9A84C)' }} />
-              <p style={{ fontSize: isMobile ? '0.6rem' : '0.5rem', color: '#C9A84C', letterSpacing: '0.58em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', fontWeight: 300 }}>Who We Are</p>
-              <div style={{ width: '28px', height: '1px', background: 'linear-gradient(90deg,#C9A84C,transparent)' }} />
-            </div>
-          </FloatingSlab>
-
-          <div style={{
-            display: 'inline-block',
-            padding: isMobile ? '1.2rem 2rem 1.6rem' : '1.5rem 3rem 2rem',
-            borderRadius: '4px',
-            background: 'rgba(3,2,10,0.55)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-          }}>
-            <FloatingSlab driftY={10} driftX={4} delay={0}>
-              <div style={{ overflow: 'hidden' }}>
-                <h1 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: isMobile ? 'clamp(3.8rem,16vw,6rem)' : 'clamp(3.5rem,11vw,9.5rem)', fontWeight: 300, lineHeight: 0.9, color: 'rgba(255,255,255,0.93)', letterSpacing: '-0.02em', display: 'block', opacity: heroVis ? 1 : 0, transform: heroVis ? 'none' : 'translateY(80px)', transition: 'opacity 1.2s cubic-bezier(0.16,1,0.3,1) 0.3s,transform 1.2s cubic-bezier(0.16,1,0.3,1) 0.3s', textShadow: '0 0 80px rgba(255,255,255,0.07)' }}>About</h1>
+        <BallpitHero>
+          <div style={{ transform: `translateY(${-scroll * 0.12}px)`, textAlign: 'center', padding: isMobile ? '1.5rem' : '2rem' }}>
+            <FloatingSlab driftY={5} driftX={2} delay={0.3}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '1rem', marginBottom: isMobile ? '1.8rem' : '3rem', opacity: heroVis ? 1 : 0, transform: heroVis ? 'none' : 'translateY(20px)', transition: 'opacity 1s ease 0.2s,transform 1s ease 0.2s' }}>
+                <div style={{ width: '28px', height: '1px', background: 'linear-gradient(90deg,transparent,#C9A84C)' }} />
+                <p style={{ fontSize: isMobile ? '0.6rem' : '0.5rem', color: '#C9A84C', letterSpacing: '0.58em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', fontWeight: 300 }}>Who We Are</p>
+                <div style={{ width: '28px', height: '1px', background: 'linear-gradient(90deg,#C9A84C,transparent)' }} />
               </div>
             </FloatingSlab>
 
-            <FloatingSlab driftY={14} driftX={-6} delay={1.5}>
-              <div style={{ overflow: 'hidden' }}>
-                <h1 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: isMobile ? 'clamp(3.8rem,16vw,6rem)' : 'clamp(3.5rem,11vw,9.5rem)', fontWeight: 300, lineHeight: 0.9, color: '#C9A84C', letterSpacing: '-0.02em', fontStyle: 'italic', display: 'block', opacity: heroVis ? 1 : 0, transform: heroVis ? 'none' : 'translateY(80px)', transition: 'opacity 1.2s cubic-bezier(0.16,1,0.3,1) 0.52s,transform 1.2s cubic-bezier(0.16,1,0.3,1) 0.52s', textShadow: '0 0 100px rgba(201,168,76,0.65),0 0 200px rgba(201,168,76,0.2)' }}>Us</h1>
+            <div style={{
+              display: 'inline-block',
+              padding: isMobile ? '1.2rem 2rem 1.6rem' : '1.5rem 3rem 2rem',
+              borderRadius: '4px',
+              background: 'rgba(3,2,10,0.55)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+            }}>
+              <FloatingSlab driftY={10} driftX={4} delay={0}>
+                <div style={{ overflow: 'hidden' }}>
+                  <h1 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: isMobile ? 'clamp(3.8rem,16vw,6rem)' : 'clamp(3.5rem,11vw,9.5rem)', fontWeight: 300, lineHeight: 0.9, color: 'rgba(255,255,255,0.93)', letterSpacing: '-0.02em', display: 'block', opacity: heroVis ? 1 : 0, transform: heroVis ? 'none' : 'translateY(80px)', transition: 'opacity 1.2s cubic-bezier(0.16,1,0.3,1) 0.3s,transform 1.2s cubic-bezier(0.16,1,0.3,1) 0.3s', textShadow: '0 0 80px rgba(255,255,255,0.07)' }}>About</h1>
+                </div>
+              </FloatingSlab>
+
+              <FloatingSlab driftY={14} driftX={-6} delay={1.5}>
+                <div style={{ overflow: 'hidden' }}>
+                  <h1 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: isMobile ? 'clamp(3.8rem,16vw,6rem)' : 'clamp(3.5rem,11vw,9.5rem)', fontWeight: 300, lineHeight: 0.9, color: '#C9A84C', letterSpacing: '-0.02em', fontStyle: 'italic', display: 'block', opacity: heroVis ? 1 : 0, transform: heroVis ? 'none' : 'translateY(80px)', transition: 'opacity 1.2s cubic-bezier(0.16,1,0.3,1) 0.52s,transform 1.2s cubic-bezier(0.16,1,0.3,1) 0.52s', textShadow: '0 0 100px rgba(201,168,76,0.65),0 0 200px rgba(201,168,76,0.2)' }}>Us</h1>
+                </div>
+              </FloatingSlab>
+            </div>
+
+            <div style={{ marginTop: isMobile ? '3rem' : '5rem', opacity: heroVis ? 0.55 : 0, transition: 'opacity 1s ease 2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.8rem' }}>
+              <p style={{ fontSize: isMobile ? '0.55rem' : '0.43rem', color: '#C9A84C', letterSpacing: '0.5em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif' }}>Drift down</p>
+              <div style={{ width: '1px', height: '60px', background: 'linear-gradient(180deg,#C9A84C,transparent)', animation: 'aboutPulse 2s ease-in-out infinite' }} />
+            </div>
+          </div>
+        </BallpitHero>
+
+        <section ref={foundRef} style={{ padding: isMobile ? '5rem 1.2rem' : '10rem 3rem', position: 'relative', zIndex: 2, maxWidth: '1100px', margin: '0 auto' }}>
+          <FloatingSlab driftY={7} delay={0.2}>
+            <div style={{ textAlign: 'center', marginBottom: isMobile ? '3rem' : '6rem', opacity: foundVis ? 1 : 0, transform: foundVis ? 'none' : 'translateY(30px)', transition: 'opacity 0.9s,transform 0.9s' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '1.5rem', marginBottom: '1rem' }}>
+                <div style={{ width: '45px', height: '1px', background: 'linear-gradient(90deg,transparent,rgba(201,168,76,0.6))' }} />
+                <p style={{ fontSize: isMobile ? '0.58rem' : '0.49rem', color: 'rgba(201,168,76,0.75)', letterSpacing: '0.5em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif' }}>The Founders</p>
+                <div style={{ width: '45px', height: '1px', background: 'linear-gradient(90deg,rgba(201,168,76,0.6),transparent)' }} />
               </div>
-            </FloatingSlab>
-          </div>
-
-          <div style={{ marginTop: isMobile ? '3rem' : '5rem', opacity: heroVis ? 0.55 : 0, transition: 'opacity 1s ease 2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.8rem' }}>
-            <p style={{ fontSize: isMobile ? '0.55rem' : '0.43rem', color: '#C9A84C', letterSpacing: '0.5em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif' }}>Drift down</p>
-            <div style={{ width: '1px', height: '60px', background: 'linear-gradient(180deg,#C9A84C,transparent)', animation: 'aboutPulse 2s ease-in-out infinite' }} />
-          </div>
-        </div>
-      </BallpitHero>
-
-      {/* FOUNDERS SECTION */}
-      <section ref={foundRef} style={{ padding: isMobile ? '5rem 1.2rem' : '10rem 3rem', position: 'relative', zIndex: 2, maxWidth: '1100px', margin: '0 auto' }}>
-        <FloatingSlab driftY={7} delay={0.2}>
-          <div style={{ textAlign: 'center', marginBottom: isMobile ? '3rem' : '6rem', opacity: foundVis ? 1 : 0, transform: foundVis ? 'none' : 'translateY(30px)', transition: 'opacity 0.9s,transform 0.9s' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '1.5rem', marginBottom: '1rem' }}>
-              <div style={{ width: '45px', height: '1px', background: 'linear-gradient(90deg,transparent,rgba(201,168,76,0.6))' }} />
-              <p style={{ fontSize: isMobile ? '0.58rem' : '0.49rem', color: 'rgba(201,168,76,0.75)', letterSpacing: '0.5em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif' }}>The Founders</p>
-              <div style={{ width: '45px', height: '1px', background: 'linear-gradient(90deg,rgba(201,168,76,0.6),transparent)' }} />
-            </div>
-            <h2 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: isMobile ? 'clamp(1.8rem,7vw,3rem)' : 'clamp(2.2rem,5vw,4rem)', fontWeight: 300, color: 'rgba(255,255,255,0.95)' }}>Two Passions, One Vision</h2>
-          </div>
-        </FloatingSlab>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '1.5rem' : '2.5rem' }}>
-          <FloatingSlab driftY={12} driftX={-4} delay={0}>
-            <GlassPanel index={0} visible={foundVis} delay={0.1}>
-              {(hov) => (
-                <div style={{ padding: isMobile ? '2rem 1.4rem' : '4rem', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'auto 1fr', gap: isMobile ? '1.5rem' : '4rem', alignItems: 'center' }}>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ width: isMobile ? '70px' : '90px', height: isMobile ? '70px' : '90px', borderRadius: '50%', border: `1px solid rgba(201,168,76,${hov ? 0.7 : 0.35})`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.2rem', transition: 'border-color 0.4s', position: 'relative' }}>
-                      <span style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: isMobile ? '1.6rem' : '2.2rem', color: '#C9A84C', fontWeight: 300 }}>01</span>
-                      <div style={{ position: 'absolute', inset: '-8px', borderRadius: '50%', border: `1px solid rgba(201,168,76,${hov ? 0.25 : 0.1})`, transition: 'border-color 0.4s' }} />
-                    </div>
-                    <p style={{ fontSize: isMobile ? '0.55rem' : '0.46rem', color: 'rgba(201,168,76,0.65)', letterSpacing: '0.3em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', whiteSpace: 'nowrap' }}>Co-Founder</p>
-                  </div>
-                  <div>
-                    <p style={{ fontSize: isMobile ? '0.58rem' : '0.48rem', color: hov ? 'rgba(201,168,76,0.9)' : 'rgba(201,168,76,0.65)', letterSpacing: '0.38em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', marginBottom: '0.7rem', transition: 'color 0.3s' }}>Sports & Performance</p>
-                    <h3 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: isMobile ? '1.8rem' : '2.5rem', fontWeight: 300, color: hov ? '#fff' : 'rgba(255,255,255,0.95)', marginBottom: '0.4rem', transition: 'color 0.3s' }}>Romario Govender</h3>
-                    <p style={{ fontSize: isMobile ? '0.6rem' : '0.53rem', color: '#C9A84C', letterSpacing: '0.18em', fontFamily: 'Montserrat,sans-serif', marginBottom: '1.4rem' }}>Athletic Excellence</p>
-                    <p style={{ fontSize: isMobile ? '0.85rem' : '0.72rem', color: hov ? 'rgba(255,255,255,0.72)' : 'rgba(255,255,255,0.58)', lineHeight: 2.0, letterSpacing: '0.03em', transition: 'color 0.4s' }}>
-                      A true athlete at heart, Romario has excelled in nearly every sport imaginable. As a semi-professional golfer, he brings an elite athlete's perspective — ensuring every sportswear piece performs at the highest level.
-                    </p>
-                  </div>
-                </div>
-              )}
-            </GlassPanel>
-          </FloatingSlab>
-
-          <FloatingSlab driftY={10} driftX={5} delay={1.2} style={{ alignSelf: isMobile ? 'stretch' : 'flex-end', width: isMobile ? '100%' : '94%' }}>
-            <GlassPanel index={1} visible={foundVis} delay={0.25}>
-              {(hov) => (
-                <div style={{ padding: isMobile ? '2rem 1.4rem' : '4rem', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr auto', gap: isMobile ? '1.5rem' : '4rem', alignItems: 'center' }}>
-                  <div style={{ order: isMobile ? 2 : 1 }}>
-                    <p style={{ fontSize: isMobile ? '0.58rem' : '0.48rem', color: hov ? 'rgba(201,168,76,0.9)' : 'rgba(201,168,76,0.65)', letterSpacing: '0.38em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', marginBottom: '0.7rem', transition: 'color 0.3s' }}>Lifestyle & Luxury</p>
-                    <h3 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: isMobile ? '1.8rem' : '2.5rem', fontWeight: 300, color: hov ? '#fff' : 'rgba(255,255,255,0.95)', marginBottom: '0.4rem', transition: 'color 0.3s' }}>Rhea Jugernath</h3>
-                    <p style={{ fontSize: isMobile ? '0.6rem' : '0.53rem', color: '#C9A84C', letterSpacing: '0.18em', fontFamily: 'Montserrat,sans-serif', marginBottom: '1.4rem' }}>Style & Sophistication</p>
-                    <p style={{ fontSize: isMobile ? '0.85rem' : '0.72rem', color: hov ? 'rgba(255,255,255,0.72)' : 'rgba(255,255,255,0.58)', lineHeight: 2.0, letterSpacing: '0.03em', transition: 'color 0.4s' }}>
-                      With a passion for fashion and an eye for luxury, Rhea brings the lifestyle element that elevates R&R beyond performance wear — ensuring every collection embodies sophistication, comfort, and timeless style.
-                    </p>
-                  </div>
-                  <div style={{ textAlign: 'center', order: isMobile ? 1 : 2 }}>
-                    <div style={{ width: isMobile ? '70px' : '90px', height: isMobile ? '70px' : '90px', borderRadius: '50%', border: `1px solid rgba(201,168,76,${hov ? 0.7 : 0.35})`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.2rem', transition: 'border-color 0.4s', position: 'relative' }}>
-                      <span style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: isMobile ? '1.6rem' : '2.2rem', color: '#C9A84C', fontWeight: 300 }}>02</span>
-                      <div style={{ position: 'absolute', inset: '-8px', borderRadius: '50%', border: `1px solid rgba(201,168,76,${hov ? 0.25 : 0.1})`, transition: 'border-color 0.4s' }} />
-                    </div>
-                    <p style={{ fontSize: isMobile ? '0.55rem' : '0.46rem', color: 'rgba(201,168,76,0.65)', letterSpacing: '0.3em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', whiteSpace: 'nowrap' }}>Co-Founder</p>
-                  </div>
-                </div>
-              )}
-            </GlassPanel>
-          </FloatingSlab>
-
-          <FloatingSlab driftY={9} driftX={2} delay={0.6}>
-            <GlassPanel index={2} visible={foundVis} delay={0.4}>
-              {(hov) => (
-                <div style={{ padding: isMobile ? '2rem 1.4rem' : '3.5rem 4rem', textAlign: 'center' }}>
-                  <p style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: isMobile ? 'clamp(1rem,4vw,1.3rem)' : 'clamp(1.1rem,2.5vw,1.6rem)', fontWeight: 300, fontStyle: 'italic', color: hov ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.72)', lineHeight: 1.9, transition: 'color 0.4s', maxWidth: '720px', margin: '0 auto' }}>
-                    "Where athletic performance meets everyday elegance — where functionality embraces fashion, and every piece tells the story of{' '}
-                    <span style={{ color: '#C9A84C', fontStyle: 'normal' }}>two passions perfectly combined.</span>"
-                  </p>
-                </div>
-              )}
-            </GlassPanel>
-          </FloatingSlab>
-        </div>
-      </section>
-
-      {/* WHAT SETS US APART SECTION */}
-      <section ref={whatRef} style={{ padding: isMobile ? '5rem 1.2rem' : '8rem 3rem', position: 'relative', zIndex: 2, overflow: 'hidden' }}>
-        <DotGrid
-          dotSize={isMobile ? 4 : 6}
-          gap={isMobile ? 22 : 28}
-          baseColor="#3d2a05"
-          activeColor="#C9A84C"
-          proximity={140}
-          shockRadius={260}
-          returnDuration={1.5}
-        />
-        <div style={{ position: 'relative', zIndex: 1, maxWidth: '1100px', margin: '0 auto' }}>
-          <FloatingSlab driftY={6} delay={0.2}>
-            <div style={{ textAlign: 'center', marginBottom: isMobile ? '3rem' : '5rem', opacity: whatVis ? 1 : 0, transform: whatVis ? 'none' : 'translateY(30px)', transition: 'opacity 0.9s,transform 0.9s' }}>
-              <h2 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: isMobile ? 'clamp(1.8rem,7vw,2.8rem)' : 'clamp(2rem,5vw,3.8rem)', fontWeight: 300, color: 'rgba(255,255,255,0.95)' }}>What Sets Us Apart</h2>
-              <div style={{ width: '45px', height: '1px', background: '#C9A84C', margin: '1.2rem auto 0' }} />
+              <h2 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: isMobile ? 'clamp(1.8rem,7vw,3rem)' : 'clamp(2.2rem,5vw,4rem)', fontWeight: 300, color: 'rgba(255,255,255,0.95)' }}>Two Passions, One Vision</h2>
             </div>
           </FloatingSlab>
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit,minmax(280px,1fr))', gap: isMobile ? '1.2rem' : '1.5rem' }}>
-            {[
-              { icon: '🧵', title: 'Premium Fabrics', desc: 'Only the finest technical materials, selected for performance and durability.', num: '01' },
-              { icon: '🎨', title: 'Contemporary Design', desc: 'Original collections blending athletic functionality with street-style aesthetics.', num: '02' },
-              { icon: '✨', title: 'Limited Edition', desc: 'Every garment produced in limited quantities. Once gone, never reproduced.', num: '03' },
-            ].map((item, i) => (
-              <FloatingSlab key={item.title} driftY={8 + i * 3} driftX={i % 2 === 0 ? 4 : -4} delay={i * 0.5}>
-                <GlassPanel index={i} visible={whatVis} delay={i * 0.14}>
-                  {(hov) => (
-                    <div style={{ padding: isMobile ? '2rem 1.5rem' : '3rem 2.5rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: isMobile ? '1.5rem' : '2rem' }}>
-                        <span style={{ fontSize: isMobile ? '2.5rem' : '2.2rem', transform: hov ? 'translateY(-6px) scale(1.15)' : 'none', transition: 'transform 0.45s cubic-bezier(0.16,1,0.3,1)', display: 'block', filter: hov ? 'drop-shadow(0 8px 16px rgba(201,168,76,0.4))' : 'none' }}>{item.icon}</span>
-                        <span style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: isMobile ? '2.5rem' : '3rem', color: hov ? 'rgba(201,168,76,0.28)' : 'rgba(201,168,76,0.15)', fontWeight: 300, transition: 'color 0.4s', lineHeight: 1 }}>{item.num}</span>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '1.5rem' : '2.5rem' }}>
+            <FloatingSlab driftY={12} driftX={-4} delay={0}>
+              <GlassPanel index={0} visible={foundVis} delay={0.1}>
+                {(hov) => (
+                  <div style={{ padding: isMobile ? '2rem 1.4rem' : '4rem', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'auto 1fr', gap: isMobile ? '1.5rem' : '4rem', alignItems: 'center' }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ width: isMobile ? '70px' : '90px', height: isMobile ? '70px' : '90px', borderRadius: '50%', border: `1px solid rgba(201,168,76,${hov ? 0.7 : 0.35})`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.2rem', transition: 'border-color 0.4s', position: 'relative' }}>
+                        <span style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: isMobile ? '1.6rem' : '2.2rem', color: '#C9A84C', fontWeight: 300 }}>01</span>
+                        <div style={{ position: 'absolute', inset: '-8px', borderRadius: '50%', border: `1px solid rgba(201,168,76,${hov ? 0.25 : 0.1})`, transition: 'border-color 0.4s' }} />
                       </div>
-                      <h3 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: isMobile ? '1.6rem' : '1.5rem', fontWeight: 300, color: hov ? '#fff' : 'rgba(255,255,255,0.92)', marginBottom: '0.8rem', transition: 'color 0.3s' }}>{item.title}</h3>
-                      <p style={{ fontSize: isMobile ? '0.9rem' : '0.72rem', color: hov ? 'rgba(255,255,255,0.72)' : 'rgba(255,255,255,0.55)', lineHeight: 1.9, letterSpacing: '0.03em', transition: 'color 0.4s' }}>{item.desc}</p>
+                      <p style={{ fontSize: isMobile ? '0.55rem' : '0.46rem', color: 'rgba(201,168,76,0.65)', letterSpacing: '0.3em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', whiteSpace: 'nowrap' }}>Co-Founder</p>
+                    </div>
+                    <div>
+                      <p style={{ fontSize: isMobile ? '0.58rem' : '0.48rem', color: hov ? 'rgba(201,168,76,0.9)' : 'rgba(201,168,76,0.65)', letterSpacing: '0.38em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', marginBottom: '0.7rem', transition: 'color 0.3s' }}>Sports & Performance</p>
+                      <h3 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: isMobile ? '1.8rem' : '2.5rem', fontWeight: 300, color: hov ? '#fff' : 'rgba(255,255,255,0.95)', marginBottom: '0.4rem', transition: 'color 0.3s' }}>Romario Govender</h3>
+                      <p style={{ fontSize: isMobile ? '0.6rem' : '0.53rem', color: '#C9A84C', letterSpacing: '0.18em', fontFamily: 'Montserrat,sans-serif', marginBottom: '1.4rem' }}>Athletic Excellence</p>
+                      <p style={{ fontSize: isMobile ? '0.85rem' : '0.72rem', color: hov ? 'rgba(255,255,255,0.72)' : 'rgba(255,255,255,0.58)', lineHeight: 2.0, letterSpacing: '0.03em', transition: 'color 0.4s' }}>
+                        A true athlete at heart, Romario has excelled in nearly every sport imaginable. As a semi-professional golfer, he brings an elite athlete's perspective — ensuring every sportswear piece performs at the highest level.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </GlassPanel>
+            </FloatingSlab>
+
+            <FloatingSlab driftY={10} driftX={5} delay={1.2} style={{ alignSelf: isMobile ? 'stretch' : 'flex-end', width: isMobile ? '100%' : '94%' }}>
+              <GlassPanel index={1} visible={foundVis} delay={0.25}>
+                {(hov) => (
+                  <div style={{ padding: isMobile ? '2rem 1.4rem' : '4rem', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr auto', gap: isMobile ? '1.5rem' : '4rem', alignItems: 'center' }}>
+                    <div style={{ order: isMobile ? 2 : 1 }}>
+                      <p style={{ fontSize: isMobile ? '0.58rem' : '0.48rem', color: hov ? 'rgba(201,168,76,0.9)' : 'rgba(201,168,76,0.65)', letterSpacing: '0.38em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', marginBottom: '0.7rem', transition: 'color 0.3s' }}>Lifestyle & Luxury</p>
+                      <h3 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: isMobile ? '1.8rem' : '2.5rem', fontWeight: 300, color: hov ? '#fff' : 'rgba(255,255,255,0.95)', marginBottom: '0.4rem', transition: 'color 0.3s' }}>Rhea Jugernath</h3>
+                      <p style={{ fontSize: isMobile ? '0.6rem' : '0.53rem', color: '#C9A84C', letterSpacing: '0.18em', fontFamily: 'Montserrat,sans-serif', marginBottom: '1.4rem' }}>Style & Sophistication</p>
+                      <p style={{ fontSize: isMobile ? '0.85rem' : '0.72rem', color: hov ? 'rgba(255,255,255,0.72)' : 'rgba(255,255,255,0.58)', lineHeight: 2.0, letterSpacing: '0.03em', transition: 'color 0.4s' }}>
+                        With a passion for fashion and an eye for luxury, Rhea brings the lifestyle element that elevates R&R beyond performance wear — ensuring every collection embodies sophistication, comfort, and timeless style.
+                      </p>
+                    </div>
+                    <div style={{ textAlign: 'center', order: isMobile ? 1 : 2 }}>
+                      <div style={{ width: isMobile ? '70px' : '90px', height: isMobile ? '70px' : '90px', borderRadius: '50%', border: `1px solid rgba(201,168,76,${hov ? 0.7 : 0.35})`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.2rem', transition: 'border-color 0.4s', position: 'relative' }}>
+                        <span style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: isMobile ? '1.6rem' : '2.2rem', color: '#C9A84C', fontWeight: 300 }}>02</span>
+                        <div style={{ position: 'absolute', inset: '-8px', borderRadius: '50%', border: `1px solid rgba(201,168,76,${hov ? 0.25 : 0.1})`, transition: 'border-color 0.4s' }} />
+                      </div>
+                      <p style={{ fontSize: isMobile ? '0.55rem' : '0.46rem', color: 'rgba(201,168,76,0.65)', letterSpacing: '0.3em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', whiteSpace: 'nowrap' }}>Co-Founder</p>
+                    </div>
+                  </div>
+                )}
+              </GlassPanel>
+            </FloatingSlab>
+
+            <FloatingSlab driftY={9} driftX={2} delay={0.6}>
+              <GlassPanel index={2} visible={foundVis} delay={0.4}>
+                {(hov) => (
+                  <div style={{ padding: isMobile ? '2rem 1.4rem' : '3.5rem 4rem', textAlign: 'center' }}>
+                    <p style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: isMobile ? 'clamp(1rem,4vw,1.3rem)' : 'clamp(1.1rem,2.5vw,1.6rem)', fontWeight: 300, fontStyle: 'italic', color: hov ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.72)', lineHeight: 1.9, transition: 'color 0.4s', maxWidth: '720px', margin: '0 auto' }}>
+                      "Where athletic performance meets everyday elegance — where functionality embraces fashion, and every piece tells the story of{' '}
+                      <span style={{ color: '#C9A84C', fontStyle: 'normal' }}>two passions perfectly combined.</span>"
+                    </p>
+                  </div>
+                )}
+              </GlassPanel>
+            </FloatingSlab>
+          </div>
+        </section>
+
+        <section ref={whatRef} style={{ padding: isMobile ? '5rem 1.2rem' : '8rem 3rem', position: 'relative', zIndex: 2, overflow: 'hidden' }}>
+          <DotGrid
+            dotSize={isMobile ? 4 : 6}
+            gap={isMobile ? 22 : 28}
+            baseColor="#3d2a05"
+            activeColor="#C9A84C"
+            proximity={140}
+            shockRadius={260}
+            returnDuration={1.5}
+          />
+          <div style={{ position: 'relative', zIndex: 1, maxWidth: '1100px', margin: '0 auto' }}>
+            <FloatingSlab driftY={6} delay={0.2}>
+              <div style={{ textAlign: 'center', marginBottom: isMobile ? '3rem' : '5rem', opacity: whatVis ? 1 : 0, transform: whatVis ? 'none' : 'translateY(30px)', transition: 'opacity 0.9s,transform 0.9s' }}>
+                <h2 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: isMobile ? 'clamp(1.8rem,7vw,2.8rem)' : 'clamp(2rem,5vw,3.8rem)', fontWeight: 300, color: 'rgba(255,255,255,0.95)' }}>What Sets Us Apart</h2>
+                <div style={{ width: '45px', height: '1px', background: '#C9A84C', margin: '1.2rem auto 0' }} />
+              </div>
+            </FloatingSlab>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit,minmax(280px,1fr))', gap: isMobile ? '1.2rem' : '1.5rem' }}>
+              {[
+                { icon: '🧵', title: 'Premium Fabrics', desc: 'Only the finest technical materials, selected for performance and durability.', num: '01' },
+                { icon: '🎨', title: 'Contemporary Design', desc: 'Original collections blending athletic functionality with street-style aesthetics.', num: '02' },
+                { icon: '✨', title: 'Limited Edition', desc: 'Every garment produced in limited quantities. Once gone, never reproduced.', num: '03' },
+              ].map((item, i) => (
+                <FloatingSlab key={item.title} driftY={8 + i * 3} driftX={i % 2 === 0 ? 4 : -4} delay={i * 0.5}>
+                  <GlassPanel index={i} visible={whatVis} delay={i * 0.14}>
+                    {(hov) => (
+                      <div style={{ padding: isMobile ? '2rem 1.5rem' : '3rem 2.5rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: isMobile ? '1.5rem' : '2rem' }}>
+                          <span style={{ fontSize: isMobile ? '2.5rem' : '2.2rem', transform: hov ? 'translateY(-6px) scale(1.15)' : 'none', transition: 'transform 0.45s cubic-bezier(0.16,1,0.3,1)', display: 'block', filter: hov ? 'drop-shadow(0 8px 16px rgba(201,168,76,0.4))' : 'none' }}>{item.icon}</span>
+                          <span style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: isMobile ? '2.5rem' : '3rem', color: hov ? 'rgba(201,168,76,0.28)' : 'rgba(201,168,76,0.15)', fontWeight: 300, transition: 'color 0.4s', lineHeight: 1 }}>{item.num}</span>
+                        </div>
+                        <h3 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: isMobile ? '1.6rem' : '1.5rem', fontWeight: 300, color: hov ? '#fff' : 'rgba(255,255,255,0.92)', marginBottom: '0.8rem', transition: 'color 0.3s' }}>{item.title}</h3>
+                        <p style={{ fontSize: isMobile ? '0.9rem' : '0.72rem', color: hov ? 'rgba(255,255,255,0.72)' : 'rgba(255,255,255,0.55)', lineHeight: 1.9, letterSpacing: '0.03em', transition: 'color 0.4s' }}>{item.desc}</p>
+                      </div>
+                    )}
+                  </GlassPanel>
+                </FloatingSlab>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section ref={collRef} style={{ padding: isMobile ? '5rem 1.2rem' : '8rem 3rem', position: 'relative', zIndex: 2, maxWidth: '1200px', margin: '0 auto' }}>
+          <FloatingSlab driftY={7} delay={0.1}>
+            <div style={{ textAlign: 'center', marginBottom: isMobile ? '3rem' : '5rem', opacity: collVis ? 1 : 0, transform: collVis ? 'none' : 'translateY(30px)', transition: 'opacity 0.9s,transform 0.9s' }}>
+              <p style={{ fontSize: isMobile ? '0.58rem' : '0.49rem', color: 'rgba(201,168,76,0.7)', letterSpacing: '0.5em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', marginBottom: '0.8rem' }}>Collections</p>
+              <h2 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: isMobile ? 'clamp(1.6rem,6vw,2.8rem)' : 'clamp(2rem,5vw,3.8rem)', fontWeight: 300, color: 'rgba(255,255,255,0.95)', lineHeight: 1.3 }}>
+                Designed for Every Aspect<br /><span style={{ color: '#C9A84C', fontStyle: 'italic' }}>of Your Active Life</span>
+              </h2>
+            </div>
+          </FloatingSlab>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fit,minmax(230px,1fr))', gap: isMobile ? '0.8rem' : '2px', background: isMobile ? 'transparent' : 'rgba(201,168,76,0.04)' }}>
+            {[
+              { tag: 'Sportswear', title: 'Active Performance', desc: 'Technical wear engineered for peak performance.', icon: '⚡' },
+              { tag: 'Training', title: 'Essentials', desc: 'Versatile pieces for every workout.', icon: '🔥' },
+              { tag: 'Lifestyle', title: 'Urban', desc: 'Streetwear with athletic DNA.', icon: '🌆' },
+              { tag: 'Luxury', title: 'Premium', desc: 'Exclusive pieces from the finest materials.', icon: '✦' },
+            ].map((col, i) => (
+              <FloatingSlab key={col.title} driftY={6 + i * 2} driftX={i % 2 === 0 ? 3 : -3} delay={i * 0.28}>
+                <GlassPanel index={i} visible={collVis} delay={i * 0.12}>
+                  {(hov) => (
+                    <div style={{ padding: isMobile ? '1.8rem 1.2rem' : '3rem 2rem' }}>
+                      <p style={{ fontSize: isMobile ? '0.55rem' : '0.43rem', color: hov ? 'rgba(201,168,76,0.9)' : 'rgba(201,168,76,0.6)', letterSpacing: '0.35em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', marginBottom: '1.2rem', transition: 'color 0.3s' }}>{col.tag}</p>
+                      <span style={{ fontSize: isMobile ? '2rem' : '2rem', display: 'block', marginBottom: '0.8rem', transform: hov ? 'translateY(-4px)' : 'none', transition: 'transform 0.4s' }}>{col.icon}</span>
+                      <h3 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: isMobile ? '1.15rem' : '1.7rem', fontWeight: 300, color: hov ? '#fff' : 'rgba(255,255,255,0.88)', marginBottom: '0.7rem', transition: 'color 0.3s', lineHeight: 1.2 }}>{col.title}</h3>
+                      <p style={{ fontSize: isMobile ? '0.78rem' : '0.65rem', color: hov ? 'rgba(255,255,255,0.62)' : 'rgba(255,255,255,0.45)', lineHeight: 1.8, transition: 'color 0.4s' }}>{col.desc}</p>
+                      <div style={{ marginTop: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: hov ? 1 : 0, transform: hov ? 'translateX(0)' : 'translateX(-10px)', transition: 'all 0.4s' }}>
+                        <div style={{ width: '18px', height: '1px', background: '#C9A84C' }} />
+                        <span style={{ fontSize: isMobile ? '0.55rem' : '0.43rem', color: '#C9A84C', letterSpacing: '0.3em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif' }}>Explore</span>
+                      </div>
                     </div>
                   )}
                 </GlassPanel>
               </FloatingSlab>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* COLLECTIONS SECTION */}
-      <section ref={collRef} style={{ padding: isMobile ? '5rem 1.2rem' : '8rem 3rem', position: 'relative', zIndex: 2, maxWidth: '1200px', margin: '0 auto' }}>
-        <FloatingSlab driftY={7} delay={0.1}>
-          <div style={{ textAlign: 'center', marginBottom: isMobile ? '3rem' : '5rem', opacity: collVis ? 1 : 0, transform: collVis ? 'none' : 'translateY(30px)', transition: 'opacity 0.9s,transform 0.9s' }}>
-            <p style={{ fontSize: isMobile ? '0.58rem' : '0.49rem', color: 'rgba(201,168,76,0.7)', letterSpacing: '0.5em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', marginBottom: '0.8rem' }}>Collections</p>
-            <h2 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: isMobile ? 'clamp(1.6rem,6vw,2.8rem)' : 'clamp(2rem,5vw,3.8rem)', fontWeight: 300, color: 'rgba(255,255,255,0.95)', lineHeight: 1.3 }}>
-              Designed for Every Aspect<br /><span style={{ color: '#C9A84C', fontStyle: 'italic' }}>of Your Active Life</span>
-            </h2>
-          </div>
-        </FloatingSlab>
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fit,minmax(230px,1fr))', gap: isMobile ? '0.8rem' : '2px', background: isMobile ? 'transparent' : 'rgba(201,168,76,0.04)' }}>
-          {[
-            { tag: 'Sportswear', title: 'Active Performance', desc: 'Technical wear engineered for peak performance.', icon: '⚡' },
-            { tag: 'Training', title: 'Essentials', desc: 'Versatile pieces for every workout.', icon: '🔥' },
-            { tag: 'Lifestyle', title: 'Urban', desc: 'Streetwear with athletic DNA.', icon: '🌆' },
-            { tag: 'Luxury', title: 'Premium', desc: 'Exclusive pieces from the finest materials.', icon: '✦' },
-          ].map((col, i) => (
-            <FloatingSlab key={col.title} driftY={6 + i * 2} driftX={i % 2 === 0 ? 3 : -3} delay={i * 0.28}>
-              <GlassPanel index={i} visible={collVis} delay={i * 0.12}>
-                {(hov) => (
-                  <div style={{ padding: isMobile ? '1.8rem 1.2rem' : '3rem 2rem' }}>
-                    <p style={{ fontSize: isMobile ? '0.55rem' : '0.43rem', color: hov ? 'rgba(201,168,76,0.9)' : 'rgba(201,168,76,0.6)', letterSpacing: '0.35em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', marginBottom: '1.2rem', transition: 'color 0.3s' }}>{col.tag}</p>
-                    <span style={{ fontSize: isMobile ? '2rem' : '2rem', display: 'block', marginBottom: '0.8rem', transform: hov ? 'translateY(-4px)' : 'none', transition: 'transform 0.4s' }}>{col.icon}</span>
-                    <h3 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: isMobile ? '1.15rem' : '1.7rem', fontWeight: 300, color: hov ? '#fff' : 'rgba(255,255,255,0.88)', marginBottom: '0.7rem', transition: 'color 0.3s', lineHeight: 1.2 }}>{col.title}</h3>
-                    <p style={{ fontSize: isMobile ? '0.78rem' : '0.65rem', color: hov ? 'rgba(255,255,255,0.62)' : 'rgba(255,255,255,0.45)', lineHeight: 1.8, transition: 'color 0.4s' }}>{col.desc}</p>
-                    <div style={{ marginTop: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: hov ? 1 : 0, transform: hov ? 'translateX(0)' : 'translateX(-10px)', transition: 'all 0.4s' }}>
-                      <div style={{ width: '18px', height: '1px', background: '#C9A84C' }} />
-                      <span style={{ fontSize: isMobile ? '0.55rem' : '0.43rem', color: '#C9A84C', letterSpacing: '0.3em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif' }}>Explore</span>
-                    </div>
-                  </div>
-                )}
-              </GlassPanel>
-            </FloatingSlab>
-          ))}
-        </div>
-      </section>
-
-      {/* CTA SECTION */}
-      <section style={{ padding: isMobile ? '5rem 1.5rem' : '10rem 2rem', position: 'relative', zIndex: 2, textAlign: 'center' }}>
-        <FloatingSlab driftY={10} driftX={2} delay={0.5}>
-          <div style={{ maxWidth: '750px', margin: '0 auto' }}>
-            <p style={{ fontSize: isMobile ? '0.6rem' : '0.49rem', color: 'rgba(201,168,76,0.7)', letterSpacing: '0.5em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', marginBottom: '2.5rem' }}>Ready to Explore?</p>
-            <div style={{ display: 'flex', gap: '1.2rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-              <Link href="/shop" className="rr-btn-primary">Shop the Collection</Link>
-              <Link href="/contact" className="rr-btn-ghost">Get in Touch</Link>
+        <section style={{ padding: isMobile ? '5rem 1.5rem' : '10rem 2rem', position: 'relative', zIndex: 2, textAlign: 'center' }}>
+          <FloatingSlab driftY={10} driftX={2} delay={0.5}>
+            <div style={{ maxWidth: '750px', margin: '0 auto' }}>
+              <p style={{ fontSize: isMobile ? '0.6rem' : '0.49rem', color: 'rgba(201,168,76,0.7)', letterSpacing: '0.5em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', marginBottom: '2.5rem' }}>Ready to Explore?</p>
+              <div style={{ display: 'flex', gap: '1.2rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                <Link href="/shop" className="rr-btn-primary">Shop the Collection</Link>
+                <Link href="/contact" className="rr-btn-ghost">Get in Touch</Link>
+              </div>
             </div>
-          </div>
-        </FloatingSlab>
-      </section>
+          </FloatingSlab>
+        </section>
 
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Montserrat:wght@200;300;400;500&display=swap');
+        <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Montserrat:wght@200;300;400;500&display=swap');
 
-        @media (min-width: 769px) {
-          * { cursor: none !important; }
-        }
-
-        html { scroll-behavior: smooth; }
-        *, *::before, *::after { box-sizing: border-box; }
-
-        .tc-wrapper {
-          position: fixed; top: 0; left: 0;
-          width: 0; height: 0;
-          pointer-events: none;
-          z-index: 99999;
-          will-change: transform;
-        }
-        .tc-dot {
-          position: absolute;
-          width: 5px; height: 5px;
-          border-radius: 50%;
-          background: #C9A84C;
-          top: 50%; left: 50%;
-          transform: translate(-50%, -50%);
-          box-shadow: 0 0 8px rgba(201,168,76,0.8), 0 0 16px rgba(201,168,76,0.4);
-        }
-        .tc-corner {
-          position: absolute;
-          width: 12px; height: 12px;
-          border-color: #C9A84C;
-          border-style: solid;
-          border-width: 0;
-          will-change: transform;
-          filter: drop-shadow(0 0 4px rgba(201,168,76,0.6));
-        }
-        .tc-tl { border-top-width: 2px; border-left-width: 2px; transform: translate(-18px, -18px); }
-        .tc-tr { border-top-width: 2px; border-right-width: 2px; transform: translate(6px, -18px); }
-        .tc-br { border-bottom-width: 2px; border-right-width: 2px; transform: translate(6px, 6px); }
-        .tc-bl { border-bottom-width: 2px; border-left-width: 2px; transform: translate(-18px, 6px); }
-
-        @keyframes aboutPulse {
-          0%,100% { opacity:0.8; transform:scaleY(1); }
-          50% { opacity:0.12; transform:scaleY(0.2); }
-        }
-
-        .rr-btn-primary {
-          display:inline-block; padding:1.1rem 3rem;
-          background:#C9A84C; color:#06040a;
-          font-family:'Montserrat',sans-serif; font-size:0.56rem; font-weight:500;
-          letter-spacing:0.4em; text-transform:uppercase; text-decoration:none;
-          position:relative; overflow:hidden;
-          transition:transform 0.35s cubic-bezier(0.16,1,0.3,1),box-shadow 0.35s;
-          box-shadow:0 8px 40px rgba(201,168,76,0.25);
-        }
-        .rr-btn-primary::before {
-          content:''; position:absolute; inset:0;
-          background:#EDD070; transform:translateX(-101%);
-          transition:transform 0.55s cubic-bezier(0.16,1,0.3,1);
-        }
-        .rr-btn-primary:hover::before { transform:translateX(0); }
-        .rr-btn-primary:hover { transform:translateY(-5px); box-shadow:0 25px 60px rgba(201,168,76,0.4); }
-
-        .rr-btn-ghost {
-          display:inline-block; padding:1.1rem 3rem;
-          border:1px solid rgba(255,255,255,0.18); color:rgba(255,255,255,0.65);
-          font-family:'Montserrat',sans-serif; font-size:0.56rem; font-weight:300;
-          letter-spacing:0.4em; text-transform:uppercase; text-decoration:none;
-          position:relative; overflow:hidden;
-          transition:border-color 0.4s,color 0.4s,transform 0.35s cubic-bezier(0.16,1,0.3,1);
-          backdrop-filter:blur(12px);
-        }
-        .rr-btn-ghost:hover { border-color:rgba(201,168,76,0.6); color:#C9A84C; transform:translateY(-5px); }
-
-        @media (max-width: 768px) {
-          .rr-btn-primary, .rr-btn-ghost {
-            padding: 1rem 2rem;
-            font-size: 0.62rem;
-            letter-spacing: 0.25em;
+          @media (min-width: 769px) {
+            * { cursor: none !important; }
           }
-        }
-      `}</style>
-    </div>
+
+          html { scroll-behavior: smooth; }
+          *, *::before, *::after { box-sizing: border-box; }
+
+          .tc-wrapper {
+            position: fixed; top: 0; left: 0;
+            width: 0; height: 0;
+            pointer-events: none;
+            z-index: 99999;
+            will-change: transform;
+          }
+          .tc-dot {
+            position: absolute;
+            width: 5px; height: 5px;
+            border-radius: 50%;
+            background: #C9A84C;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 8px rgba(201,168,76,0.8), 0 0 16px rgba(201,168,76,0.4);
+          }
+          .tc-corner {
+            position: absolute;
+            width: 12px; height: 12px;
+            border-color: #C9A84C;
+            border-style: solid;
+            border-width: 0;
+            will-change: transform;
+            filter: drop-shadow(0 0 4px rgba(201,168,76,0.6));
+          }
+          .tc-tl { border-top-width: 2px; border-left-width: 2px; transform: translate(-18px, -18px); }
+          .tc-tr { border-top-width: 2px; border-right-width: 2px; transform: translate(6px, -18px); }
+          .tc-br { border-bottom-width: 2px; border-right-width: 2px; transform: translate(6px, 6px); }
+          .tc-bl { border-bottom-width: 2px; border-left-width: 2px; transform: translate(-18px, 6px); }
+
+          @keyframes aboutPulse {
+            0%,100% { opacity:0.8; transform:scaleY(1); }
+            50% { opacity:0.12; transform:scaleY(0.2); }
+          }
+
+          @keyframes sparkFly {
+            0% { transform: translate(-50%,-50%) scale(1); opacity: 1; }
+            100% { transform: translate(calc(-50% + cos(var(--angle)) * var(--radius) * 3), calc(-50% + sin(var(--angle)) * var(--radius) * 3)) scale(0); opacity: 0; }
+          }
+
+          .rr-btn-primary {
+            display:inline-block; padding:1.1rem 3rem;
+            background:#C9A84C; color:#06040a;
+            font-family:'Montserrat',sans-serif; font-size:0.56rem; font-weight:500;
+            letter-spacing:0.4em; text-transform:uppercase; text-decoration:none;
+            position:relative; overflow:hidden;
+            transition:transform 0.35s cubic-bezier(0.16,1,0.3,1),box-shadow 0.35s;
+            box-shadow:0 8px 40px rgba(201,168,76,0.25);
+          }
+          .rr-btn-primary::before {
+            content:''; position:absolute; inset:0;
+            background:#EDD070; transform:translateX(-101%);
+            transition:transform 0.55s cubic-bezier(0.16,1,0.3,1);
+          }
+          .rr-btn-primary:hover::before { transform:translateX(0); }
+          .rr-btn-primary:hover { transform:translateY(-5px); box-shadow:0 25px 60px rgba(201,168,76,0.4); }
+
+          .rr-btn-ghost {
+            display:inline-block; padding:1.1rem 3rem;
+            border:1px solid rgba(255,255,255,0.18); color:rgba(255,255,255,0.65);
+            font-family:'Montserrat',sans-serif; font-size:0.56rem; font-weight:300;
+            letter-spacing:0.4em; text-transform:uppercase; text-decoration:none;
+            position:relative; overflow:hidden;
+            transition:border-color 0.4s,color 0.4s,transform 0.35s cubic-bezier(0.16,1,0.3,1);
+            backdrop-filter:blur(12px);
+          }
+          .rr-btn-ghost:hover { border-color:rgba(201,168,76,0.6); color:#C9A84C; transform:translateY(-5px); }
+
+          @media (max-width: 768px) {
+            .rr-btn-primary, .rr-btn-ghost {
+              padding: 1rem 2rem;
+              font-size: 0.62rem;
+              letter-spacing: 0.25em;
+            }
+          }
+        `}</style>
+      </div>
+    </ClickSpark>
   );
 }

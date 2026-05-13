@@ -639,10 +639,10 @@ function LiquidChrome({ baseColor = [0.1, 0.1, 0.1], speed = 0.2, amplitude = 0.
 function Marquee() {
   const items = ['Premium Quality', '✦', 'South African Brand', '✦', 'Sport & Lifestyle', '✦', '118 Pieces', '✦', 'New Arrivals', '✦', 'Luxury Essentials', '✦'];
   return (
-    <div style={{ borderTop: '1px solid rgba(201,168,76,0.18)', borderBottom: '1px solid rgba(201,168,76,0.18)', padding: '1.3rem 0', overflow: 'hidden', background: 'rgba(4,3,2,0.97)', backdropFilter: 'blur(10px)', position: 'relative', zIndex: 2 }}>
+    <div style={{ borderTop: '1px solid rgba(201,168,76,0.3)', borderBottom: '1px solid rgba(201,168,76,0.3)', padding: '1.3rem 0', overflow: 'hidden', background: 'rgba(4,3,2,0.97)', backdropFilter: 'blur(10px)', position: 'relative', zIndex: 2 }}>
       <div style={{ display: 'flex', gap: '3rem', animation: 'rrMarquee 28s linear infinite', width: 'max-content' }}>
         {[...items, ...items].map((t, i) => (
-          <span key={i} style={{ fontSize: '0.53rem', color: t === '✦' ? '#C9A84C' : '#4A4030', letterSpacing: '0.42em', textTransform: 'uppercase', whiteSpace: 'nowrap', fontFamily: 'Montserrat, sans-serif' }}>{t}</span>
+          <span key={i} style={{ fontSize: '0.53rem', color: t === '✦' ? '#C9A84C' : '#9A8860', letterSpacing: '0.42em', textTransform: 'uppercase', whiteSpace: 'nowrap', fontFamily: 'Montserrat, sans-serif' }}>{t}</span>
         ))}
       </div>
     </div>
@@ -682,7 +682,7 @@ function CategoryCard({ cat, index, sectionProgress }) {
         <div style={{
           position: 'relative', overflow: 'hidden',
           background: 'linear-gradient(145deg, rgba(20,14,5,0.98) 0%, rgba(14,10,3,0.98) 100%)',
-          border: '1px solid rgba(201,168,76,0.22)',
+          border: '1px solid rgba(201,168,76,0.3)',
           padding: '2rem 1.2rem 1.8rem',
           transform: `translateY(${enterY}px)`,
           opacity: enterOp,
@@ -692,25 +692,25 @@ function CategoryCard({ cat, index, sectionProgress }) {
           flexDirection: 'column',
           justifyContent: 'space-between',
         }}>
-          <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 30% 0%, rgba(201,168,76,0.08) 0%, transparent 60%)', pointerEvents: 'none' }} />
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(201,168,76,0.5) 50%, transparent)' }} />
+          <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 30% 0%, rgba(201,168,76,0.1) 0%, transparent 60%)', pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(201,168,76,0.7) 50%, transparent)' }} />
           {[['top', 'left'], ['top', 'right'], ['bottom', 'left'], ['bottom', 'right']].map(([v, h], ci) => (
             <div key={ci} style={{
               position: 'absolute', [v]: 0, [h]: 0,
               width: '20px', height: '20px',
-              borderTop: v === 'top' ? '1px solid rgba(201,168,76,0.55)' : 'none',
-              borderBottom: v === 'bottom' ? '1px solid rgba(201,168,76,0.55)' : 'none',
-              borderLeft: h === 'left' ? '1px solid rgba(201,168,76,0.55)' : 'none',
-              borderRight: h === 'right' ? '1px solid rgba(201,168,76,0.55)' : 'none',
+              borderTop: v === 'top' ? '1px solid rgba(201,168,76,0.7)' : 'none',
+              borderBottom: v === 'bottom' ? '1px solid rgba(201,168,76,0.7)' : 'none',
+              borderLeft: h === 'left' ? '1px solid rgba(201,168,76,0.7)' : 'none',
+              borderRight: h === 'right' ? '1px solid rgba(201,168,76,0.7)' : 'none',
             }} />
           ))}
           <div style={{ position: 'relative', zIndex: 1 }}>
-            <p style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '0.55rem', color: 'rgba(201,168,76,0.5)', letterSpacing: '0.3em', marginBottom: '0.8rem' }}>
+            <p style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '0.55rem', color: 'rgba(201,168,76,0.7)', letterSpacing: '0.3em', marginBottom: '0.8rem' }}>
               {String(index + 1).padStart(2, '0')}
             </p>
             <span style={{ fontSize: '2.2rem', display: 'block', marginBottom: '0.8rem' }}>{cat.icon}</span>
-            <h3 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.4rem', fontWeight: 300, color: '#E8DFC8', marginBottom: '0.5rem' }}>{cat.label}</h3>
-            <p style={{ fontSize: '0.58rem', color: 'rgba(180,160,100,0.7)', letterSpacing: '0.05em', lineHeight: 1.8 }}>{cat.desc}</p>
+            <h3 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.4rem', fontWeight: 300, color: '#F5EFD8', marginBottom: '0.5rem' }}>{cat.label}</h3>
+            <p style={{ fontSize: '0.58rem', color: 'rgba(200,180,120,0.85)', letterSpacing: '0.05em', lineHeight: 1.8 }}>{cat.desc}</p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1.2rem', position: 'relative', zIndex: 1 }}>
             <div style={{ width: '18px', height: '1px', background: '#C9A84C' }} />
@@ -734,34 +734,34 @@ function CategoryCard({ cat, index, sectionProgress }) {
           opacity: enterOp,
           transition: hovered ? 'transform 0.07s ease, box-shadow 0.4s' : 'transform 0.9s cubic-bezier(0.16,1,0.3,1), opacity 0.9s, box-shadow 0.4s',
           willChange: 'transform', position: 'relative', overflow: 'hidden',
-          background: hovered ? 'linear-gradient(135deg, rgba(12,9,4,0.98) 0%, rgba(20,14,5,0.98) 100%)' : 'linear-gradient(135deg, rgba(8,6,3,0.97) 0%, rgba(12,9,4,0.97) 100%)',
-          boxShadow: hovered ? '0 40px 80px rgba(0,0,0,0.7), 0 0 60px rgba(201,168,76,0.08), inset 0 1px 0 rgba(201,168,76,0.15)' : '0 4px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(201,168,76,0.05)',
-          border: `1px solid ${hovered ? 'rgba(201,168,76,0.3)' : 'rgba(201,168,76,0.08)'}`,
+          background: hovered ? 'linear-gradient(135deg, rgba(18,13,5,0.99) 0%, rgba(28,20,6,0.99) 100%)' : 'linear-gradient(135deg, rgba(12,9,4,0.98) 0%, rgba(18,13,5,0.98) 100%)',
+          boxShadow: hovered ? '0 40px 80px rgba(0,0,0,0.7), 0 0 60px rgba(201,168,76,0.1), inset 0 1px 0 rgba(201,168,76,0.2)' : '0 4px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(201,168,76,0.08)',
+          border: `1px solid ${hovered ? 'rgba(201,168,76,0.45)' : 'rgba(201,168,76,0.18)'}`,
           padding: '3.5rem 2.4rem',
           cursor: 'pointer',
         }}
       >
         <div ref={glowRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none', transition: 'background 0.1s', zIndex: 0 }} />
-        <div style={{ position: 'absolute', inset: 0, backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(201,168,76,0.006) 2px, rgba(201,168,76,0.006) 3px)', pointerEvents: 'none', zIndex: 0 }} />
+        <div style={{ position: 'absolute', inset: 0, backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(201,168,76,0.008) 2px, rgba(201,168,76,0.008) 3px)', pointerEvents: 'none', zIndex: 0 }} />
         <div style={{ position: 'absolute', bottom: 0, left: 0, height: '1px', width: hovered ? '100%' : '0%', background: 'linear-gradient(90deg, transparent, #C9A84C 30%, #EDD070 50%, #C9A84C 70%, transparent)', transition: 'width 0.7s cubic-bezier(0.16,1,0.3,1)', zIndex: 1 }} />
         {[['top', 'left'], ['top', 'right'], ['bottom', 'left'], ['bottom', 'right']].map(([v, h], ci) => (
           <div key={ci} style={{
             position: 'absolute', [v]: 0, [h]: 0,
-            width: hovered ? '32px' : '12px', height: hovered ? '32px' : '12px',
-            borderTop: v === 'top' ? `1px solid ${hovered ? '#C9A84C' : 'rgba(201,168,76,0.3)'}` : 'none',
-            borderBottom: v === 'bottom' ? `1px solid ${hovered ? '#C9A84C' : 'rgba(201,168,76,0.3)'}` : 'none',
-            borderLeft: h === 'left' ? `1px solid ${hovered ? '#C9A84C' : 'rgba(201,168,76,0.3)'}` : 'none',
-            borderRight: h === 'right' ? `1px solid ${hovered ? '#C9A84C' : 'rgba(201,168,76,0.3)'}` : 'none',
+            width: hovered ? '32px' : '14px', height: hovered ? '32px' : '14px',
+            borderTop: v === 'top' ? `1px solid ${hovered ? '#C9A84C' : 'rgba(201,168,76,0.5)'}` : 'none',
+            borderBottom: v === 'bottom' ? `1px solid ${hovered ? '#C9A84C' : 'rgba(201,168,76,0.5)'}` : 'none',
+            borderLeft: h === 'left' ? `1px solid ${hovered ? '#C9A84C' : 'rgba(201,168,76,0.5)'}` : 'none',
+            borderRight: h === 'right' ? `1px solid ${hovered ? '#C9A84C' : 'rgba(201,168,76,0.5)'}` : 'none',
             transition: 'all 0.5s cubic-bezier(0.16,1,0.3,1)', zIndex: 1,
           }} />
         ))}
         <div style={{ position: 'relative', zIndex: 2 }}>
-          <p style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '0.6rem', color: hovered ? '#C9A84C' : 'rgba(201,168,76,0.22)', letterSpacing: '0.3em', marginBottom: '1.8rem', transition: 'color 0.4s' }}>
+          <p style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '0.6rem', color: hovered ? '#C9A84C' : 'rgba(201,168,76,0.45)', letterSpacing: '0.3em', marginBottom: '1.8rem', transition: 'color 0.4s' }}>
             {String(index + 1).padStart(2, '0')}
           </p>
           <span style={{ fontSize: '3rem', display: 'block', marginBottom: '1.8rem', transform: hovered ? 'scale(1.15) rotate(-8deg)' : 'scale(1)', transition: 'transform 0.55s cubic-bezier(0.16,1,0.3,1)', filter: hovered ? 'drop-shadow(0 0 16px rgba(201,168,76,0.5))' : 'none' }}>{cat.icon}</span>
-          <h3 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.95rem', fontWeight: 300, color: hovered ? '#FFFFFF' : '#C8BC9E', marginBottom: '0.7rem', transition: 'color 0.3s', textShadow: hovered ? '0 0 40px rgba(255,255,255,0.18)' : 'none' }}>{cat.label}</h3>
-          <p style={{ fontSize: '0.6rem', color: hovered ? 'rgba(201,168,76,0.5)' : 'rgba(100,90,70,0.8)', letterSpacing: '0.1em', lineHeight: 2, transition: 'color 0.3s' }}>{cat.desc}</p>
+          <h3 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.95rem', fontWeight: 300, color: hovered ? '#FFFFFF' : '#E8DEC0', marginBottom: '0.7rem', transition: 'color 0.3s', textShadow: hovered ? '0 0 40px rgba(255,255,255,0.18)' : 'none' }}>{cat.label}</h3>
+          <p style={{ fontSize: '0.6rem', color: hovered ? 'rgba(201,168,76,0.65)' : 'rgba(180,160,110,0.9)', letterSpacing: '0.1em', lineHeight: 2, transition: 'color 0.3s' }}>{cat.desc}</p>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginTop: '2rem', opacity: hovered ? 1 : 0, transform: hovered ? 'translateX(0)' : 'translateX(-14px)', transition: 'all 0.45s cubic-bezier(0.16,1,0.3,1)' }}>
             <div style={{ width: '22px', height: '1px', background: '#C9A84C' }} />
             <span style={{ fontSize: '0.5rem', color: '#C9A84C', letterSpacing: '0.35em', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif' }}>Explore</span>
@@ -805,30 +805,30 @@ function ValueCard({ value, index, sectionProgress }) {
       <div style={{
         position: 'relative', overflow: 'hidden', textAlign: 'center',
         background: 'linear-gradient(145deg, rgba(20,14,5,0.98) 0%, rgba(14,10,3,0.98) 100%)',
-        border: '1px solid rgba(201,168,76,0.22)',
+        border: '1px solid rgba(201,168,76,0.3)',
         padding: '2.5rem 1.5rem',
         transform: `translateY(${entryY}px)`,
         opacity: cardP,
         transition: 'transform 0.9s cubic-bezier(0.16,1,0.3,1), opacity 0.9s',
       }}>
-        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 0%, rgba(201,168,76,0.07) 0%, transparent 65%)', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(201,168,76,0.5) 50%, transparent)' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 0%, rgba(201,168,76,0.09) 0%, transparent 65%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(201,168,76,0.7) 50%, transparent)' }} />
         {[['top', 'left'], ['top', 'right'], ['bottom', 'left'], ['bottom', 'right']].map(([v, h], ci) => (
           <div key={ci} style={{
             position: 'absolute', [v]: 0, [h]: 0,
             width: '20px', height: '20px',
-            borderTop: v === 'top' ? '1px solid rgba(201,168,76,0.55)' : 'none',
-            borderBottom: v === 'bottom' ? '1px solid rgba(201,168,76,0.55)' : 'none',
-            borderLeft: h === 'left' ? '1px solid rgba(201,168,76,0.55)' : 'none',
-            borderRight: h === 'right' ? '1px solid rgba(201,168,76,0.55)' : 'none',
+            borderTop: v === 'top' ? '1px solid rgba(201,168,76,0.7)' : 'none',
+            borderBottom: v === 'bottom' ? '1px solid rgba(201,168,76,0.7)' : 'none',
+            borderLeft: h === 'left' ? '1px solid rgba(201,168,76,0.7)' : 'none',
+            borderRight: h === 'right' ? '1px solid rgba(201,168,76,0.7)' : 'none',
           }} />
         ))}
-        <div style={{ position: 'absolute', top: '-0.8rem', right: '0.8rem', fontFamily: 'Cormorant Garamond, serif', fontSize: '4rem', fontWeight: 300, color: 'rgba(201,168,76,0.07)', userSelect: 'none', pointerEvents: 'none' }}>{romans[index]}</div>
+        <div style={{ position: 'absolute', top: '-0.8rem', right: '0.8rem', fontFamily: 'Cormorant Garamond, serif', fontSize: '4rem', fontWeight: 300, color: 'rgba(201,168,76,0.09)', userSelect: 'none', pointerEvents: 'none' }}>{romans[index]}</div>
         <div style={{ position: 'relative', zIndex: 1 }}>
           <div style={{ fontSize: '1.4rem', color: '#C9A84C', marginBottom: '1.2rem', display: 'block' }}>{icons[index]}</div>
           <div style={{ width: '40px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: '0 auto 1.4rem' }} />
-          <h3 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.4rem', fontWeight: 300, color: '#E8DFC8', marginBottom: '0.8rem', letterSpacing: '0.02em' }}>{value.title}</h3>
-          <p style={{ fontSize: '0.6rem', color: 'rgba(180,160,100,0.7)', lineHeight: 2, letterSpacing: '0.05em' }}>{value.desc}</p>
+          <h3 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.4rem', fontWeight: 300, color: '#F5EFD8', marginBottom: '0.8rem', letterSpacing: '0.02em' }}>{value.title}</h3>
+          <p style={{ fontSize: '0.6rem', color: 'rgba(200,180,120,0.85)', lineHeight: 2, letterSpacing: '0.05em' }}>{value.desc}</p>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginTop: '1.4rem' }}>
             <div style={{ width: '14px', height: '1px', background: '#C9A84C' }} />
             <span style={{ fontSize: '0.44rem', color: '#C9A84C', letterSpacing: '0.3em', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif' }}>Our Commitment</span>
@@ -851,34 +851,34 @@ function ValueCard({ value, index, sectionProgress }) {
         opacity: cardP,
         transition: hovered ? 'transform 0.07s ease, box-shadow 0.4s' : 'transform 0.9s cubic-bezier(0.16,1,0.3,1), opacity 0.9s, box-shadow 0.4s',
         willChange: 'transform', position: 'relative', overflow: 'hidden', textAlign: 'center',
-        background: hovered ? 'linear-gradient(135deg, rgba(14,10,4,0.96) 0%, rgba(22,16,5,0.96) 100%)' : 'linear-gradient(135deg, rgba(6,5,2,0.85) 0%, rgba(10,8,3,0.85) 100%)',
+        background: hovered ? 'linear-gradient(135deg, rgba(18,13,5,0.98) 0%, rgba(28,20,6,0.98) 100%)' : 'linear-gradient(135deg, rgba(10,8,3,0.95) 0%, rgba(16,12,4,0.95) 100%)',
         backdropFilter: 'blur(16px)',
-        boxShadow: hovered ? '0 40px 80px rgba(0,0,0,0.8), 0 0 60px rgba(201,168,76,0.07), inset 0 1px 0 rgba(201,168,76,0.12)' : '0 4px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(201,168,76,0.04)',
-        border: `1px solid ${hovered ? 'rgba(201,168,76,0.28)' : 'rgba(201,168,76,0.07)'}`,
+        boxShadow: hovered ? '0 40px 80px rgba(0,0,0,0.8), 0 0 60px rgba(201,168,76,0.09), inset 0 1px 0 rgba(201,168,76,0.18)' : '0 4px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(201,168,76,0.07)',
+        border: `1px solid ${hovered ? 'rgba(201,168,76,0.42)' : 'rgba(201,168,76,0.16)'}`,
         padding: '3.8rem 2.2rem',
         cursor: 'default',
       }}
     >
       <div ref={glowRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0 }} />
-      <div style={{ position: 'absolute', inset: 0, backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(201,168,76,0.005) 2px, rgba(201,168,76,0.005) 3px)', pointerEvents: 'none', zIndex: 0 }} />
+      <div style={{ position: 'absolute', inset: 0, backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(201,168,76,0.006) 2px, rgba(201,168,76,0.006) 3px)', pointerEvents: 'none', zIndex: 0 }} />
       <div style={{ position: 'absolute', bottom: 0, left: 0, height: '1px', width: hovered ? '100%' : '0%', background: 'linear-gradient(90deg, transparent, #C9A84C 30%, #EDD070 50%, #C9A84C 70%, transparent)', transition: 'width 0.7s cubic-bezier(0.16,1,0.3,1)', zIndex: 1 }} />
       {[['top', 'left'], ['top', 'right'], ['bottom', 'left'], ['bottom', 'right']].map(([v, h], ci) => (
         <div key={ci} style={{
           position: 'absolute', [v]: 0, [h]: 0,
-          width: hovered ? '28px' : '10px', height: hovered ? '28px' : '10px',
-          borderTop: v === 'top' ? `1px solid ${hovered ? '#C9A84C' : 'rgba(201,168,76,0.25)'}` : 'none',
-          borderBottom: v === 'bottom' ? `1px solid ${hovered ? '#C9A84C' : 'rgba(201,168,76,0.25)'}` : 'none',
-          borderLeft: h === 'left' ? `1px solid ${hovered ? '#C9A84C' : 'rgba(201,168,76,0.25)'}` : 'none',
-          borderRight: h === 'right' ? `1px solid ${hovered ? '#C9A84C' : 'rgba(201,168,76,0.25)'}` : 'none',
+          width: hovered ? '28px' : '12px', height: hovered ? '28px' : '12px',
+          borderTop: v === 'top' ? `1px solid ${hovered ? '#C9A84C' : 'rgba(201,168,76,0.45)'}` : 'none',
+          borderBottom: v === 'bottom' ? `1px solid ${hovered ? '#C9A84C' : 'rgba(201,168,76,0.45)'}` : 'none',
+          borderLeft: h === 'left' ? `1px solid ${hovered ? '#C9A84C' : 'rgba(201,168,76,0.45)'}` : 'none',
+          borderRight: h === 'right' ? `1px solid ${hovered ? '#C9A84C' : 'rgba(201,168,76,0.45)'}` : 'none',
           transition: 'all 0.5s cubic-bezier(0.16,1,0.3,1)', zIndex: 1,
         }} />
       ))}
-      <div style={{ position: 'absolute', top: '-1rem', right: '1rem', fontFamily: 'Cormorant Garamond, serif', fontSize: '5.5rem', fontWeight: 300, color: hovered ? 'rgba(201,168,76,0.09)' : 'rgba(201,168,76,0.03)', transition: 'color 0.5s', userSelect: 'none', pointerEvents: 'none', zIndex: 0 }}>{romans[index]}</div>
+      <div style={{ position: 'absolute', top: '-1rem', right: '1rem', fontFamily: 'Cormorant Garamond, serif', fontSize: '5.5rem', fontWeight: 300, color: hovered ? 'rgba(201,168,76,0.11)' : 'rgba(201,168,76,0.05)', transition: 'color 0.5s', userSelect: 'none', pointerEvents: 'none', zIndex: 0 }}>{romans[index]}</div>
       <div style={{ position: 'relative', zIndex: 2 }}>
-        <div style={{ fontSize: '1.6rem', color: hovered ? '#C9A84C' : 'rgba(201,168,76,0.3)', marginBottom: '1.6rem', transform: hovered ? 'scale(1.2) rotate(15deg)' : 'scale(1) rotate(0deg)', transition: 'all 0.55s cubic-bezier(0.16,1,0.3,1)', filter: hovered ? 'drop-shadow(0 0 12px rgba(201,168,76,0.6))' : 'none', display: 'block' }}>{icons[index]}</div>
-        <div style={{ width: hovered ? '55px' : '18px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: '0 auto 1.8rem', transition: 'width 0.55s cubic-bezier(0.16,1,0.3,1)' }} />
-        <h3 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.6rem', fontWeight: 300, color: hovered ? '#FFFFFF' : '#C8BC9E', marginBottom: '1rem', transition: 'color 0.3s', textShadow: hovered ? '0 0 40px rgba(255,255,255,0.15)' : 'none', letterSpacing: '0.02em' }}>{value.title}</h3>
-        <p style={{ fontSize: '0.62rem', color: hovered ? 'rgba(201,168,76,0.45)' : 'rgba(100,90,70,0.75)', lineHeight: 2.1, letterSpacing: '0.06em', transition: 'color 0.3s' }}>{value.desc}</p>
+        <div style={{ fontSize: '1.6rem', color: hovered ? '#C9A84C' : 'rgba(201,168,76,0.5)', marginBottom: '1.6rem', transform: hovered ? 'scale(1.2) rotate(15deg)' : 'scale(1) rotate(0deg)', transition: 'all 0.55s cubic-bezier(0.16,1,0.3,1)', filter: hovered ? 'drop-shadow(0 0 12px rgba(201,168,76,0.6))' : 'none', display: 'block' }}>{icons[index]}</div>
+        <div style={{ width: hovered ? '55px' : '20px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: '0 auto 1.8rem', transition: 'width 0.55s cubic-bezier(0.16,1,0.3,1)' }} />
+        <h3 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.6rem', fontWeight: 300, color: hovered ? '#FFFFFF' : '#E8DEC0', marginBottom: '1rem', transition: 'color 0.3s', textShadow: hovered ? '0 0 40px rgba(255,255,255,0.15)' : 'none', letterSpacing: '0.02em' }}>{value.title}</h3>
+        <p style={{ fontSize: '0.62rem', color: hovered ? 'rgba(201,168,76,0.65)' : 'rgba(180,160,110,0.9)', lineHeight: 2.1, letterSpacing: '0.06em', transition: 'color 0.3s' }}>{value.desc}</p>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem', marginTop: '1.8rem', opacity: hovered ? 1 : 0, transform: hovered ? 'translateY(0)' : 'translateY(8px)', transition: 'all 0.45s cubic-bezier(0.16,1,0.3,1)' }}>
           <div style={{ width: '16px', height: '1px', background: '#C9A84C' }} />
           <span style={{ fontSize: '0.46rem', color: '#C9A84C', letterSpacing: '0.38em', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif' }}>Our Commitment</span>
@@ -1041,7 +1041,7 @@ export default function HomePage() {
             position: 'relative', overflow: 'hidden',
           }}
         >
-          <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(201,168,76,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(201,168,76,0.03) 1px, transparent 1px)', backgroundSize: '88px 88px', transform: `perspective(800px) rotateX(${55 + heroScroll * 14}deg) translateZ(-80px) scale(2.2)`, transformOrigin: '50% 100%', opacity: 0.5, zIndex: 1, pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(201,168,76,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(201,168,76,0.04) 1px, transparent 1px)', backgroundSize: '88px 88px', transform: `perspective(800px) rotateX(${55 + heroScroll * 14}deg) translateZ(-80px) scale(2.2)`, transformOrigin: '50% 100%', opacity: 0.6, zIndex: 1, pointerEvents: 'none' }} />
 
           {isMobile ? (
             <>
@@ -1057,13 +1057,24 @@ export default function HomePage() {
                   ].map((word, i) => (
                     <div key={i} style={{ overflow: 'hidden', lineHeight: 1.05 }}>
                       <div style={{ opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'none' : 'translateY(100%)', transition: `opacity 1.2s cubic-bezier(0.16,1,0.3,1) ${word.delay}s, transform 1.2s cubic-bezier(0.16,1,0.3,1) ${word.delay}s` }}>
-                        <span style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(3rem, 16vw, 5rem)', fontWeight: word.gold ? 300 : 400, color: word.gold ? '#C9A84C' : '#FFFFFF', display: 'block', letterSpacing: word.gold ? '-0.02em' : '-0.01em', textShadow: word.gold ? '0 0 80px rgba(201,168,76,0.7), 0 0 160px rgba(201,168,76,0.4)' : '0 0 12px rgba(0,0,0,1), 0 0 24px rgba(0,0,0,1), 0 0 40px rgba(0,0,0,1)', lineHeight: 1.05 }} dangerouslySetInnerHTML={{ __html: word.text }} />
+                        <span style={{
+                          fontFamily: 'Cormorant Garamond, serif',
+                          fontSize: 'clamp(3rem, 16vw, 5rem)',
+                          fontWeight: word.gold ? 300 : 500,
+                          color: word.gold ? '#C9A84C' : '#FFFFFF',
+                          display: 'block',
+                          letterSpacing: word.gold ? '-0.02em' : '-0.01em',
+                          textShadow: word.gold
+                            ? '0 0 60px rgba(201,168,76,0.8), 0 0 120px rgba(201,168,76,0.4), 0 2px 4px rgba(0,0,0,1)'
+                            : '0 0 0px rgba(0,0,0,0), 2px 2px 0 rgba(0,0,0,1), -2px -2px 0 rgba(0,0,0,1), 2px -2px 0 rgba(0,0,0,1), -2px 2px 0 rgba(0,0,0,1), 0 0 20px rgba(0,0,0,1), 0 0 40px rgba(0,0,0,1)',
+                          lineHeight: 1.05,
+                        }} dangerouslySetInnerHTML={{ __html: word.text }} />
                       </div>
                     </div>
                   ))}
                 </div>
                 <div style={{ width: heroVisible ? '70px' : '0px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: '1rem auto', transition: 'width 1.6s cubic-bezier(0.16,1,0.3,1) 0.9s' }} />
-                <p style={{ fontSize: '0.5rem', color: 'rgba(255,255,255,0.8)', letterSpacing: '0.25em', textTransform: 'uppercase', marginBottom: '0', fontFamily: 'Montserrat, sans-serif', fontWeight: 200, opacity: heroVisible ? 1 : 0, transition: 'opacity 1s ease 1.2s' }}>Own the Look · Own the Moment</p>
+                <p style={{ fontSize: '0.5rem', color: 'rgba(255,255,255,0.9)', letterSpacing: '0.25em', textTransform: 'uppercase', marginBottom: '0', fontFamily: 'Montserrat, sans-serif', fontWeight: 300, opacity: heroVisible ? 1 : 0, transition: 'opacity 1s ease 1.2s', textShadow: '0 1px 8px rgba(0,0,0,1)' }}>Own the Look · Own the Moment</p>
                 <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap', marginTop: '5rem', opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'none' : 'translateY(20px)', transition: 'opacity 1s ease 1.5s, transform 1s ease 1.5s' }}>
                   <Link href="/shop" className="rr-btn-primary">Shop the Collection</Link>
                   <Link href="/about" className="rr-btn-outline">Our Story</Link>
@@ -1076,6 +1087,7 @@ export default function HomePage() {
                 <Orb hue={0} hoverIntensity={0.3} rotateOnHover={true} forceHoverState={orbHovered} backgroundColor="#040302" />
               </div>
               <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: '680px', height: '680px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(201,168,76,0.04) 0%, rgba(201,168,76,0.01) 40%, transparent 65%)', pointerEvents: 'none', zIndex: 3, animation: 'rrBloom 4s ease-in-out infinite alternate' }} />
+
               <div style={{ maxWidth: '820px', width: '100%', position: 'relative', zIndex: 4, transform: `translateY(${heroTranslateY}px)`, opacity: heroOpacity, willChange: 'transform, opacity', backfaceVisibility: 'hidden', padding: '2.5rem 4rem' }}>
                 <div style={{ marginBottom: '1.2rem' }}>
                   {[
@@ -1085,19 +1097,34 @@ export default function HomePage() {
                   ].map((word, i) => (
                     <div key={i} style={{ overflow: 'hidden', lineHeight: 1.02 }}>
                       <div style={{ opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'none' : 'translateY(100%)', transition: `opacity 1.2s cubic-bezier(0.16,1,0.3,1) ${word.delay}s, transform 1.2s cubic-bezier(0.16,1,0.3,1) ${word.delay}s` }}>
-                        <span style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(2.4rem, 6.5vw, 5.5rem)', fontWeight: word.gold ? 300 : 400, color: word.gold ? '#C9A84C' : '#FFFFFF', display: 'block', letterSpacing: word.gold ? '-0.02em' : '-0.01em', textShadow: word.gold ? '0 0 80px rgba(201,168,76,0.7), 0 0 160px rgba(201,168,76,0.4)' : '0 0 8px rgba(0,0,0,1), 0 0 16px rgba(0,0,0,1), 0 0 28px rgba(0,0,0,1), 0 0 50px rgba(0,0,0,0.9)', lineHeight: 1.02 }} dangerouslySetInnerHTML={{ __html: word.text }} />
+                        <span style={{
+                          fontFamily: 'Cormorant Garamond, serif',
+                          fontSize: 'clamp(2.4rem, 6.5vw, 5.5rem)',
+                          fontWeight: word.gold ? 300 : 500,
+                          color: word.gold ? '#C9A84C' : '#FFFFFF',
+                          display: 'block',
+                          letterSpacing: word.gold ? '-0.02em' : '-0.01em',
+                          textShadow: word.gold
+                            ? '0 0 60px rgba(201,168,76,0.9), 0 0 120px rgba(201,168,76,0.5), 0 2px 8px rgba(0,0,0,1)'
+                            : '2px 2px 0 rgba(0,0,0,1), -2px -2px 0 rgba(0,0,0,1), 2px -2px 0 rgba(0,0,0,1), -2px 2px 0 rgba(0,0,0,1), 0 0 24px rgba(0,0,0,1), 0 0 48px rgba(0,0,0,0.9), 0 4px 16px rgba(0,0,0,1)',
+                          lineHeight: 1.02,
+                        }} dangerouslySetInnerHTML={{ __html: word.text }} />
                       </div>
                     </div>
                   ))}
                 </div>
+
                 <div style={{ width: heroVisible ? '110px' : '0px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: '2.2rem auto', transition: 'width 1.6s cubic-bezier(0.16,1,0.3,1) 0.9s' }} />
-                <p style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.75)', letterSpacing: '0.42em', textTransform: 'uppercase', marginBottom: '3rem', fontFamily: 'Montserrat, sans-serif', fontWeight: 200, opacity: heroVisible ? 1 : 0, transition: 'opacity 1s ease 1.2s' }}>Own the Look · Own the Moment</p>
+
+                <p style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.92)', letterSpacing: '0.42em', textTransform: 'uppercase', marginBottom: '3rem', fontFamily: 'Montserrat, sans-serif', fontWeight: 300, opacity: heroVisible ? 1 : 0, transition: 'opacity 1s ease 1.2s', textShadow: '0 1px 12px rgba(0,0,0,1), 0 0 30px rgba(0,0,0,0.9)' }}>Own the Look · Own the Moment</p>
+
                 <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap', opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'none' : 'translateY(20px)', transition: 'opacity 1s ease 1.5s, transform 1s ease 1.5s' }}>
                   <Link href="/shop" className="rr-btn-primary">Shop the Collection</Link>
                   <Link href="/about" className="rr-btn-outline">Our Story</Link>
                 </div>
-                <div style={{ marginTop: '3.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.8rem', opacity: heroVisible ? 0.55 : 0, transition: 'opacity 1s ease 2.2s' }}>
-                  <p style={{ fontSize: '0.44rem', color: '#C9A84C', letterSpacing: '0.5em', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif' }}>Scroll</p>
+
+                <div style={{ marginTop: '3.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.8rem', opacity: heroVisible ? 0.7 : 0, transition: 'opacity 1s ease 2.2s' }}>
+                  <p style={{ fontSize: '0.44rem', color: '#C9A84C', letterSpacing: '0.5em', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif', textShadow: '0 0 12px rgba(201,168,76,0.8)' }}>Scroll</p>
                   <div style={{ width: '1px', height: '50px', background: 'linear-gradient(180deg, #C9A84C, transparent)', animation: 'rrScrollPulse 2s ease-in-out infinite' }} />
                 </div>
               </div>
@@ -1113,7 +1140,7 @@ export default function HomePage() {
             <h2 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: isMobile ? 'clamp(2rem, 10vw, 3.5rem)' : 'clamp(2.8rem, 7vw, 5.5rem)', fontWeight: 300, color: '#FFFFFF', textShadow: '0 0 60px rgba(255,255,255,0.07)' }}>Our Collections</h2>
             <div style={{ width: '70px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: '1.8rem auto 0' }} />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fit, minmax(280px, 1fr))', gap: isMobile ? '1px' : '2px', background: 'rgba(201,168,76,0.1)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fit, minmax(280px, 1fr))', gap: isMobile ? '1px' : '2px', background: 'rgba(201,168,76,0.15)' }}>
             {categories.map((cat, i) => <CategoryCard key={cat.label} cat={cat} index={i} sectionProgress={collectionsScroll} />)}
           </div>
         </section>
@@ -1121,8 +1148,8 @@ export default function HomePage() {
         <section
           ref={brandRef}
           style={{
-            borderTop: '1px solid rgba(201,168,76,0.1)',
-            borderBottom: '1px solid rgba(201,168,76,0.1)',
+            borderTop: '1px solid rgba(201,168,76,0.18)',
+            borderBottom: '1px solid rgba(201,168,76,0.18)',
             padding: isMobile ? '6rem 1.5rem' : '11rem 2rem',
             textAlign: 'center',
             position: 'relative',
@@ -1136,9 +1163,9 @@ export default function HomePage() {
           <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
             <LiquidChrome baseColor={[0.1, 0.1, 0.1]} speed={1} amplitude={0.6} interactive={true} />
           </div>
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(4,3,2,0.78)', zIndex: 1, pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(4,3,2,0.82)', zIndex: 1, pointerEvents: 'none' }} />
           {!isMobile && (
-            <div style={{ position: 'absolute', top: '50%', left: '50%', fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(10rem, 28vw, 24rem)', color: 'transparent', WebkitTextStroke: '1px rgba(201,168,76,0.045)', userSelect: 'none', pointerEvents: 'none', whiteSpace: 'nowrap', fontWeight: 300, transform: `translate3d(-50%,-50%,0) rotateX(${brandTilt}deg) scale(${brandScale})`, willChange: 'transform', zIndex: 2 }}>R&amp;R</div>
+            <div style={{ position: 'absolute', top: '50%', left: '50%', fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(10rem, 28vw, 24rem)', color: 'transparent', WebkitTextStroke: '1px rgba(201,168,76,0.06)', userSelect: 'none', pointerEvents: 'none', whiteSpace: 'nowrap', fontWeight: 300, transform: `translate3d(-50%,-50%,0) rotateX(${brandTilt}deg) scale(${brandScale})`, willChange: 'transform', zIndex: 2 }}>R&amp;R</div>
           )}
           <div style={{
             maxWidth: '860px', margin: '0 auto', position: 'relative', zIndex: 3,
@@ -1146,8 +1173,8 @@ export default function HomePage() {
             opacity: isMobile ? 1 : Math.min(1, brandScroll * 3),
             willChange: isMobile ? 'auto' : 'transform, opacity',
           }}>
-            <p style={{ fontSize: '0.55rem', color: '#C9A84C', letterSpacing: '0.6em', textTransform: 'uppercase', marginBottom: '2rem', fontFamily: 'Montserrat, sans-serif', textShadow: '0 0 20px rgba(201,168,76,0.5)' }}>Our Mission</p>
-            <div style={{ position: 'relative', padding: isMobile ? '1.5rem' : '3rem 3.5rem', background: isMobile ? 'rgba(4,3,2,0.9)' : 'rgba(4,3,2,0.65)', border: '1px solid rgba(201,168,76,0.12)', backdropFilter: isMobile ? 'none' : 'blur(12px)', marginBottom: isMobile ? '2rem' : '3.5rem' }}>
+            <p style={{ fontSize: '0.55rem', color: '#C9A84C', letterSpacing: '0.6em', textTransform: 'uppercase', marginBottom: '2rem', fontFamily: 'Montserrat, sans-serif', textShadow: '0 0 20px rgba(201,168,76,0.6)' }}>Our Mission</p>
+            <div style={{ position: 'relative', padding: isMobile ? '1.5rem' : '3rem 3.5rem', background: isMobile ? 'rgba(4,3,2,0.95)' : 'rgba(4,3,2,0.80)', border: '1px solid rgba(201,168,76,0.2)', backdropFilter: isMobile ? 'none' : 'blur(12px)', marginBottom: isMobile ? '2rem' : '3.5rem' }}>
               <h2 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: isMobile ? 'clamp(1.3rem, 4.5vw, 2rem)' : 'clamp(1.8rem, 4vw, 3.2rem)', fontWeight: 300, fontStyle: 'italic', color: '#F5F0E8', lineHeight: 1.7, textShadow: '0 2px 20px rgba(0,0,0,0.9), 0 0 40px rgba(0,0,0,0.8)', margin: 0 }}>
                 "Premium clothing that combines{' '}
                 <span style={{ color: '#EDD070', fontStyle: 'normal', textShadow: '0 0 30px rgba(201,168,76,0.7), 0 2px 20px rgba(0,0,0,0.9)' }}>elegance with comfort</span>,
@@ -1164,12 +1191,12 @@ export default function HomePage() {
             <h2 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: isMobile ? 'clamp(2rem, 10vw, 3.5rem)' : 'clamp(2.8rem, 7vw, 5.5rem)', fontWeight: 300, color: '#FFFFFF', textShadow: '0 0 60px rgba(255,255,255,0.07)' }}>Our Values</h2>
             <div style={{ width: '70px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: '1.8rem auto 0' }} />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fit, minmax(240px, 1fr))', gap: isMobile ? '1px' : '2px', background: 'rgba(201,168,76,0.1)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fit, minmax(240px, 1fr))', gap: isMobile ? '1px' : '2px', background: 'rgba(201,168,76,0.15)' }}>
             {values.map((v, i) => <ValueCard key={v.title} value={v} index={i} sectionProgress={valuesScroll} />)}
           </div>
         </section>
 
-        <section style={{ padding: isMobile ? '7rem 1.5rem' : '14rem 2rem', textAlign: 'center', borderTop: '1px solid rgba(201,168,76,0.1)', position: 'relative', zIndex: 2, overflow: 'hidden' }}>
+        <section style={{ padding: isMobile ? '7rem 1.5rem' : '14rem 2rem', textAlign: 'center', borderTop: '1px solid rgba(201,168,76,0.18)', position: 'relative', zIndex: 2, overflow: 'hidden' }}>
           <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
             <LineWaves speed={0.3} innerLineCount={isMobile ? 30 : 50} warpIntensity={1.6} color1="#C9A84C" color2="#8B6914" brightness={0.8} enableMouseInteraction={!isMobile} mouseInfluence={2.5} />
           </div>
@@ -1186,7 +1213,7 @@ export default function HomePage() {
         </section>
 
         <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Montserrat:wght@200;300;400;500&display=swap');
+          @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Montserrat:wght@200;300;400;500&display=swap');
 
           @media (min-width: 769px) { * { cursor: none !important; } }
 
@@ -1209,15 +1236,33 @@ export default function HomePage() {
             100% { transform: translate(calc(-50% + cos(var(--angle)) * var(--radius) * 3), calc(-50% + sin(var(--angle)) * var(--radius) * 3)) scale(0); opacity: 0; }
           }
 
-          .rr-btn-primary { display: inline-block; padding: 1rem 2.4rem; background: #C9A84C; color: #080604; font-family: 'Montserrat', sans-serif; font-size: 0.57rem; font-weight: 600; letter-spacing: 0.4em; text-transform: uppercase; text-decoration: none; position: relative; overflow: hidden; transition: transform 0.35s cubic-bezier(0.16,1,0.3,1), box-shadow 0.35s; box-shadow: 0 8px 40px rgba(201,168,76,0.3); white-space: nowrap; }
+          .rr-btn-primary {
+            display: inline-block; padding: 1rem 2.4rem;
+            background: #C9A84C; color: #080604;
+            font-family: 'Montserrat', sans-serif; font-size: 0.57rem; font-weight: 700;
+            letter-spacing: 0.4em; text-transform: uppercase; text-decoration: none;
+            position: relative; overflow: hidden;
+            transition: transform 0.35s cubic-bezier(0.16,1,0.3,1), box-shadow 0.35s;
+            box-shadow: 0 8px 40px rgba(201,168,76,0.45), 0 2px 0 rgba(255,220,100,0.3) inset;
+            white-space: nowrap;
+          }
           .rr-btn-primary::before { content: ''; position: absolute; inset: 0; background: #EDD070; transform: translateX(-101%); transition: transform 0.55s cubic-bezier(0.16,1,0.3,1); }
           .rr-btn-primary:hover::before { transform: translateX(0); }
-          .rr-btn-primary:hover { transform: translateY(-5px); box-shadow: 0 25px 60px rgba(201,168,76,0.35); }
+          .rr-btn-primary:hover { transform: translateY(-5px); box-shadow: 0 25px 60px rgba(201,168,76,0.5); }
 
-          .rr-btn-outline { display: inline-block; padding: 1rem 2.4rem; border: 1px solid rgba(201,168,76,0.7); color: #C9A84C; font-family: 'Montserrat', sans-serif; font-size: 0.57rem; font-weight: 300; letter-spacing: 0.4em; text-transform: uppercase; text-decoration: none; position: relative; overflow: hidden; transition: border-color 0.4s, transform 0.35s cubic-bezier(0.16,1,0.3,1), box-shadow 0.35s; white-space: nowrap; }
-          .rr-btn-outline::before { content: ''; position: absolute; inset: 0; background: rgba(201,168,76,0.08); transform: scaleX(0); transform-origin: left; transition: transform 0.55s cubic-bezier(0.16,1,0.3,1); }
+          .rr-btn-outline {
+            display: inline-block; padding: 1rem 2.4rem;
+            border: 1px solid rgba(201,168,76,0.8); color: #C9A84C;
+            font-family: 'Montserrat', sans-serif; font-size: 0.57rem; font-weight: 400;
+            letter-spacing: 0.4em; text-transform: uppercase; text-decoration: none;
+            position: relative; overflow: hidden;
+            transition: border-color 0.4s, transform 0.35s cubic-bezier(0.16,1,0.3,1), box-shadow 0.35s;
+            white-space: nowrap;
+            text-shadow: 0 0 20px rgba(201,168,76,0.4);
+          }
+          .rr-btn-outline::before { content: ''; position: absolute; inset: 0; background: rgba(201,168,76,0.1); transform: scaleX(0); transform-origin: left; transition: transform 0.55s cubic-bezier(0.16,1,0.3,1); }
           .rr-btn-outline:hover::before { transform: scaleX(1); }
-          .rr-btn-outline:hover { border-color: #C9A84C; transform: translateY(-5px); box-shadow: 0 20px 50px rgba(201,168,76,0.15); }
+          .rr-btn-outline:hover { border-color: #C9A84C; transform: translateY(-5px); box-shadow: 0 20px 50px rgba(201,168,76,0.2); }
 
           @media (max-width: 768px) { .rr-btn-primary, .rr-btn-outline { padding: 0.9rem 1.8rem; font-size: 0.54rem; letter-spacing: 0.2em; } }
           @media (max-width: 480px) { .rr-btn-primary, .rr-btn-outline { padding: 0.8rem 1.4rem; font-size: 0.5rem; letter-spacing: 0.18em; } }

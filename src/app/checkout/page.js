@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
+import gsap from 'gsap';
 import * as THREE from 'three';
 import { Effect, EffectComposer, EffectPass, RenderPass } from 'postprocessing';
 
@@ -477,10 +478,231 @@ const PixelBlast = ({
   );
 };
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth <= 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+  return isMobile;
+}
+
+function ClickSpark({ children, sparkColor = '#C9A84C', sparkSize = 8, sparkRadius = 14, sparkCount = 8, duration = 400 }) {
+  const [sparks, setSparks] = useState([]);
+  const handleClick = useCallback((e) => {
+    const id = Date.now() + Math.random();
+    const newSparks = Array.from({ length: sparkCount }, (_, i) => ({
+      id: id + i, x: e.clientX, y: e.clientY, angle: (360 / sparkCount) * i,
+    }));
+    setSparks(prev => [...prev, ...newSparks]);
+    setTimeout(() => setSparks(prev => prev.filter(s => !newSparks.find(ns => ns.id === s.id))), duration);
+  }, [sparkCount, duration]);
+  return (
+    <div onClick={handleClick} style={{ position: 'relative' }}>
+      {children}
+      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 99999 }}>
+        {sparks.map(spark => (
+          <div key={spark.id} style={{
+            position: 'absolute', left: spark.x, top: spark.y,
+            width: sparkSize, height: sparkSize, borderRadius: '50%',
+            background: sparkColor, transform: 'translate(-50%, -50%)',
+            animation: `sparkFly ${duration}ms ease-out forwards`,
+            '--angle': `${spark.angle}deg`, '--radius': `${sparkRadius}px`,
+          }} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TargetCursor({ targetSelector = 'a, button', spinDuration = 2, hideDefaultCursor = true, hoverDuration = 0.2, parallaxOn = true }) {
+  const cursorRef = useRef(null);
+  const cornersRef = useRef(null);
+  const spinTl = useRef(null);
+  const dotRef = useRef(null);
+  const isActiveRef = useRef(false);
+  const targetCornerPositionsRef = useRef(null);
+  const tickerFnRef = useRef(null);
+  const activeStrengthRef = useRef(0);
+
+  const isMobile = React.useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    const hasTouchScreen = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    const isSmallScreen = window.innerWidth <= 768;
+    const ua = navigator.userAgent || navigator.vendor || window.opera;
+    return (hasTouchScreen && isSmallScreen) || /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua.toLowerCase());
+  }, []);
+
+  const constants = React.useMemo(() => ({ borderWidth: 3, cornerSize: 12 }), []);
+
+  const moveCursor = useCallback((x, y) => {
+    if (!cursorRef.current) return;
+    gsap.to(cursorRef.current, { x, y, duration: 0.1, ease: 'power3.out' });
+  }, []);
+
+  useEffect(() => {
+    if (isMobile || !cursorRef.current) return;
+    const originalCursor = document.body.style.cursor;
+    if (hideDefaultCursor) document.body.style.cursor = 'none';
+    const cursor = cursorRef.current;
+    cornersRef.current = cursor.querySelectorAll('.tc-corner');
+    let activeTarget = null;
+    let currentLeaveHandler = null;
+    let resumeTimeout = null;
+    const cleanupTarget = target => {
+      if (currentLeaveHandler) target.removeEventListener('mouseleave', currentLeaveHandler);
+      currentLeaveHandler = null;
+    };
+    gsap.set(cursor, { xPercent: -50, yPercent: -50, x: window.innerWidth / 2, y: window.innerHeight / 2 });
+    const createSpinTimeline = () => {
+      if (spinTl.current) spinTl.current.kill();
+      spinTl.current = gsap.timeline({ repeat: -1 }).to(cursor, { rotation: '+=360', duration: spinDuration, ease: 'none' });
+    };
+    createSpinTimeline();
+    const tickerFn = () => {
+      if (!targetCornerPositionsRef.current || !cursorRef.current || !cornersRef.current) return;
+      const strength = activeStrengthRef.current;
+      if (strength === 0) return;
+      const cursorX = gsap.getProperty(cursorRef.current, 'x');
+      const cursorY = gsap.getProperty(cursorRef.current, 'y');
+      Array.from(cornersRef.current).forEach((corner, i) => {
+        const currentX = gsap.getProperty(corner, 'x');
+        const currentY = gsap.getProperty(corner, 'y');
+        const targetX = targetCornerPositionsRef.current[i].x - cursorX;
+        const targetY = targetCornerPositionsRef.current[i].y - cursorY;
+        const finalX = currentX + (targetX - currentX) * strength;
+        const finalY = currentY + (targetY - currentY) * strength;
+        const duration = strength >= 0.99 ? (parallaxOn ? 0.2 : 0) : 0.05;
+        gsap.to(corner, { x: finalX, y: finalY, duration, ease: duration === 0 ? 'none' : 'power1.out', overwrite: 'auto' });
+      });
+    };
+    tickerFnRef.current = tickerFn;
+    const moveHandler = e => moveCursor(e.clientX, e.clientY);
+    window.addEventListener('mousemove', moveHandler);
+    const scrollHandler = () => {
+      if (!activeTarget || !cursorRef.current) return;
+      const mouseX = gsap.getProperty(cursorRef.current, 'x');
+      const mouseY = gsap.getProperty(cursorRef.current, 'y');
+      const el = document.elementFromPoint(mouseX, mouseY);
+      const stillOver = el && (el === activeTarget || el.closest(targetSelector) === activeTarget);
+      if (!stillOver && currentLeaveHandler) currentLeaveHandler();
+    };
+    window.addEventListener('scroll', scrollHandler, { passive: true });
+    const mouseDownHandler = () => {
+      if (!dotRef.current) return;
+      gsap.to(dotRef.current, { scale: 0.7, duration: 0.3 });
+      gsap.to(cursorRef.current, { scale: 0.9, duration: 0.2 });
+    };
+    const mouseUpHandler = () => {
+      if (!dotRef.current) return;
+      gsap.to(dotRef.current, { scale: 1, duration: 0.3 });
+      gsap.to(cursorRef.current, { scale: 1, duration: 0.2 });
+    };
+    window.addEventListener('mousedown', mouseDownHandler);
+    window.addEventListener('mouseup', mouseUpHandler);
+    const enterHandler = e => {
+      let current = e.target;
+      let target = null;
+      while (current && current !== document.body) {
+        if (current.matches && current.matches(targetSelector)) { target = current; break; }
+        current = current.parentElement;
+      }
+      if (!target || !cursorRef.current || !cornersRef.current) return;
+      if (activeTarget === target) return;
+      if (activeTarget) cleanupTarget(activeTarget);
+      if (resumeTimeout) { clearTimeout(resumeTimeout); resumeTimeout = null; }
+      activeTarget = target;
+      const corners = Array.from(cornersRef.current);
+      corners.forEach(corner => gsap.killTweensOf(corner));
+      gsap.killTweensOf(cursorRef.current, 'rotation');
+      spinTl.current?.pause();
+      gsap.set(cursorRef.current, { rotation: 0 });
+      const rect = target.getBoundingClientRect();
+      const { borderWidth, cornerSize } = constants;
+      const cursorX = gsap.getProperty(cursorRef.current, 'x');
+      const cursorY = gsap.getProperty(cursorRef.current, 'y');
+      targetCornerPositionsRef.current = [
+        { x: rect.left - borderWidth, y: rect.top - borderWidth },
+        { x: rect.right + borderWidth - cornerSize, y: rect.top - borderWidth },
+        { x: rect.right + borderWidth - cornerSize, y: rect.bottom + borderWidth - cornerSize },
+        { x: rect.left - borderWidth, y: rect.bottom + borderWidth - cornerSize },
+      ];
+      isActiveRef.current = true;
+      gsap.ticker.add(tickerFnRef.current);
+      gsap.to(activeStrengthRef, { current: 1, duration: hoverDuration, ease: 'power2.out' });
+      corners.forEach((corner, i) => {
+        gsap.to(corner, { x: targetCornerPositionsRef.current[i].x - cursorX, y: targetCornerPositionsRef.current[i].y - cursorY, duration: 0.2, ease: 'power2.out' });
+      });
+      const leaveHandler = () => {
+        gsap.ticker.remove(tickerFnRef.current);
+        isActiveRef.current = false;
+        targetCornerPositionsRef.current = null;
+        gsap.set(activeStrengthRef, { current: 0, overwrite: true });
+        activeTarget = null;
+        if (cornersRef.current) {
+          const cs = Array.from(cornersRef.current);
+          gsap.killTweensOf(cs);
+          const { cornerSize } = constants;
+          const positions = [
+            { x: -cornerSize * 1.5, y: -cornerSize * 1.5 },
+            { x: cornerSize * 0.5, y: -cornerSize * 1.5 },
+            { x: cornerSize * 0.5, y: cornerSize * 0.5 },
+            { x: -cornerSize * 1.5, y: cornerSize * 0.5 },
+          ];
+          const tl = gsap.timeline();
+          cs.forEach((corner, idx) => tl.to(corner, { x: positions[idx].x, y: positions[idx].y, duration: 0.3, ease: 'power3.out' }, 0));
+        }
+        resumeTimeout = setTimeout(() => {
+          if (!activeTarget && cursorRef.current && spinTl.current) {
+            const norm = gsap.getProperty(cursorRef.current, 'rotation') % 360;
+            spinTl.current.kill();
+            spinTl.current = gsap.timeline({ repeat: -1 }).to(cursorRef.current, { rotation: '+=360', duration: spinDuration, ease: 'none' });
+            gsap.to(cursorRef.current, { rotation: norm + 360, duration: spinDuration * (1 - norm / 360), ease: 'none', onComplete: () => spinTl.current?.restart() });
+          }
+          resumeTimeout = null;
+        }, 50);
+        cleanupTarget(target);
+      };
+      currentLeaveHandler = leaveHandler;
+      target.addEventListener('mouseleave', leaveHandler);
+    };
+    window.addEventListener('mouseover', enterHandler, { passive: true });
+    return () => {
+      if (tickerFnRef.current) gsap.ticker.remove(tickerFnRef.current);
+      window.removeEventListener('mousemove', moveHandler);
+      window.removeEventListener('mouseover', enterHandler);
+      window.removeEventListener('scroll', scrollHandler);
+      window.removeEventListener('mousedown', mouseDownHandler);
+      window.removeEventListener('mouseup', mouseUpHandler);
+      if (activeTarget) cleanupTarget(activeTarget);
+      spinTl.current?.kill();
+      document.body.style.cursor = originalCursor;
+      isActiveRef.current = false;
+      targetCornerPositionsRef.current = null;
+      activeStrengthRef.current = 0;
+    };
+  }, [targetSelector, spinDuration, moveCursor, constants, hideDefaultCursor, isMobile, hoverDuration, parallaxOn]);
+
+  if (isMobile) return null;
+
+  return (
+    <div ref={cursorRef} className="tc-wrapper">
+      <div ref={dotRef} className="tc-dot" />
+      <div className="tc-corner tc-tl" />
+      <div className="tc-corner tc-tr" />
+      <div className="tc-corner tc-br" />
+      <div className="tc-corner tc-bl" />
+    </div>
+  );
+}
+
 export default function CheckoutPage() {
   const [cart, setCart] = useState([]);
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const isMobile = useIsMobile();
   const [form, setForm] = useState({
     firstName: '',
     lastName: '',
@@ -554,215 +776,256 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div style={{ paddingTop: '70px' }}>
-      <section style={{
-        position: 'relative',
-        padding: '6rem 2rem',
-        textAlign: 'center',
-        borderBottom: '1px solid rgba(201,168,76,0.15)',
-        background: '#0A0A0A',
-        overflow: 'hidden',
-      }}>
-        <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
-          <PixelBlast
-            variant="circle"
-            pixelSize={4}
-            color="#C9A84C"
-            patternScale={1.8}
-            patternDensity={0.72}
-            pixelSizeJitter={0.4}
-            enableRipples={true}
-            rippleSpeed={0.25}
-            rippleThickness={0.08}
-            rippleIntensityScale={0.9}
-            edgeFade={0.18}
-            speed={0.18}
-            transparent={true}
-            style={{ width: '100%', height: '100%' }}
+    <ClickSpark sparkColor="#C9A84C" sparkSize={7} sparkRadius={14} sparkCount={8} duration={400}>
+      <>
+        {!isMobile && (
+          <TargetCursor
+            targetSelector="a, button, input, textarea, select"
+            spinDuration={2.4}
+            hideDefaultCursor={true}
+            hoverDuration={0.18}
+            parallaxOn={true}
           />
-        </div>
-        <div style={{
-          position: 'absolute',
-          inset: 0,
-          zIndex: 1,
-          background: 'radial-gradient(ellipse 65% 75% at 50% 50%, rgba(10,10,10,0.82) 0%, rgba(10,10,10,0.1) 100%)',
-          pointerEvents: 'none',
-        }} />
-        <div style={{ position: 'relative', zIndex: 2 }}>
-          <p className="section-label">Final Step</p>
-          <h1 style={{ fontSize: 'clamp(2.5rem, 6vw, 5rem)', color: '#F5F0E8', marginTop: '0.5rem' }}>Checkout</h1>
-          <div className="divider-gold" />
-          <p style={{ fontSize: '0.85rem', color: '#999', maxWidth: '500px', margin: '0 auto', lineHeight: 1.9 }}>
-            Complete your details below and proceed to secure payment via PayFast.
-          </p>
-        </div>
-      </section>
+        )}
 
-      <section style={{ padding: '4rem 2rem 6rem', maxWidth: '1100px', margin: '0 auto' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: '3rem', alignItems: 'start' }}>
-          <div style={{ border: '1px solid rgba(201,168,76,0.2)', padding: '3rem', background: '#0F0F0F' }}>
-            <p className="section-label" style={{ marginBottom: '0.5rem' }}>Your Details</p>
-            <h2 style={{ fontSize: '1.8rem', color: '#F5F0E8', marginBottom: '2rem' }}>Delivery Information</h2>
+        <style>{`
+          @media (min-width: 769px) { * { cursor: none !important; } }
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-              {[
-                { label: 'First Name', name: 'firstName', placeholder: 'Rhea' },
-                { label: 'Last Name', name: 'lastName', placeholder: 'Jugernath' },
-              ].map(f => (
-                <div key={f.name}>
-                  <label style={labelStyle}>{f.label} *</label>
-                  <input
-                    type="text"
-                    name={f.name}
-                    value={form[f.name]}
-                    onChange={handleChange}
-                    placeholder={f.placeholder}
-                    style={inputStyle}
-                    onFocus={e => e.target.style.borderColor = '#C9A84C'}
-                    onBlur={e => e.target.style.borderColor = 'rgba(201,168,76,0.2)'}
-                  />
-                </div>
-              ))}
-            </div>
+          .tc-wrapper { position: fixed; top: 0; left: 0; width: 0; height: 0; pointer-events: none; z-index: 99999; will-change: transform; }
+          .tc-dot { position: absolute; width: 5px; height: 5px; border-radius: 50%; background: #C9A84C; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 8px rgba(201,168,76,0.8), 0 0 16px rgba(201,168,76,0.4); }
+          .tc-corner { position: absolute; width: 12px; height: 12px; border-color: #C9A84C; border-style: solid; border-width: 0; will-change: transform; filter: drop-shadow(0 0 4px rgba(201,168,76,0.6)); }
+          .tc-tl { border-top-width: 2px; border-left-width: 2px; transform: translate(-18px, -18px); }
+          .tc-tr { border-top-width: 2px; border-right-width: 2px; transform: translate(6px, -18px); }
+          .tc-br { border-bottom-width: 2px; border-right-width: 2px; transform: translate(6px, 6px); }
+          .tc-bl { border-bottom-width: 2px; border-left-width: 2px; transform: translate(-18px, 6px); }
 
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={labelStyle}>Email Address *</label>
-              <input
-                type="email"
-                name="email"
-                value={form.email}
-                onChange={handleChange}
-                placeholder="your@email.com"
-                style={inputStyle}
-                onFocus={e => e.target.style.borderColor = '#C9A84C'}
-                onBlur={e => e.target.style.borderColor = 'rgba(201,168,76,0.2)'}
-              />
-            </div>
+          @keyframes sparkFly {
+            0% { transform: translate(-50%,-50%) scale(1); opacity: 1; }
+            100% { transform: translate(calc(-50% + cos(var(--angle)) * var(--radius) * 3), calc(-50% + sin(var(--angle)) * var(--radius) * 3)) scale(0); opacity: 0; }
+          }
 
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={labelStyle}>Phone Number *</label>
-              <input
-                type="tel"
-                name="phone"
-                value={form.phone}
-                onChange={handleChange}
-                placeholder="081 336 5266"
-                style={inputStyle}
-                onFocus={e => e.target.style.borderColor = '#C9A84C'}
-                onBlur={e => e.target.style.borderColor = 'rgba(201,168,76,0.2)'}
-              />
-            </div>
+          @media (max-width: 768px) {
+            .checkout-grid { grid-template-columns: 1fr !important; }
+            .name-grid { grid-template-columns: 1fr !important; }
+            .address-grid { grid-template-columns: 1fr !important; }
+            .order-summary-sticky { position: static !important; }
+            .checkout-form-box { padding: 1.75rem 1.25rem !important; }
+            .checkout-hero { padding: 4rem 1.5rem !important; }
+            .checkout-section { padding: 3rem 1.25rem 5rem !important; }
+          }
+        `}</style>
 
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={labelStyle}>Street Address</label>
-              <input
-                type="text"
-                name="address"
-                value={form.address}
-                onChange={handleChange}
-                placeholder="123 Main Road"
-                style={inputStyle}
-                onFocus={e => e.target.style.borderColor = '#C9A84C'}
-                onBlur={e => e.target.style.borderColor = 'rgba(201,168,76,0.2)'}
-              />
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '2.5rem' }}>
-              {[
-                { label: 'City', name: 'city', placeholder: 'Verulam' },
-                { label: 'Province', name: 'province', placeholder: 'KwaZulu-Natal' },
-                { label: 'Postal Code', name: 'zip', placeholder: '4340' },
-              ].map(f => (
-                <div key={f.name}>
-                  <label style={labelStyle}>{f.label}</label>
-                  <input
-                    type="text"
-                    name={f.name}
-                    value={form[f.name]}
-                    onChange={handleChange}
-                    placeholder={f.placeholder}
-                    style={inputStyle}
-                    onFocus={e => e.target.style.borderColor = '#C9A84C'}
-                    onBlur={e => e.target.style.borderColor = 'rgba(201,168,76,0.2)'}
-                  />
-                </div>
-              ))}
-            </div>
-
-            <div style={{ borderTop: '1px solid rgba(201,168,76,0.1)', paddingTop: '2rem' }}>
-              <p style={{ fontSize: '0.72rem', color: '#555', lineHeight: 1.8, marginBottom: '1.5rem' }}>
-                🔒 You will be redirected to <span style={{ color: '#C9A84C' }}>PayFast</span> to complete secure payment. R&amp;R Agencies never stores your card details.
-              </p>
-              <button
-                onClick={handlePayFast}
-                disabled={loading}
-                className="btn-gold"
-                style={{ width: '100%', cursor: loading ? 'not-allowed' : 'pointer', border: 'none', opacity: loading ? 0.7 : 1 }}
-              >
-                {loading ? 'Redirecting to PayFast...' : `Pay R ${subtotal.toFixed(2)} via PayFast`}
-              </button>
-            </div>
-          </div>
-
-          <div style={{
-            border: '1px solid rgba(201,168,76,0.2)',
-            padding: '2.5rem',
-            background: '#0F0F0F',
-            position: 'sticky',
-            top: '90px',
+        <div style={{ paddingTop: '70px' }}>
+          <section className="checkout-hero" style={{
+            position: 'relative',
+            padding: '6rem 2rem',
+            textAlign: 'center',
+            borderBottom: '1px solid rgba(201,168,76,0.15)',
+            background: '#0A0A0A',
+            overflow: 'hidden',
           }}>
-            <p className="section-label" style={{ marginBottom: '0.5rem' }}>Your Order</p>
-            <h2 style={{ fontSize: '1.5rem', color: '#F5F0E8', marginBottom: '2rem' }}>Summary</h2>
-
-            <div style={{ borderTop: '1px solid rgba(201,168,76,0.1)', paddingTop: '1.5rem' }}>
-              {cart.map(item => (
-                <div key={`${item.id}-${item.size}`} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', alignItems: 'flex-start' }}>
-                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                    {item.imageUrl && (
-                      <img
-                        src={item.imageUrl}
-                        alt={item.name}
-                        style={{ width: '40px', height: '48px', objectFit: 'cover', border: '1px solid rgba(201,168,76,0.15)' }}
-                      />
-                    )}
-                    <div>
-                      <p style={{ fontSize: '0.75rem', color: '#ccc', maxWidth: '160px', lineHeight: 1.4 }}>{item.name}</p>
-                      <p style={{ fontSize: '0.6rem', color: '#555', letterSpacing: '0.1em' }}>Size: {item.size} · Qty: {item.quantity}</p>
-                    </div>
-                  </div>
-                  <p style={{ fontSize: '0.78rem', color: '#888' }}>R {(item.price * item.quantity).toFixed(2)}</p>
-                </div>
-              ))}
+            <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+              <PixelBlast
+                variant="circle"
+                pixelSize={4}
+                color="#C9A84C"
+                patternScale={1.8}
+                patternDensity={0.72}
+                pixelSizeJitter={0.4}
+                enableRipples={true}
+                rippleSpeed={0.25}
+                rippleThickness={0.08}
+                rippleIntensityScale={0.9}
+                edgeFade={0.18}
+                speed={0.18}
+                transparent={true}
+                style={{ width: '100%', height: '100%' }}
+              />
             </div>
-
             <div style={{
-              borderTop: '1px solid rgba(201,168,76,0.15)',
-              paddingTop: '1.5rem',
-              marginTop: '0.5rem',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}>
-              <p style={{ fontSize: '0.65rem', color: '#C9A84C', letterSpacing: '0.2em', textTransform: 'uppercase' }}>Total</p>
-              <p style={{ fontSize: '1.5rem', color: '#C9A84C', fontFamily: 'Cormorant Garamond, serif' }}>
-                R {subtotal.toFixed(2)}
+              position: 'absolute', inset: 0, zIndex: 1,
+              background: 'radial-gradient(ellipse 65% 75% at 50% 50%, rgba(10,10,10,0.82) 0%, rgba(10,10,10,0.1) 100%)',
+              pointerEvents: 'none',
+            }} />
+            <div style={{ position: 'relative', zIndex: 2 }}>
+              <p className="section-label">Final Step</p>
+              <h1 style={{ fontSize: 'clamp(2.5rem, 6vw, 5rem)', color: '#F5F0E8', marginTop: '0.5rem' }}>Checkout</h1>
+              <div className="divider-gold" />
+              <p style={{ fontSize: '0.85rem', color: '#999', maxWidth: '500px', margin: '0 auto', lineHeight: 1.9 }}>
+                Complete your details below and proceed to secure payment via PayFast.
               </p>
             </div>
+          </section>
 
-            <div style={{ marginTop: '1.5rem' }}>
-              <Link
-                href="/cart"
-                style={{ fontSize: '0.65rem', color: '#555', textDecoration: 'none', letterSpacing: '0.1em' }}
-                onMouseEnter={e => e.target.style.color = '#C9A84C'}
-                onMouseLeave={e => e.target.style.color = '#555'}
-              >
-                ← Edit Cart
-              </Link>
+          <section className="checkout-section" style={{ padding: '4rem 2rem 6rem', maxWidth: '1100px', margin: '0 auto' }}>
+            <div className="checkout-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: '3rem', alignItems: 'start' }}>
+
+              <div className="checkout-form-box" style={{ border: '1px solid rgba(201,168,76,0.2)', padding: '3rem', background: '#0F0F0F' }}>
+                <p className="section-label" style={{ marginBottom: '0.5rem' }}>Your Details</p>
+                <h2 style={{ fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', color: '#F5F0E8', marginBottom: '2rem' }}>Delivery Information</h2>
+
+                <div className="name-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+                  {[
+                    { label: 'First Name', name: 'firstName', placeholder: 'Rhea' },
+                    { label: 'Last Name', name: 'lastName', placeholder: 'Jugernath' },
+                  ].map(f => (
+                    <div key={f.name}>
+                      <label style={labelStyle}>{f.label} *</label>
+                      <input
+                        type="text"
+                        name={f.name}
+                        value={form[f.name]}
+                        onChange={handleChange}
+                        placeholder={f.placeholder}
+                        style={inputStyle}
+                        onFocus={e => e.target.style.borderColor = '#C9A84C'}
+                        onBlur={e => e.target.style.borderColor = 'rgba(201,168,76,0.2)'}
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label style={labelStyle}>Email Address *</label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={form.email}
+                    onChange={handleChange}
+                    placeholder="your@email.com"
+                    style={inputStyle}
+                    onFocus={e => e.target.style.borderColor = '#C9A84C'}
+                    onBlur={e => e.target.style.borderColor = 'rgba(201,168,76,0.2)'}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label style={labelStyle}>Phone Number *</label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={form.phone}
+                    onChange={handleChange}
+                    placeholder="081 336 5266"
+                    style={inputStyle}
+                    onFocus={e => e.target.style.borderColor = '#C9A84C'}
+                    onBlur={e => e.target.style.borderColor = 'rgba(201,168,76,0.2)'}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label style={labelStyle}>Street Address</label>
+                  <input
+                    type="text"
+                    name="address"
+                    value={form.address}
+                    onChange={handleChange}
+                    placeholder="123 Main Road"
+                    style={inputStyle}
+                    onFocus={e => e.target.style.borderColor = '#C9A84C'}
+                    onBlur={e => e.target.style.borderColor = 'rgba(201,168,76,0.2)'}
+                  />
+                </div>
+
+                <div className="address-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '2.5rem' }}>
+                  {[
+                    { label: 'City', name: 'city', placeholder: 'Verulam' },
+                    { label: 'Province', name: 'province', placeholder: 'KwaZulu-Natal' },
+                    { label: 'Postal Code', name: 'zip', placeholder: '4340' },
+                  ].map(f => (
+                    <div key={f.name}>
+                      <label style={labelStyle}>{f.label}</label>
+                      <input
+                        type="text"
+                        name={f.name}
+                        value={form[f.name]}
+                        onChange={handleChange}
+                        placeholder={f.placeholder}
+                        style={inputStyle}
+                        onFocus={e => e.target.style.borderColor = '#C9A84C'}
+                        onBlur={e => e.target.style.borderColor = 'rgba(201,168,76,0.2)'}
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ borderTop: '1px solid rgba(201,168,76,0.1)', paddingTop: '2rem' }}>
+                  <p style={{ fontSize: '0.72rem', color: '#555', lineHeight: 1.8, marginBottom: '1.5rem' }}>
+                    🔒 You will be redirected to <span style={{ color: '#C9A84C' }}>PayFast</span> to complete secure payment. R&amp;R Agencies never stores your card details.
+                  </p>
+                  <button
+                    onClick={handlePayFast}
+                    disabled={loading}
+                    className="btn-gold"
+                    style={{ width: '100%', cursor: loading ? 'not-allowed' : 'pointer', border: 'none', opacity: loading ? 0.7 : 1 }}
+                  >
+                    {loading ? 'Redirecting to PayFast...' : `Pay R ${subtotal.toFixed(2)} via PayFast`}
+                  </button>
+                </div>
+              </div>
+
+              <div className="order-summary-sticky" style={{
+                border: '1px solid rgba(201,168,76,0.2)',
+                padding: '2.5rem',
+                background: '#0F0F0F',
+                position: 'sticky',
+                top: '90px',
+              }}>
+                <p className="section-label" style={{ marginBottom: '0.5rem' }}>Your Order</p>
+                <h2 style={{ fontSize: '1.5rem', color: '#F5F0E8', marginBottom: '2rem' }}>Summary</h2>
+
+                <div style={{ borderTop: '1px solid rgba(201,168,76,0.1)', paddingTop: '1.5rem' }}>
+                  {cart.map(item => (
+                    <div key={`${item.id}-${item.size}`} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', alignItems: 'flex-start' }}>
+                      <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                        {item.imageUrl && (
+                          <img
+                            src={item.imageUrl}
+                            alt={item.name}
+                            style={{ width: '40px', height: '48px', objectFit: 'cover', border: '1px solid rgba(201,168,76,0.15)' }}
+                          />
+                        )}
+                        <div>
+                          <p style={{ fontSize: '0.75rem', color: '#ccc', maxWidth: '160px', lineHeight: 1.4 }}>{item.name}</p>
+                          <p style={{ fontSize: '0.6rem', color: '#555', letterSpacing: '0.1em' }}>Size: {item.size} · Qty: {item.quantity}</p>
+                        </div>
+                      </div>
+                      <p style={{ fontSize: '0.78rem', color: '#888' }}>R {(item.price * item.quantity).toFixed(2)}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{
+                  borderTop: '1px solid rgba(201,168,76,0.15)',
+                  paddingTop: '1.5rem',
+                  marginTop: '0.5rem',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}>
+                  <p style={{ fontSize: '0.65rem', color: '#C9A84C', letterSpacing: '0.2em', textTransform: 'uppercase' }}>Total</p>
+                  <p style={{ fontSize: '1.5rem', color: '#C9A84C', fontFamily: 'Cormorant Garamond, serif' }}>
+                    R {subtotal.toFixed(2)}
+                  </p>
+                </div>
+
+                <div style={{ marginTop: '1.5rem' }}>
+                  <Link
+                    href="/cart"
+                    style={{ fontSize: '0.65rem', color: '#555', textDecoration: 'none', letterSpacing: '0.1em' }}
+                    onMouseEnter={e => e.target.style.color = '#C9A84C'}
+                    onMouseLeave={e => e.target.style.color = '#555'}
+                  >
+                    ← Edit Cart
+                  </Link>
+                </div>
+              </div>
+
             </div>
-          </div>
+          </section>
         </div>
-      </section>
-    </div>
+      </>
+    </ClickSpark>
   );
 }
 
@@ -773,6 +1036,7 @@ const labelStyle = {
   color: '#C9A84C',
   display: 'block',
   marginBottom: '0.5rem',
+  fontFamily: 'Montserrat, sans-serif',
 };
 
 const inputStyle = {
@@ -785,4 +1049,5 @@ const inputStyle = {
   fontFamily: 'Montserrat, sans-serif',
   outline: 'none',
   letterSpacing: '0.03em',
+  boxSizing: 'border-box',
 };

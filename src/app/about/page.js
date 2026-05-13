@@ -1075,10 +1075,10 @@ function GlassPanel({ children, index = 0, visible = true, delay = 0, style = {}
   return (
     <div ref={ref} onMouseEnter={() => setHov(true)} onMouseLeave={() => { setHov(false); setMouse({ x: 0, y: 0 }); }} onMouseMove={onMove} style={{ perspective: '800px', ...style }}>
       <div style={{
-        background: hov ? 'rgba(201,168,76,0.055)' : 'rgba(255,255,255,0.022)',
+        background: hov ? 'rgba(201,168,76,0.09)' : 'rgba(255,255,255,0.045)',
         backdropFilter: 'blur(24px)',
         WebkitBackdropFilter: 'blur(24px)',
-        border: '1px solid', borderColor: hov ? 'rgba(201,168,76,0.55)' : 'rgba(255,255,255,0.07)',
+        border: '1px solid', borderColor: hov ? 'rgba(201,168,76,0.65)' : 'rgba(255,255,255,0.13)',
         position: 'relative', overflow: 'hidden',
         transform: `rotateX(${hov ? mouse.y * -16 : 0}deg) rotateY(${hov ? mouse.x * 20 : 0}deg) translateZ(${hov ? 16 : 0}px) translateY(${visible ? 0 : 50}px)`,
         opacity: visible ? 1 : 0,
@@ -1088,7 +1088,7 @@ function GlassPanel({ children, index = 0, visible = true, delay = 0, style = {}
         boxShadow: hov ? '0 40px 100px rgba(0,0,0,0.65), 0 0 0 1px rgba(201,168,76,0.18), inset 0 1px 0 rgba(201,168,76,0.12)' : '0 8px 40px rgba(0,0,0,0.35)',
         cursor: 'default',
       }}>
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: `linear-gradient(90deg,transparent,rgba(201,168,76,${hov ? 0.55 : 0.12}),transparent)`, transition: 'all 0.4s' }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: `linear-gradient(90deg,transparent,rgba(201,168,76,${hov ? 0.65 : 0.2}),transparent)`, transition: 'all 0.4s' }} />
         <div style={{ position: 'absolute', top: 0, left: hov ? '100%' : '-100%', width: '60%', height: '100%', background: 'linear-gradient(90deg,transparent,rgba(201,168,76,0.04),transparent)', transition: 'left 0.8s ease', pointerEvents: 'none' }} />
         {children(hov)}
       </div>
@@ -1111,7 +1111,7 @@ export default function AboutPage() {
   useEffect(() => {
     const t = setTimeout(() => setHeroVis(true), 120);
     const observe = (ref, setter) => {
-      const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setter(true); }, { threshold: 0.12 });
+      const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setter(true); }, { threshold: 0.08 });
       if (ref.current) obs.observe(ref.current);
       return obs;
     };
@@ -1145,7 +1145,7 @@ export default function AboutPage() {
           <FloatingSlab driftY={5} driftX={2} delay={0.3}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '1rem', marginBottom: isMobile ? '1.8rem' : '3rem', opacity: heroVis ? 1 : 0, transform: heroVis ? 'none' : 'translateY(20px)', transition: 'opacity 1s ease 0.2s,transform 1s ease 0.2s' }}>
               <div style={{ width: '28px', height: '1px', background: 'linear-gradient(90deg,transparent,#C9A84C)' }} />
-              <p style={{ fontSize: '0.5rem', color: '#C9A84C', letterSpacing: '0.58em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', fontWeight: 300 }}>Who We Are</p>
+              <p style={{ fontSize: isMobile ? '0.6rem' : '0.5rem', color: '#C9A84C', letterSpacing: '0.58em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', fontWeight: 300 }}>Who We Are</p>
               <div style={{ width: '28px', height: '1px', background: 'linear-gradient(90deg,#C9A84C,transparent)' }} />
             </div>
           </FloatingSlab>
@@ -1171,42 +1171,43 @@ export default function AboutPage() {
             </FloatingSlab>
           </div>
 
-          <div style={{ marginTop: isMobile ? '3rem' : '5rem', opacity: heroVis ? 0.45 : 0, transition: 'opacity 1s ease 2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.8rem' }}>
-            <p style={{ fontSize: '0.43rem', color: '#C9A84C', letterSpacing: '0.5em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif' }}>Drift down</p>
+          <div style={{ marginTop: isMobile ? '3rem' : '5rem', opacity: heroVis ? 0.55 : 0, transition: 'opacity 1s ease 2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.8rem' }}>
+            <p style={{ fontSize: isMobile ? '0.55rem' : '0.43rem', color: '#C9A84C', letterSpacing: '0.5em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif' }}>Drift down</p>
             <div style={{ width: '1px', height: '60px', background: 'linear-gradient(180deg,#C9A84C,transparent)', animation: 'aboutPulse 2s ease-in-out infinite' }} />
           </div>
         </div>
       </BallpitHero>
 
-      <section ref={foundRef} style={{ padding: isMobile ? '6rem 1.5rem' : '10rem 3rem', position: 'relative', zIndex: 2, maxWidth: '1100px', margin: '0 auto' }}>
+      {/* FOUNDERS SECTION */}
+      <section ref={foundRef} style={{ padding: isMobile ? '5rem 1.2rem' : '10rem 3rem', position: 'relative', zIndex: 2, maxWidth: '1100px', margin: '0 auto' }}>
         <FloatingSlab driftY={7} delay={0.2}>
-          <div style={{ textAlign: 'center', marginBottom: '6rem', opacity: foundVis ? 1 : 0, transform: foundVis ? 'none' : 'translateY(30px)', transition: 'opacity 0.9s,transform 0.9s' }}>
+          <div style={{ textAlign: 'center', marginBottom: isMobile ? '3rem' : '6rem', opacity: foundVis ? 1 : 0, transform: foundVis ? 'none' : 'translateY(30px)', transition: 'opacity 0.9s,transform 0.9s' }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '1.5rem', marginBottom: '1rem' }}>
-              <div style={{ width: '45px', height: '1px', background: 'linear-gradient(90deg,transparent,rgba(201,168,76,0.45))' }} />
-              <p style={{ fontSize: '0.49rem', color: 'rgba(201,168,76,0.55)', letterSpacing: '0.5em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif' }}>The Founders</p>
-              <div style={{ width: '45px', height: '1px', background: 'linear-gradient(90deg,rgba(201,168,76,0.45),transparent)' }} />
+              <div style={{ width: '45px', height: '1px', background: 'linear-gradient(90deg,transparent,rgba(201,168,76,0.6))' }} />
+              <p style={{ fontSize: isMobile ? '0.58rem' : '0.49rem', color: 'rgba(201,168,76,0.75)', letterSpacing: '0.5em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif' }}>The Founders</p>
+              <div style={{ width: '45px', height: '1px', background: 'linear-gradient(90deg,rgba(201,168,76,0.6),transparent)' }} />
             </div>
-            <h2 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: 'clamp(2.2rem,5vw,4rem)', fontWeight: 300, color: 'rgba(255,255,255,0.88)' }}>Two Passions, One Vision</h2>
+            <h2 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: isMobile ? 'clamp(1.8rem,7vw,3rem)' : 'clamp(2.2rem,5vw,4rem)', fontWeight: 300, color: 'rgba(255,255,255,0.95)' }}>Two Passions, One Vision</h2>
           </div>
         </FloatingSlab>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '1.5rem' : '2.5rem' }}>
           <FloatingSlab driftY={12} driftX={-4} delay={0}>
             <GlassPanel index={0} visible={foundVis} delay={0.1}>
               {(hov) => (
-                <div style={{ padding: isMobile ? '2rem 1.5rem' : '4rem', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'auto 1fr', gap: isMobile ? '2rem' : '4rem', alignItems: 'center' }}>
+                <div style={{ padding: isMobile ? '2rem 1.4rem' : '4rem', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'auto 1fr', gap: isMobile ? '1.5rem' : '4rem', alignItems: 'center' }}>
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ width: '90px', height: '90px', borderRadius: '50%', border: `1px solid rgba(201,168,76,${hov ? 0.55 : 0.18})`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.2rem', transition: 'border-color 0.4s', position: 'relative' }}>
-                      <span style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: '2.2rem', color: '#C9A84C', fontWeight: 300 }}>01</span>
-                      <div style={{ position: 'absolute', inset: '-8px', borderRadius: '50%', border: `1px solid rgba(201,168,76,${hov ? 0.18 : 0.05})`, transition: 'border-color 0.4s' }} />
+                    <div style={{ width: isMobile ? '70px' : '90px', height: isMobile ? '70px' : '90px', borderRadius: '50%', border: `1px solid rgba(201,168,76,${hov ? 0.7 : 0.35})`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.2rem', transition: 'border-color 0.4s', position: 'relative' }}>
+                      <span style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: isMobile ? '1.6rem' : '2.2rem', color: '#C9A84C', fontWeight: 300 }}>01</span>
+                      <div style={{ position: 'absolute', inset: '-8px', borderRadius: '50%', border: `1px solid rgba(201,168,76,${hov ? 0.25 : 0.1})`, transition: 'border-color 0.4s' }} />
                     </div>
-                    <p style={{ fontSize: '0.46rem', color: 'rgba(201,168,76,0.45)', letterSpacing: '0.3em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', whiteSpace: 'nowrap' }}>Co-Founder</p>
+                    <p style={{ fontSize: isMobile ? '0.55rem' : '0.46rem', color: 'rgba(201,168,76,0.65)', letterSpacing: '0.3em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', whiteSpace: 'nowrap' }}>Co-Founder</p>
                   </div>
                   <div>
-                    <p style={{ fontSize: '0.48rem', color: hov ? 'rgba(201,168,76,0.75)' : 'rgba(201,168,76,0.48)', letterSpacing: '0.38em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', marginBottom: '0.7rem', transition: 'color 0.3s' }}>Sports & Performance</p>
-                    <h3 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: '2.5rem', fontWeight: 300, color: hov ? '#fff' : 'rgba(255,255,255,0.88)', marginBottom: '0.4rem', transition: 'color 0.3s' }}>Romario Govender</h3>
-                    <p style={{ fontSize: '0.53rem', color: '#C9A84C', letterSpacing: '0.18em', fontFamily: 'Montserrat,sans-serif', marginBottom: '1.8rem' }}>Athletic Excellence</p>
-                    <p style={{ fontSize: '0.67rem', color: hov ? 'rgba(255,255,255,0.48)' : 'rgba(255,255,255,0.27)', lineHeight: 2.1, letterSpacing: '0.04em', transition: 'color 0.4s' }}>
+                    <p style={{ fontSize: isMobile ? '0.58rem' : '0.48rem', color: hov ? 'rgba(201,168,76,0.9)' : 'rgba(201,168,76,0.65)', letterSpacing: '0.38em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', marginBottom: '0.7rem', transition: 'color 0.3s' }}>Sports & Performance</p>
+                    <h3 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: isMobile ? '1.8rem' : '2.5rem', fontWeight: 300, color: hov ? '#fff' : 'rgba(255,255,255,0.95)', marginBottom: '0.4rem', transition: 'color 0.3s' }}>Romario Govender</h3>
+                    <p style={{ fontSize: isMobile ? '0.6rem' : '0.53rem', color: '#C9A84C', letterSpacing: '0.18em', fontFamily: 'Montserrat,sans-serif', marginBottom: '1.4rem' }}>Athletic Excellence</p>
+                    <p style={{ fontSize: isMobile ? '0.85rem' : '0.72rem', color: hov ? 'rgba(255,255,255,0.72)' : 'rgba(255,255,255,0.58)', lineHeight: 2.0, letterSpacing: '0.03em', transition: 'color 0.4s' }}>
                       A true athlete at heart, Romario has excelled in nearly every sport imaginable. As a semi-professional golfer, he brings an elite athlete's perspective — ensuring every sportswear piece performs at the highest level.
                     </p>
                   </div>
@@ -1215,24 +1216,24 @@ export default function AboutPage() {
             </GlassPanel>
           </FloatingSlab>
 
-          <FloatingSlab driftY={10} driftX={5} delay={1.2} style={{ alignSelf: 'flex-end', width: '94%' }}>
+          <FloatingSlab driftY={10} driftX={5} delay={1.2} style={{ alignSelf: isMobile ? 'stretch' : 'flex-end', width: isMobile ? '100%' : '94%' }}>
             <GlassPanel index={1} visible={foundVis} delay={0.25}>
               {(hov) => (
-                <div style={{ padding: isMobile ? '2rem 1.5rem' : '4rem', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr auto', gap: isMobile ? '2rem' : '4rem', alignItems: 'center' }}>
-                  <div>
-                    <p style={{ fontSize: '0.48rem', color: hov ? 'rgba(201,168,76,0.75)' : 'rgba(201,168,76,0.48)', letterSpacing: '0.38em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', marginBottom: '0.7rem', transition: 'color 0.3s' }}>Lifestyle & Luxury</p>
-                    <h3 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: '2.5rem', fontWeight: 300, color: hov ? '#fff' : 'rgba(255,255,255,0.88)', marginBottom: '0.4rem', transition: 'color 0.3s' }}>Rhea Jugernath</h3>
-                    <p style={{ fontSize: '0.53rem', color: '#C9A84C', letterSpacing: '0.18em', fontFamily: 'Montserrat,sans-serif', marginBottom: '1.8rem' }}>Style & Sophistication</p>
-                    <p style={{ fontSize: '0.67rem', color: hov ? 'rgba(255,255,255,0.48)' : 'rgba(255,255,255,0.27)', lineHeight: 2.1, letterSpacing: '0.04em', transition: 'color 0.4s' }}>
+                <div style={{ padding: isMobile ? '2rem 1.4rem' : '4rem', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr auto', gap: isMobile ? '1.5rem' : '4rem', alignItems: 'center' }}>
+                  <div style={{ order: isMobile ? 2 : 1 }}>
+                    <p style={{ fontSize: isMobile ? '0.58rem' : '0.48rem', color: hov ? 'rgba(201,168,76,0.9)' : 'rgba(201,168,76,0.65)', letterSpacing: '0.38em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', marginBottom: '0.7rem', transition: 'color 0.3s' }}>Lifestyle & Luxury</p>
+                    <h3 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: isMobile ? '1.8rem' : '2.5rem', fontWeight: 300, color: hov ? '#fff' : 'rgba(255,255,255,0.95)', marginBottom: '0.4rem', transition: 'color 0.3s' }}>Rhea Jugernath</h3>
+                    <p style={{ fontSize: isMobile ? '0.6rem' : '0.53rem', color: '#C9A84C', letterSpacing: '0.18em', fontFamily: 'Montserrat,sans-serif', marginBottom: '1.4rem' }}>Style & Sophistication</p>
+                    <p style={{ fontSize: isMobile ? '0.85rem' : '0.72rem', color: hov ? 'rgba(255,255,255,0.72)' : 'rgba(255,255,255,0.58)', lineHeight: 2.0, letterSpacing: '0.03em', transition: 'color 0.4s' }}>
                       With a passion for fashion and an eye for luxury, Rhea brings the lifestyle element that elevates R&R beyond performance wear — ensuring every collection embodies sophistication, comfort, and timeless style.
                     </p>
                   </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ width: '90px', height: '90px', borderRadius: '50%', border: `1px solid rgba(201,168,76,${hov ? 0.55 : 0.18})`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.2rem', transition: 'border-color 0.4s', position: 'relative' }}>
-                      <span style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: '2.2rem', color: '#C9A84C', fontWeight: 300 }}>02</span>
-                      <div style={{ position: 'absolute', inset: '-8px', borderRadius: '50%', border: `1px solid rgba(201,168,76,${hov ? 0.18 : 0.05})`, transition: 'border-color 0.4s' }} />
+                  <div style={{ textAlign: 'center', order: isMobile ? 1 : 2 }}>
+                    <div style={{ width: isMobile ? '70px' : '90px', height: isMobile ? '70px' : '90px', borderRadius: '50%', border: `1px solid rgba(201,168,76,${hov ? 0.7 : 0.35})`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.2rem', transition: 'border-color 0.4s', position: 'relative' }}>
+                      <span style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: isMobile ? '1.6rem' : '2.2rem', color: '#C9A84C', fontWeight: 300 }}>02</span>
+                      <div style={{ position: 'absolute', inset: '-8px', borderRadius: '50%', border: `1px solid rgba(201,168,76,${hov ? 0.25 : 0.1})`, transition: 'border-color 0.4s' }} />
                     </div>
-                    <p style={{ fontSize: '0.46rem', color: 'rgba(201,168,76,0.45)', letterSpacing: '0.3em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', whiteSpace: 'nowrap' }}>Co-Founder</p>
+                    <p style={{ fontSize: isMobile ? '0.55rem' : '0.46rem', color: 'rgba(201,168,76,0.65)', letterSpacing: '0.3em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', whiteSpace: 'nowrap' }}>Co-Founder</p>
                   </div>
                 </div>
               )}
@@ -1242,8 +1243,8 @@ export default function AboutPage() {
           <FloatingSlab driftY={9} driftX={2} delay={0.6}>
             <GlassPanel index={2} visible={foundVis} delay={0.4}>
               {(hov) => (
-                <div style={{ padding: isMobile ? '2.5rem 1.5rem' : '3.5rem 4rem', textAlign: 'center' }}>
-                  <p style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: 'clamp(1.1rem,2.5vw,1.6rem)', fontWeight: 300, fontStyle: 'italic', color: hov ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.5)', lineHeight: 1.8, transition: 'color 0.4s', maxWidth: '720px', margin: '0 auto' }}>
+                <div style={{ padding: isMobile ? '2rem 1.4rem' : '3.5rem 4rem', textAlign: 'center' }}>
+                  <p style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: isMobile ? 'clamp(1rem,4vw,1.3rem)' : 'clamp(1.1rem,2.5vw,1.6rem)', fontWeight: 300, fontStyle: 'italic', color: hov ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.72)', lineHeight: 1.9, transition: 'color 0.4s', maxWidth: '720px', margin: '0 auto' }}>
                     "Where athletic performance meets everyday elegance — where functionality embraces fashion, and every piece tells the story of{' '}
                     <span style={{ color: '#C9A84C', fontStyle: 'normal' }}>two passions perfectly combined.</span>"
                   </p>
@@ -1254,10 +1255,11 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <section ref={whatRef} style={{ padding: isMobile ? '5rem 1.5rem' : '8rem 3rem', position: 'relative', zIndex: 2, overflow: 'hidden' }}>
+      {/* WHAT SETS US APART SECTION */}
+      <section ref={whatRef} style={{ padding: isMobile ? '5rem 1.2rem' : '8rem 3rem', position: 'relative', zIndex: 2, overflow: 'hidden' }}>
         <DotGrid
-          dotSize={6}
-          gap={28}
+          dotSize={isMobile ? 4 : 6}
+          gap={isMobile ? 22 : 28}
           baseColor="#3d2a05"
           activeColor="#C9A84C"
           proximity={140}
@@ -1266,12 +1268,12 @@ export default function AboutPage() {
         />
         <div style={{ position: 'relative', zIndex: 1, maxWidth: '1100px', margin: '0 auto' }}>
           <FloatingSlab driftY={6} delay={0.2}>
-            <div style={{ textAlign: 'center', marginBottom: '5rem', opacity: whatVis ? 1 : 0, transform: whatVis ? 'none' : 'translateY(30px)', transition: 'opacity 0.9s,transform 0.9s' }}>
-              <h2 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: 'clamp(2rem,5vw,3.8rem)', fontWeight: 300, color: 'rgba(255,255,255,0.88)' }}>What Sets Us Apart</h2>
-              <div style={{ width: '45px', height: '1px', background: '#C9A84C', margin: '1.5rem auto 0' }} />
+            <div style={{ textAlign: 'center', marginBottom: isMobile ? '3rem' : '5rem', opacity: whatVis ? 1 : 0, transform: whatVis ? 'none' : 'translateY(30px)', transition: 'opacity 0.9s,transform 0.9s' }}>
+              <h2 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: isMobile ? 'clamp(1.8rem,7vw,2.8rem)' : 'clamp(2rem,5vw,3.8rem)', fontWeight: 300, color: 'rgba(255,255,255,0.95)' }}>What Sets Us Apart</h2>
+              <div style={{ width: '45px', height: '1px', background: '#C9A84C', margin: '1.2rem auto 0' }} />
             </div>
           </FloatingSlab>
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit,minmax(280px,1fr))', gap: '1.5rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit,minmax(280px,1fr))', gap: isMobile ? '1.2rem' : '1.5rem' }}>
             {[
               { icon: '🧵', title: 'Premium Fabrics', desc: 'Only the finest technical materials, selected for performance and durability.', num: '01' },
               { icon: '🎨', title: 'Contemporary Design', desc: 'Original collections blending athletic functionality with street-style aesthetics.', num: '02' },
@@ -1280,13 +1282,13 @@ export default function AboutPage() {
               <FloatingSlab key={item.title} driftY={8 + i * 3} driftX={i % 2 === 0 ? 4 : -4} delay={i * 0.5}>
                 <GlassPanel index={i} visible={whatVis} delay={i * 0.14}>
                   {(hov) => (
-                    <div style={{ padding: '3rem 2.5rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
-                        <span style={{ fontSize: '2.2rem', transform: hov ? 'translateY(-6px) scale(1.15)' : 'none', transition: 'transform 0.45s cubic-bezier(0.16,1,0.3,1)', display: 'block', filter: hov ? 'drop-shadow(0 8px 16px rgba(201,168,76,0.4))' : 'none' }}>{item.icon}</span>
-                        <span style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: '3rem', color: hov ? 'rgba(201,168,76,0.18)' : 'rgba(201,168,76,0.06)', fontWeight: 300, transition: 'color 0.4s', lineHeight: 1 }}>{item.num}</span>
+                    <div style={{ padding: isMobile ? '2rem 1.5rem' : '3rem 2.5rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: isMobile ? '1.5rem' : '2rem' }}>
+                        <span style={{ fontSize: isMobile ? '2.5rem' : '2.2rem', transform: hov ? 'translateY(-6px) scale(1.15)' : 'none', transition: 'transform 0.45s cubic-bezier(0.16,1,0.3,1)', display: 'block', filter: hov ? 'drop-shadow(0 8px 16px rgba(201,168,76,0.4))' : 'none' }}>{item.icon}</span>
+                        <span style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: isMobile ? '2.5rem' : '3rem', color: hov ? 'rgba(201,168,76,0.28)' : 'rgba(201,168,76,0.15)', fontWeight: 300, transition: 'color 0.4s', lineHeight: 1 }}>{item.num}</span>
                       </div>
-                      <h3 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: '1.5rem', fontWeight: 300, color: hov ? '#fff' : 'rgba(255,255,255,0.78)', marginBottom: '0.8rem', transition: 'color 0.3s' }}>{item.title}</h3>
-                      <p style={{ fontSize: '0.63rem', color: hov ? 'rgba(255,255,255,0.44)' : 'rgba(255,255,255,0.2)', lineHeight: 2, letterSpacing: '0.05em', transition: 'color 0.4s' }}>{item.desc}</p>
+                      <h3 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: isMobile ? '1.6rem' : '1.5rem', fontWeight: 300, color: hov ? '#fff' : 'rgba(255,255,255,0.92)', marginBottom: '0.8rem', transition: 'color 0.3s' }}>{item.title}</h3>
+                      <p style={{ fontSize: isMobile ? '0.9rem' : '0.72rem', color: hov ? 'rgba(255,255,255,0.72)' : 'rgba(255,255,255,0.55)', lineHeight: 1.9, letterSpacing: '0.03em', transition: 'color 0.4s' }}>{item.desc}</p>
                     </div>
                   )}
                 </GlassPanel>
@@ -1296,16 +1298,17 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <section ref={collRef} style={{ padding: isMobile ? '5rem 1.5rem' : '8rem 3rem', position: 'relative', zIndex: 2, maxWidth: '1200px', margin: '0 auto' }}>
+      {/* COLLECTIONS SECTION */}
+      <section ref={collRef} style={{ padding: isMobile ? '5rem 1.2rem' : '8rem 3rem', position: 'relative', zIndex: 2, maxWidth: '1200px', margin: '0 auto' }}>
         <FloatingSlab driftY={7} delay={0.1}>
-          <div style={{ textAlign: 'center', marginBottom: '5rem', opacity: collVis ? 1 : 0, transform: collVis ? 'none' : 'translateY(30px)', transition: 'opacity 0.9s,transform 0.9s' }}>
-            <p style={{ fontSize: '0.49rem', color: 'rgba(201,168,76,0.5)', letterSpacing: '0.5em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', marginBottom: '0.8rem' }}>Collections</p>
-            <h2 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: 'clamp(2rem,5vw,3.8rem)', fontWeight: 300, color: 'rgba(255,255,255,0.88)' }}>
+          <div style={{ textAlign: 'center', marginBottom: isMobile ? '3rem' : '5rem', opacity: collVis ? 1 : 0, transform: collVis ? 'none' : 'translateY(30px)', transition: 'opacity 0.9s,transform 0.9s' }}>
+            <p style={{ fontSize: isMobile ? '0.58rem' : '0.49rem', color: 'rgba(201,168,76,0.7)', letterSpacing: '0.5em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', marginBottom: '0.8rem' }}>Collections</p>
+            <h2 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: isMobile ? 'clamp(1.6rem,6vw,2.8rem)' : 'clamp(2rem,5vw,3.8rem)', fontWeight: 300, color: 'rgba(255,255,255,0.95)', lineHeight: 1.3 }}>
               Designed for Every Aspect<br /><span style={{ color: '#C9A84C', fontStyle: 'italic' }}>of Your Active Life</span>
             </h2>
           </div>
         </FloatingSlab>
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fit,minmax(230px,1fr))', gap: '2px', background: 'rgba(201,168,76,0.04)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fit,minmax(230px,1fr))', gap: isMobile ? '0.8rem' : '2px', background: isMobile ? 'transparent' : 'rgba(201,168,76,0.04)' }}>
           {[
             { tag: 'Sportswear', title: 'Active Performance', desc: 'Technical wear engineered for peak performance.', icon: '⚡' },
             { tag: 'Training', title: 'Essentials', desc: 'Versatile pieces for every workout.', icon: '🔥' },
@@ -1315,14 +1318,14 @@ export default function AboutPage() {
             <FloatingSlab key={col.title} driftY={6 + i * 2} driftX={i % 2 === 0 ? 3 : -3} delay={i * 0.28}>
               <GlassPanel index={i} visible={collVis} delay={i * 0.12}>
                 {(hov) => (
-                  <div style={{ padding: isMobile ? '2rem 1.2rem' : '3rem 2rem' }}>
-                    <p style={{ fontSize: '0.43rem', color: hov ? 'rgba(201,168,76,0.75)' : 'rgba(201,168,76,0.38)', letterSpacing: '0.38em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', marginBottom: '1.5rem', transition: 'color 0.3s' }}>{col.tag}</p>
-                    <span style={{ fontSize: '2rem', display: 'block', marginBottom: '1rem', transform: hov ? 'translateY(-4px)' : 'none', transition: 'transform 0.4s' }}>{col.icon}</span>
-                    <h3 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: isMobile ? '1.3rem' : '1.7rem', fontWeight: 300, color: hov ? '#fff' : 'rgba(255,255,255,0.72)', marginBottom: '0.8rem', transition: 'color 0.3s' }}>{col.title}</h3>
-                    <p style={{ fontSize: '0.6rem', color: hov ? 'rgba(255,255,255,0.38)' : 'rgba(255,255,255,0.18)', lineHeight: 2, transition: 'color 0.4s' }}>{col.desc}</p>
-                    <div style={{ marginTop: '1.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: hov ? 1 : 0, transform: hov ? 'translateX(0)' : 'translateX(-10px)', transition: 'all 0.4s' }}>
+                  <div style={{ padding: isMobile ? '1.8rem 1.2rem' : '3rem 2rem' }}>
+                    <p style={{ fontSize: isMobile ? '0.55rem' : '0.43rem', color: hov ? 'rgba(201,168,76,0.9)' : 'rgba(201,168,76,0.6)', letterSpacing: '0.35em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', marginBottom: '1.2rem', transition: 'color 0.3s' }}>{col.tag}</p>
+                    <span style={{ fontSize: isMobile ? '2rem' : '2rem', display: 'block', marginBottom: '0.8rem', transform: hov ? 'translateY(-4px)' : 'none', transition: 'transform 0.4s' }}>{col.icon}</span>
+                    <h3 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: isMobile ? '1.15rem' : '1.7rem', fontWeight: 300, color: hov ? '#fff' : 'rgba(255,255,255,0.88)', marginBottom: '0.7rem', transition: 'color 0.3s', lineHeight: 1.2 }}>{col.title}</h3>
+                    <p style={{ fontSize: isMobile ? '0.78rem' : '0.65rem', color: hov ? 'rgba(255,255,255,0.62)' : 'rgba(255,255,255,0.45)', lineHeight: 1.8, transition: 'color 0.4s' }}>{col.desc}</p>
+                    <div style={{ marginTop: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: hov ? 1 : 0, transform: hov ? 'translateX(0)' : 'translateX(-10px)', transition: 'all 0.4s' }}>
                       <div style={{ width: '18px', height: '1px', background: '#C9A84C' }} />
-                      <span style={{ fontSize: '0.43rem', color: '#C9A84C', letterSpacing: '0.3em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif' }}>Explore</span>
+                      <span style={{ fontSize: isMobile ? '0.55rem' : '0.43rem', color: '#C9A84C', letterSpacing: '0.3em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif' }}>Explore</span>
                     </div>
                   </div>
                 )}
@@ -1332,11 +1335,12 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <section style={{ padding: isMobile ? '6rem 1.5rem' : '10rem 2rem', position: 'relative', zIndex: 2, textAlign: 'center' }}>
+      {/* CTA SECTION */}
+      <section style={{ padding: isMobile ? '5rem 1.5rem' : '10rem 2rem', position: 'relative', zIndex: 2, textAlign: 'center' }}>
         <FloatingSlab driftY={10} driftX={2} delay={0.5}>
           <div style={{ maxWidth: '750px', margin: '0 auto' }}>
-            <p style={{ fontSize: '0.49rem', color: 'rgba(201,168,76,0.5)', letterSpacing: '0.5em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', marginBottom: '2.5rem' }}>Ready to Explore?</p>
-            <div style={{ display: 'flex', gap: '1.4rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <p style={{ fontSize: isMobile ? '0.6rem' : '0.49rem', color: 'rgba(201,168,76,0.7)', letterSpacing: '0.5em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', marginBottom: '2.5rem' }}>Ready to Explore?</p>
+            <div style={{ display: 'flex', gap: '1.2rem', justifyContent: 'center', flexWrap: 'wrap' }}>
               <Link href="/shop" className="rr-btn-primary">Shop the Collection</Link>
               <Link href="/contact" className="rr-btn-ghost">Get in Touch</Link>
             </div>
@@ -1408,19 +1412,21 @@ export default function AboutPage() {
 
         .rr-btn-ghost {
           display:inline-block; padding:1.1rem 3rem;
-          border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.45);
+          border:1px solid rgba(255,255,255,0.18); color:rgba(255,255,255,0.65);
           font-family:'Montserrat',sans-serif; font-size:0.56rem; font-weight:300;
           letter-spacing:0.4em; text-transform:uppercase; text-decoration:none;
           position:relative; overflow:hidden;
           transition:border-color 0.4s,color 0.4s,transform 0.35s cubic-bezier(0.16,1,0.3,1);
           backdrop-filter:blur(12px);
         }
-        .rr-btn-ghost:hover { border-color:rgba(201,168,76,0.5); color:#C9A84C; transform:translateY(-5px); }
+        .rr-btn-ghost:hover { border-color:rgba(201,168,76,0.6); color:#C9A84C; transform:translateY(-5px); }
 
-        @media (max-width:640px) {
-          div[style*="grid-template-columns: repeat(2, 1fr)"] { grid-template-columns:1fr !important; }
-          div[style*="grid-template-columns: auto 1fr"],
-          div[style*="grid-template-columns: 1fr auto"] { grid-template-columns:1fr !important; }
+        @media (max-width: 768px) {
+          .rr-btn-primary, .rr-btn-ghost {
+            padding: 1rem 2rem;
+            font-size: 0.62rem;
+            letter-spacing: 0.25em;
+          }
         }
       `}</style>
     </div>

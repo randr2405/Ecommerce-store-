@@ -5,7 +5,7 @@ import Link from 'next/link';
 import gsap from 'gsap';
 import * as THREE from 'three';
 import { Effect, EffectComposer, EffectPass, RenderPass } from 'postprocessing';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/lib/context/AuthContext';
 
 const createTouchTexture = () => {
   const size = 64;

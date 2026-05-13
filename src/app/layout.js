@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Toaster } from 'react-hot-toast';
-import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { AuthProvider, useAuth } from '@/lib/context/AuthContext';
 import './globals.css';
 
 function GlobalStyles() {

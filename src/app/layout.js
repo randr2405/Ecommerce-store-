@@ -7,7 +7,6 @@ import './globals.css';
 function GlobalStyles() {
   return (
     <style>{`
-      /* ─── PillNav ─────────────────────────────────────────────────────── */
       .rr-pill-nav {
         position: fixed;
         top: 1.2rem;
@@ -167,58 +166,154 @@ function GlobalStyles() {
       .rr-hamburger--open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
       .rr-hamburger--open span:nth-child(3) { transform: translateY(-5.5px) rotate(-45deg); }
 
-      /* ─── Mobile menu ───────────────────────────────────────────────── */
-      .rr-mobile-menu {
+      /* ─── Bubble Mobile Menu Overlay ───────────────────────────────── */
+      .rr-bubble-overlay {
         display: none;
         position: fixed;
-        top: 5rem;
-        left: 50%;
-        transform: translateX(-50%) translateY(-6px);
-        z-index: 999;
-        background: rgba(10,10,10,0.96);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border: 1px solid rgba(201,168,76,0.2);
-        border-radius: 16px;
-        padding: 1rem 1.5rem;
-        min-width: 200px;
-        box-shadow: 0 8px 40px rgba(0,0,0,0.6);
-        flex-direction: column;
-        gap: 0.2rem;
+        inset: 0;
+        z-index: 998;
+        background: rgba(5,5,5,0.92);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        align-items: center;
+        justify-content: center;
         opacity: 0;
+        transition: opacity 0.35s ease;
         pointer-events: none;
-        transition: opacity 0.2s, transform 0.2s;
       }
-      .rr-mobile-menu--open {
+      .rr-bubble-overlay--visible {
         opacity: 1;
         pointer-events: auto;
-        transform: translateX(-50%) translateY(0);
       }
 
-      .rr-mobile-link {
-        display: block;
-        font-family: 'Montserrat', sans-serif;
-        font-size: 0.75rem;
-        font-weight: 500;
-        letter-spacing: 0.15em;
+      .rr-bubble-grid {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+        padding: 2rem;
+        width: 100%;
+      }
+
+      .rr-bubble-item {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        border-radius: 999px;
+        border: 1px solid rgba(201,168,76,0.2);
+        background: rgba(201,168,76,0.04);
+        padding: 1rem 3rem;
+        width: min(320px, 80vw);
+        position: relative;
+        overflow: hidden;
+        transform: scale(0.75) translateY(20px);
+        opacity: 0;
+        transition:
+          transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
+          opacity 0.35s ease,
+          background 0.25s,
+          border-color 0.25s;
+      }
+
+      .rr-bubble-item--entered {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+      }
+
+      .rr-bubble-item::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, rgba(201,168,76,0.15), transparent 60%);
+        opacity: 0;
+        transition: opacity 0.3s;
+      }
+      .rr-bubble-item:hover::before,
+      .rr-bubble-item--active::before {
+        opacity: 1;
+      }
+      .rr-bubble-item:hover,
+      .rr-bubble-item--active {
+        border-color: rgba(201,168,76,0.55);
+        background: rgba(201,168,76,0.1);
+      }
+
+      .rr-bubble-item-label {
+        font-family: 'Cormorant Garamond', serif;
+        font-size: 1.5rem;
+        font-weight: 600;
+        letter-spacing: 0.2em;
         text-transform: uppercase;
         color: #888;
-        text-decoration: none;
-        padding: 0.6rem 0.5rem;
-        border-radius: 8px;
-        transition: color 0.18s, background 0.18s;
+        transition: color 0.25s;
+        position: relative;
+        z-index: 1;
       }
-      .rr-mobile-link:hover,
-      .rr-mobile-link--active {
-        color: #C9A84C;
-        background: rgba(201,168,76,0.08);
+      .rr-bubble-item:hover .rr-bubble-item-label,
+      .rr-bubble-item--active .rr-bubble-item-label {
+        color: #E8C96D;
+      }
+
+      .rr-bubble-item-dot {
+        position: absolute;
+        right: 1.5rem;
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: #C9A84C;
+        opacity: 0;
+        transform: scale(0);
+        transition: opacity 0.25s, transform 0.25s;
+        z-index: 1;
+      }
+      .rr-bubble-item--active .rr-bubble-item-dot {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      .rr-bubble-close-hint {
+        position: absolute;
+        bottom: 2.5rem;
+        left: 50%;
+        transform: translateX(-50%);
+        font-family: 'Montserrat', sans-serif;
+        font-size: 0.6rem;
+        letter-spacing: 0.25em;
+        text-transform: uppercase;
+        color: #444;
+        opacity: 0;
+        transition: opacity 0.5s ease 0.6s;
+        pointer-events: none;
+      }
+      .rr-bubble-overlay--visible .rr-bubble-close-hint {
+        opacity: 1;
+      }
+
+      .rr-bubble-wordmark {
+        position: absolute;
+        top: 2rem;
+        left: 50%;
+        transform: translateX(-50%);
+        font-family: 'Cormorant Garamond', serif;
+        font-size: 0.85rem;
+        font-weight: 600;
+        letter-spacing: 0.3em;
+        color: rgba(201,168,76,0.3);
+        text-transform: uppercase;
+        white-space: nowrap;
+        opacity: 0;
+        transition: opacity 0.5s ease 0.2s;
+      }
+      .rr-bubble-overlay--visible .rr-bubble-wordmark {
+        opacity: 1;
       }
 
       /* ─── Responsive ────────────────────────────────────────────────── */
       @media (max-width: 768px) {
         .rr-pill-track { display: none; }
         .rr-hamburger { display: flex; }
-        .rr-mobile-menu { display: flex; }
+        .rr-bubble-overlay { display: flex; }
         .rr-pill-nav {
           top: 0.8rem;
           padding: 0.5rem 1rem;
@@ -271,7 +366,9 @@ function PillNav() {
   const [activeHref, setActiveHref] = useState('/');
   const [mobileOpen, setMobileOpen] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState(null);
-  const mobileRef = useRef(null);
+  const [enteredItems, setEnteredItems] = useState([]);
+  const overlayRef = useRef(null);
+  const timerRefs = useRef([]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -295,14 +392,34 @@ function PillNav() {
   }, []);
 
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (mobileRef.current && !mobileRef.current.contains(e.target)) {
-        setMobileOpen(false);
-      }
+    if (mobileOpen) {
+      document.body.style.overflow = 'hidden';
+      timerRefs.current.forEach(t => clearTimeout(t));
+      setEnteredItems([]);
+      NAV_ITEMS.forEach((_, i) => {
+        const t = setTimeout(() => {
+          setEnteredItems(prev => [...prev, i]);
+        }, 80 + i * 80);
+        timerRefs.current[i] = t;
+      });
+    } else {
+      document.body.style.overflow = '';
+      timerRefs.current.forEach(t => clearTimeout(t));
+      setEnteredItems([]);
+    }
+    return () => {
+      document.body.style.overflow = '';
+      timerRefs.current.forEach(t => clearTimeout(t));
     };
-    if (mobileOpen) document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [mobileOpen]);
+
+  useEffect(() => {
+    const handleKey = (e) => {
+      if (e.key === 'Escape') setMobileOpen(false);
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, []);
 
   return (
     <>
@@ -354,17 +471,29 @@ function PillNav() {
         </div>
       </nav>
 
-      <div className={`rr-mobile-menu${mobileOpen ? ' rr-mobile-menu--open' : ''}`} ref={mobileRef}>
-        {NAV_ITEMS.map(item => (
-          <a
-            key={item.href}
-            href={item.href}
-            className={`rr-mobile-link${activeHref === item.href ? ' rr-mobile-link--active' : ''}`}
-            onClick={() => setMobileOpen(false)}
-          >
-            {item.label}
-          </a>
-        ))}
+      <div
+        ref={overlayRef}
+        className={`rr-bubble-overlay${mobileOpen ? ' rr-bubble-overlay--visible' : ''}`}
+        onClick={(e) => { if (e.target === overlayRef.current) setMobileOpen(false); }}
+        aria-hidden={!mobileOpen}
+      >
+        <span className="rr-bubble-wordmark">R&amp;R AGENCIES</span>
+
+        <div className="rr-bubble-grid">
+          {NAV_ITEMS.map((item, i) => (
+            <a
+              key={item.href}
+              href={item.href}
+              className={`rr-bubble-item${enteredItems.includes(i) ? ' rr-bubble-item--entered' : ''}${activeHref === item.href ? ' rr-bubble-item--active' : ''}`}
+              onClick={() => setMobileOpen(false)}
+            >
+              <span className="rr-bubble-item-label">{item.label}</span>
+              <span className="rr-bubble-item-dot" aria-hidden="true" />
+            </a>
+          ))}
+        </div>
+
+        <span className="rr-bubble-close-hint">tap outside to close</span>
       </div>
     </>
   );

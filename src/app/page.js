@@ -252,7 +252,7 @@ function Orb({ hue = 0, hoverIntensity = 0.2, rotateOnHover = true, forceHoverSt
 
     function resize() {
       if (!container) return;
-      const dpr = window.devicePixelRatio || 1;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
       const width = container.clientWidth;
       const height = container.clientHeight;
       renderer.setSize(width * dpr, height * dpr);
@@ -263,47 +263,35 @@ function Orb({ hue = 0, hoverIntensity = 0.2, rotateOnHover = true, forceHoverSt
     window.addEventListener('resize', resize);
     resize();
 
-    let targetHover = 0;
+    let currentHover = 0;
+    let targetHover = forceHoverState ? 1 : 0;
     let lastTime = 0;
     let currentRot = 0;
     const rotationSpeed = 0.3;
 
-    const getUVHover = (clientX, clientY) => {
-      const rect = container.getBoundingClientRect();
-      const x = clientX - rect.left;
-      const y = clientY - rect.top;
-      const width = rect.width;
-      const height = rect.height;
-      const size = Math.min(width, height);
-      const uvX = ((x - width / 2) / size) * 2.0;
-      const uvY = ((y - height / 2) / size) * 2.0;
-      return Math.sqrt(uvX * uvX + uvY * uvY) < 0.8 ? 1 : 0;
+    const handleTouchStart = () => { targetHover = 1; };
+    const handleTouchEnd = () => {
+      setTimeout(() => { targetHover = forceHoverState ? 1 : 0; }, 900);
     };
 
-    const handleMouseMove = (e) => { targetHover = getUVHover(e.clientX, e.clientY); };
-    const handleMouseLeave = () => { targetHover = 0; };
-    const handleTouchStart = (e) => { const t = e.touches[0]; targetHover = getUVHover(t.clientX, t.clientY); };
-    const handleTouchMove = (e) => { const t = e.touches[0]; targetHover = getUVHover(t.clientX, t.clientY); };
-    const handleTouchEnd = () => { setTimeout(() => { targetHover = 0; }, 800); };
-
-    container.addEventListener('mousemove', handleMouseMove);
-    container.addEventListener('mouseleave', handleMouseLeave);
     container.addEventListener('touchstart', handleTouchStart, { passive: true });
-    container.addEventListener('touchmove', handleTouchMove, { passive: true });
     container.addEventListener('touchend', handleTouchEnd, { passive: true });
 
     let rafId;
     const update = (t) => {
       rafId = requestAnimationFrame(update);
-      const dt = (t - lastTime) * 0.001;
+      const dt = Math.min((t - lastTime) * 0.001, 0.05);
       lastTime = t;
       program.uniforms.iTime.value = t * 0.001;
       program.uniforms.hue.value = hue;
       program.uniforms.hoverIntensity.value = hoverIntensity;
       program.uniforms.backgroundColor.value = hexToVec3(backgroundColor);
-      const effectiveHover = forceHoverState ? 1 : targetHover;
-      program.uniforms.hover.value += (effectiveHover - program.uniforms.hover.value) * 0.1;
-      if (rotateOnHover && effectiveHover > 0.5) currentRot += dt * rotationSpeed;
+
+      const effective = forceHoverState ? 1 : targetHover;
+      currentHover += (effective - currentHover) * 0.06;
+      program.uniforms.hover.value = currentHover;
+
+      if (rotateOnHover && effective > 0.5) currentRot += dt * rotationSpeed;
       program.uniforms.rot.value = currentRot;
       renderer.render({ scene: mesh });
     };
@@ -312,10 +300,7 @@ function Orb({ hue = 0, hoverIntensity = 0.2, rotateOnHover = true, forceHoverSt
     return () => {
       cancelAnimationFrame(rafId);
       window.removeEventListener('resize', resize);
-      container.removeEventListener('mousemove', handleMouseMove);
-      container.removeEventListener('mouseleave', handleMouseLeave);
       container.removeEventListener('touchstart', handleTouchStart);
-      container.removeEventListener('touchmove', handleTouchMove);
       container.removeEventListener('touchend', handleTouchEnd);
       if (gl.canvas.parentElement) gl.canvas.parentElement.removeChild(gl.canvas);
       gl.getExtension('WEBGL_lose_context')?.loseContext();
@@ -550,8 +535,9 @@ function TargetCursor({ targetSelector = 'a, button', spinDuration = 2, hideDefa
 function LiquidChrome({ baseColor = [0.1, 0.1, 0.1], speed = 0.2, amplitude = 0.3, frequencyX = 3, frequencyY = 3, interactive = true }) {
   const containerRef = useRef(null);
   const isMobile = useIsMobile();
+
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (isMobile || !containerRef.current) return;
     const container = containerRef.current;
     const renderer = new Renderer({ antialias: true });
     const gl = renderer.gl;
@@ -629,7 +615,7 @@ function LiquidChrome({ baseColor = [0.1, 0.1, 0.1], speed = 0.2, amplitude = 0.
       program.uniforms.uMouse.value[0] = (event.clientX - rect.left) / rect.width;
       program.uniforms.uMouse.value[1] = 1 - (event.clientY - rect.top) / rect.height;
     }
-    if (interactive && !isMobile) container.addEventListener('mousemove', handleMouseMove);
+    if (interactive) container.addEventListener('mousemove', handleMouseMove);
     let animationId;
     function update(t) {
       animationId = requestAnimationFrame(update);
@@ -641,11 +627,21 @@ function LiquidChrome({ baseColor = [0.1, 0.1, 0.1], speed = 0.2, amplitude = 0.
     return () => {
       cancelAnimationFrame(animationId);
       window.removeEventListener('resize', resize);
-      if (interactive && !isMobile) container.removeEventListener('mousemove', handleMouseMove);
+      if (interactive) container.removeEventListener('mousemove', handleMouseMove);
       if (gl.canvas.parentElement) gl.canvas.parentElement.removeChild(gl.canvas);
       gl.getExtension('WEBGL_lose_context')?.loseContext();
     };
   }, [baseColor, speed, amplitude, frequencyX, frequencyY, interactive, isMobile]);
+
+  if (isMobile) {
+    return (
+      <div style={{
+        position: 'absolute', inset: 0,
+        background: 'linear-gradient(135deg, #0a0700 0%, #1a1000 30%, #0d0900 60%, #050300 100%)',
+      }} />
+    );
+  }
+
   return <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }} />;
 }
 
@@ -689,12 +685,57 @@ function CategoryCard({ cat, index, sectionProgress }) {
   const tiltX = (!isMobile && hovered) ? mousePos.y * -18 : 0;
   const tiltY = (!isMobile && hovered) ? mousePos.x * 22 : 0;
 
+  if (isMobile) {
+    return (
+      <Link href={`/shop?category=${cat.label.toLowerCase()}`} style={{ textDecoration: 'none', display: 'block' }}>
+        <div style={{
+          position: 'relative', overflow: 'hidden',
+          background: 'linear-gradient(145deg, rgba(20,14,5,0.98) 0%, rgba(14,10,3,0.98) 100%)',
+          border: '1px solid rgba(201,168,76,0.22)',
+          padding: '2rem 1.2rem 1.8rem',
+          transform: `translateY(${enterY}px)`,
+          opacity: enterOp,
+          transition: 'transform 0.9s cubic-bezier(0.16,1,0.3,1), opacity 0.9s',
+          minHeight: '200px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+        }}>
+          <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 30% 0%, rgba(201,168,76,0.08) 0%, transparent 60%)', pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(201,168,76,0.5) 50%, transparent)' }} />
+          {[['top', 'left'], ['top', 'right'], ['bottom', 'left'], ['bottom', 'right']].map(([v, h], ci) => (
+            <div key={ci} style={{
+              position: 'absolute', [v]: 0, [h]: 0,
+              width: '20px', height: '20px',
+              borderTop: v === 'top' ? '1px solid rgba(201,168,76,0.55)' : 'none',
+              borderBottom: v === 'bottom' ? '1px solid rgba(201,168,76,0.55)' : 'none',
+              borderLeft: h === 'left' ? '1px solid rgba(201,168,76,0.55)' : 'none',
+              borderRight: h === 'right' ? '1px solid rgba(201,168,76,0.55)' : 'none',
+            }} />
+          ))}
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <p style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '0.55rem', color: 'rgba(201,168,76,0.5)', letterSpacing: '0.3em', marginBottom: '0.8rem' }}>
+              {String(index + 1).padStart(2, '0')}
+            </p>
+            <span style={{ fontSize: '2.2rem', display: 'block', marginBottom: '0.8rem' }}>{cat.icon}</span>
+            <h3 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.4rem', fontWeight: 300, color: '#E8DFC8', marginBottom: '0.5rem' }}>{cat.label}</h3>
+            <p style={{ fontSize: '0.58rem', color: 'rgba(180,160,100,0.7)', letterSpacing: '0.05em', lineHeight: 1.8 }}>{cat.desc}</p>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1.2rem', position: 'relative', zIndex: 1 }}>
+            <div style={{ width: '18px', height: '1px', background: '#C9A84C' }} />
+            <span style={{ fontSize: '0.48rem', color: '#C9A84C', letterSpacing: '0.3em', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif' }}>Explore</span>
+          </div>
+        </div>
+      </Link>
+    );
+  }
+
   return (
     <Link href={`/shop?category=${cat.label.toLowerCase()}`} style={{ textDecoration: 'none', display: 'block' }}>
       <div
         ref={cardRef}
-        onMouseEnter={() => !isMobile && setHovered(true)}
-        onMouseLeave={() => { if (isMobile) return; setHovered(false); setMousePos({ x: 0, y: 0 }); if (glowRef.current) glowRef.current.style.background = 'none'; }}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => { setHovered(false); setMousePos({ x: 0, y: 0 }); if (glowRef.current) glowRef.current.style.background = 'none'; }}
         onMouseMove={handleMouseMove}
         style={{
           perspective: '900px', transformStyle: 'preserve-3d',
@@ -705,8 +746,8 @@ function CategoryCard({ cat, index, sectionProgress }) {
           background: hovered ? 'linear-gradient(135deg, rgba(12,9,4,0.98) 0%, rgba(20,14,5,0.98) 100%)' : 'linear-gradient(135deg, rgba(8,6,3,0.97) 0%, rgba(12,9,4,0.97) 100%)',
           boxShadow: hovered ? '0 40px 80px rgba(0,0,0,0.7), 0 0 60px rgba(201,168,76,0.08), inset 0 1px 0 rgba(201,168,76,0.15)' : '0 4px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(201,168,76,0.05)',
           border: `1px solid ${hovered ? 'rgba(201,168,76,0.3)' : 'rgba(201,168,76,0.08)'}`,
-          padding: isMobile ? '2rem 1.5rem' : '3.5rem 2.4rem',
-          cursor: 'pointer', minHeight: isMobile ? 'auto' : undefined,
+          padding: '3.5rem 2.4rem',
+          cursor: 'pointer',
         }}
       >
         <div ref={glowRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none', transition: 'background 0.1s', zIndex: 0 }} />
@@ -724,13 +765,13 @@ function CategoryCard({ cat, index, sectionProgress }) {
           }} />
         ))}
         <div style={{ position: 'relative', zIndex: 2 }}>
-          <p style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '0.6rem', color: hovered ? '#C9A84C' : 'rgba(201,168,76,0.22)', letterSpacing: '0.3em', marginBottom: isMobile ? '1rem' : '1.8rem', transition: 'color 0.4s' }}>
+          <p style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '0.6rem', color: hovered ? '#C9A84C' : 'rgba(201,168,76,0.22)', letterSpacing: '0.3em', marginBottom: '1.8rem', transition: 'color 0.4s' }}>
             {String(index + 1).padStart(2, '0')}
           </p>
-          <span style={{ fontSize: isMobile ? '2rem' : '3rem', display: 'block', marginBottom: isMobile ? '1rem' : '1.8rem', transform: hovered ? 'scale(1.15) rotate(-8deg)' : 'scale(1)', transition: 'transform 0.55s cubic-bezier(0.16,1,0.3,1)', filter: hovered ? 'drop-shadow(0 0 16px rgba(201,168,76,0.5))' : 'none' }}>{cat.icon}</span>
-          <h3 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: isMobile ? '1.4rem' : '1.95rem', fontWeight: 300, color: hovered ? '#FFFFFF' : '#C8BC9E', marginBottom: '0.7rem', transition: 'color 0.3s', textShadow: hovered ? '0 0 40px rgba(255,255,255,0.18)' : 'none' }}>{cat.label}</h3>
+          <span style={{ fontSize: '3rem', display: 'block', marginBottom: '1.8rem', transform: hovered ? 'scale(1.15) rotate(-8deg)' : 'scale(1)', transition: 'transform 0.55s cubic-bezier(0.16,1,0.3,1)', filter: hovered ? 'drop-shadow(0 0 16px rgba(201,168,76,0.5))' : 'none' }}>{cat.icon}</span>
+          <h3 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.95rem', fontWeight: 300, color: hovered ? '#FFFFFF' : '#C8BC9E', marginBottom: '0.7rem', transition: 'color 0.3s', textShadow: hovered ? '0 0 40px rgba(255,255,255,0.18)' : 'none' }}>{cat.label}</h3>
           <p style={{ fontSize: '0.6rem', color: hovered ? 'rgba(201,168,76,0.5)' : 'rgba(100,90,70,0.8)', letterSpacing: '0.1em', lineHeight: 2, transition: 'color 0.3s' }}>{cat.desc}</p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginTop: isMobile ? '1.2rem' : '2rem', opacity: isMobile ? 1 : hovered ? 1 : 0, transform: isMobile ? 'none' : hovered ? 'translateX(0)' : 'translateX(-14px)', transition: 'all 0.45s cubic-bezier(0.16,1,0.3,1)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginTop: '2rem', opacity: hovered ? 1 : 0, transform: hovered ? 'translateX(0)' : 'translateX(-14px)', transition: 'all 0.45s cubic-bezier(0.16,1,0.3,1)' }}>
             <div style={{ width: '22px', height: '1px', background: '#C9A84C' }} />
             <span style={{ fontSize: '0.5rem', color: '#C9A84C', letterSpacing: '0.35em', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif' }}>Explore</span>
           </div>
@@ -768,11 +809,50 @@ function ValueCard({ value, index, sectionProgress }) {
   const tiltX = (!isMobile && hovered) ? mousePos.y * -14 : 0;
   const tiltY = (!isMobile && hovered) ? mousePos.x * 18 : 0;
 
+  if (isMobile) {
+    return (
+      <div style={{
+        position: 'relative', overflow: 'hidden', textAlign: 'center',
+        background: 'linear-gradient(145deg, rgba(20,14,5,0.98) 0%, rgba(14,10,3,0.98) 100%)',
+        border: '1px solid rgba(201,168,76,0.22)',
+        padding: '2.5rem 1.5rem',
+        transform: `translateY(${entryY}px)`,
+        opacity: cardP,
+        transition: 'transform 0.9s cubic-bezier(0.16,1,0.3,1), opacity 0.9s',
+      }}>
+        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 0%, rgba(201,168,76,0.07) 0%, transparent 65%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(201,168,76,0.5) 50%, transparent)' }} />
+        {[['top', 'left'], ['top', 'right'], ['bottom', 'left'], ['bottom', 'right']].map(([v, h], ci) => (
+          <div key={ci} style={{
+            position: 'absolute', [v]: 0, [h]: 0,
+            width: '20px', height: '20px',
+            borderTop: v === 'top' ? '1px solid rgba(201,168,76,0.55)' : 'none',
+            borderBottom: v === 'bottom' ? '1px solid rgba(201,168,76,0.55)' : 'none',
+            borderLeft: h === 'left' ? '1px solid rgba(201,168,76,0.55)' : 'none',
+            borderRight: h === 'right' ? '1px solid rgba(201,168,76,0.55)' : 'none',
+          }} />
+        ))}
+        <div style={{ position: 'absolute', top: '-0.8rem', right: '0.8rem', fontFamily: 'Cormorant Garamond, serif', fontSize: '4rem', fontWeight: 300, color: 'rgba(201,168,76,0.07)', userSelect: 'none', pointerEvents: 'none' }}>{romans[index]}</div>
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <div style={{ fontSize: '1.4rem', color: '#C9A84C', marginBottom: '1.2rem', display: 'block' }}>{icons[index]}</div>
+          <div style={{ width: '40px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: '0 auto 1.4rem' }} />
+          <h3 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.4rem', fontWeight: 300, color: '#E8DFC8', marginBottom: '0.8rem', letterSpacing: '0.02em' }}>{value.title}</h3>
+          <p style={{ fontSize: '0.6rem', color: 'rgba(180,160,100,0.7)', lineHeight: 2, letterSpacing: '0.05em' }}>{value.desc}</p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginTop: '1.4rem' }}>
+            <div style={{ width: '14px', height: '1px', background: '#C9A84C' }} />
+            <span style={{ fontSize: '0.44rem', color: '#C9A84C', letterSpacing: '0.3em', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif' }}>Our Commitment</span>
+            <div style={{ width: '14px', height: '1px', background: '#C9A84C' }} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       ref={cardRef}
-      onMouseEnter={() => !isMobile && setHovered(true)}
-      onMouseLeave={() => { if (isMobile) return; setHovered(false); setMousePos({ x: 0, y: 0 }); if (glowRef.current) glowRef.current.style.background = 'none'; }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => { setHovered(false); setMousePos({ x: 0, y: 0 }); if (glowRef.current) glowRef.current.style.background = 'none'; }}
       onMouseMove={handleMouseMove}
       style={{
         perspective: '900px', transformStyle: 'preserve-3d',
@@ -784,7 +864,7 @@ function ValueCard({ value, index, sectionProgress }) {
         backdropFilter: 'blur(16px)',
         boxShadow: hovered ? '0 40px 80px rgba(0,0,0,0.8), 0 0 60px rgba(201,168,76,0.07), inset 0 1px 0 rgba(201,168,76,0.12)' : '0 4px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(201,168,76,0.04)',
         border: `1px solid ${hovered ? 'rgba(201,168,76,0.28)' : 'rgba(201,168,76,0.07)'}`,
-        padding: isMobile ? '2.5rem 1.5rem' : '3.8rem 2.2rem',
+        padding: '3.8rem 2.2rem',
         cursor: 'default',
       }}
     >
@@ -802,13 +882,13 @@ function ValueCard({ value, index, sectionProgress }) {
           transition: 'all 0.5s cubic-bezier(0.16,1,0.3,1)', zIndex: 1,
         }} />
       ))}
-      <div style={{ position: 'absolute', top: '-1rem', right: '1rem', fontFamily: 'Cormorant Garamond, serif', fontSize: isMobile ? '4rem' : '5.5rem', fontWeight: 300, color: hovered ? 'rgba(201,168,76,0.09)' : 'rgba(201,168,76,0.03)', transition: 'color 0.5s', userSelect: 'none', pointerEvents: 'none', zIndex: 0 }}>{romans[index]}</div>
+      <div style={{ position: 'absolute', top: '-1rem', right: '1rem', fontFamily: 'Cormorant Garamond, serif', fontSize: '5.5rem', fontWeight: 300, color: hovered ? 'rgba(201,168,76,0.09)' : 'rgba(201,168,76,0.03)', transition: 'color 0.5s', userSelect: 'none', pointerEvents: 'none', zIndex: 0 }}>{romans[index]}</div>
       <div style={{ position: 'relative', zIndex: 2 }}>
         <div style={{ fontSize: '1.6rem', color: hovered ? '#C9A84C' : 'rgba(201,168,76,0.3)', marginBottom: '1.6rem', transform: hovered ? 'scale(1.2) rotate(15deg)' : 'scale(1) rotate(0deg)', transition: 'all 0.55s cubic-bezier(0.16,1,0.3,1)', filter: hovered ? 'drop-shadow(0 0 12px rgba(201,168,76,0.6))' : 'none', display: 'block' }}>{icons[index]}</div>
         <div style={{ width: hovered ? '55px' : '18px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: '0 auto 1.8rem', transition: 'width 0.55s cubic-bezier(0.16,1,0.3,1)' }} />
-        <h3 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: isMobile ? '1.4rem' : '1.6rem', fontWeight: 300, color: hovered ? '#FFFFFF' : '#C8BC9E', marginBottom: '1rem', transition: 'color 0.3s', textShadow: hovered ? '0 0 40px rgba(255,255,255,0.15)' : 'none', letterSpacing: '0.02em' }}>{value.title}</h3>
+        <h3 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.6rem', fontWeight: 300, color: hovered ? '#FFFFFF' : '#C8BC9E', marginBottom: '1rem', transition: 'color 0.3s', textShadow: hovered ? '0 0 40px rgba(255,255,255,0.15)' : 'none', letterSpacing: '0.02em' }}>{value.title}</h3>
         <p style={{ fontSize: '0.62rem', color: hovered ? 'rgba(201,168,76,0.45)' : 'rgba(100,90,70,0.75)', lineHeight: 2.1, letterSpacing: '0.06em', transition: 'color 0.3s' }}>{value.desc}</p>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem', marginTop: '1.8rem', opacity: isMobile ? 1 : hovered ? 1 : 0, transform: isMobile ? 'none' : hovered ? 'translateY(0)' : 'translateY(8px)', transition: 'all 0.45s cubic-bezier(0.16,1,0.3,1)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem', marginTop: '1.8rem', opacity: hovered ? 1 : 0, transform: hovered ? 'translateY(0)' : 'translateY(8px)', transition: 'all 0.45s cubic-bezier(0.16,1,0.3,1)' }}>
           <div style={{ width: '16px', height: '1px', background: '#C9A84C' }} />
           <span style={{ fontSize: '0.46rem', color: '#C9A84C', letterSpacing: '0.38em', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif' }}>Our Commitment</span>
           <div style={{ width: '16px', height: '1px', background: '#C9A84C' }} />
@@ -913,7 +993,7 @@ export default function HomePage() {
     if (!isMobile) return;
     if (mobileOrbTimerRef.current) clearTimeout(mobileOrbTimerRef.current);
     setMobileOrbActive(true);
-    mobileOrbTimerRef.current = setTimeout(() => setMobileOrbActive(false), 1200);
+    mobileOrbTimerRef.current = setTimeout(() => setMobileOrbActive(false), 2000);
   }, [isMobile]);
 
   useEffect(() => {
@@ -1042,20 +1122,39 @@ export default function HomePage() {
             <h2 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: isMobile ? 'clamp(2rem, 10vw, 3.5rem)' : 'clamp(2.8rem, 7vw, 5.5rem)', fontWeight: 300, color: '#FFFFFF', textShadow: '0 0 60px rgba(255,255,255,0.07)' }}>Our Collections</h2>
             <div style={{ width: '70px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: '1.8rem auto 0' }} />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2px', background: 'rgba(201,168,76,0.06)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fit, minmax(280px, 1fr))', gap: isMobile ? '1px' : '2px', background: 'rgba(201,168,76,0.1)' }}>
             {categories.map((cat, i) => <CategoryCard key={cat.label} cat={cat} index={i} sectionProgress={collectionsScroll} />)}
           </div>
         </section>
 
-        <section ref={brandRef} style={{ backdropFilter: 'blur(24px)', borderTop: '1px solid rgba(201,168,76,0.1)', borderBottom: '1px solid rgba(201,168,76,0.1)', padding: isMobile ? '6rem 1.5rem' : '11rem 2rem', textAlign: 'center', position: 'relative', zIndex: 2, overflow: 'hidden', perspective: '1200px', minHeight: isMobile ? '400px' : '600px' }}>
+        <section
+          ref={brandRef}
+          style={{
+            borderTop: '1px solid rgba(201,168,76,0.1)',
+            borderBottom: '1px solid rgba(201,168,76,0.1)',
+            padding: isMobile ? '6rem 1.5rem' : '11rem 2rem',
+            textAlign: 'center',
+            position: 'relative',
+            zIndex: 2,
+            overflow: 'hidden',
+            perspective: isMobile ? 'none' : '1200px',
+            minHeight: isMobile ? '400px' : '600px',
+          }}
+        >
           <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
-            <LiquidChrome baseColor={[0.1, 0.1, 0.1]} speed={1} amplitude={0.6} interactive={!isMobile} />
+            <LiquidChrome baseColor={[0.1, 0.1, 0.1]} speed={1} amplitude={0.6} interactive={true} />
           </div>
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(4,3,2,0.78)', zIndex: 1, pointerEvents: 'none' }} />
           {!isMobile && (
             <div style={{ position: 'absolute', top: '50%', left: '50%', fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(10rem, 28vw, 24rem)', color: 'transparent', WebkitTextStroke: '1px rgba(201,168,76,0.045)', userSelect: 'none', pointerEvents: 'none', whiteSpace: 'nowrap', fontWeight: 300, transform: `translate3d(-50%,-50%,0) rotateX(${brandTilt}deg) scale(${brandScale})`, willChange: 'transform', zIndex: 2 }}>R&amp;R</div>
           )}
-          <div style={{ maxWidth: '860px', margin: '0 auto', position: 'relative', zIndex: 3, transform: isMobile ? 'none' : `rotateX(${brandTilt * 0.4}deg) scale(${0.94 + brandScroll * 0.09})`, opacity: isMobile ? 1 : Math.min(1, brandScroll * 3), willChange: 'transform, opacity', backfaceVisibility: 'hidden' }}>
+          <div style={{
+            maxWidth: '860px', margin: '0 auto', position: 'relative', zIndex: 3,
+            transform: isMobile ? 'none' : `rotateX(${brandTilt * 0.4}deg) scale(${0.94 + brandScroll * 0.09})`,
+            opacity: isMobile ? 1 : Math.min(1, brandScroll * 3),
+            willChange: isMobile ? 'auto' : 'transform, opacity',
+            backfaceVisibility: 'hidden',
+          }}>
             <p style={{ fontSize: '0.55rem', color: '#C9A84C', letterSpacing: '0.6em', textTransform: 'uppercase', marginBottom: '2rem', fontFamily: 'Montserrat, sans-serif', textShadow: '0 0 20px rgba(201,168,76,0.5)' }}>Our Mission</p>
             <div style={{ position: 'relative', padding: isMobile ? '1.5rem' : '3rem 3.5rem', background: 'rgba(4,3,2,0.65)', border: '1px solid rgba(201,168,76,0.12)', backdropFilter: 'blur(12px)', marginBottom: isMobile ? '2rem' : '3.5rem' }}>
               <h2 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: isMobile ? 'clamp(1.3rem, 4.5vw, 2rem)' : 'clamp(1.8rem, 4vw, 3.2rem)', fontWeight: 300, fontStyle: 'italic', color: '#F5F0E8', lineHeight: 1.7, textShadow: '0 2px 20px rgba(0,0,0,0.9), 0 0 40px rgba(0,0,0,0.8)', margin: 0 }}>
@@ -1074,7 +1173,7 @@ export default function HomePage() {
             <h2 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: isMobile ? 'clamp(2rem, 10vw, 3.5rem)' : 'clamp(2.8rem, 7vw, 5.5rem)', fontWeight: 300, color: '#FFFFFF', textShadow: '0 0 60px rgba(255,255,255,0.07)' }}>Our Values</h2>
             <div style={{ width: '70px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: '1.8rem auto 0' }} />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fit, minmax(240px, 1fr))', gap: '2px', background: 'rgba(201,168,76,0.05)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fit, minmax(240px, 1fr))', gap: isMobile ? '1px' : '2px', background: 'rgba(201,168,76,0.1)' }}>
             {values.map((v, i) => <ValueCard key={v.title} value={v} index={i} sectionProgress={valuesScroll} />)}
           </div>
         </section>

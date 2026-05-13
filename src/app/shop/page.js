@@ -5,6 +5,7 @@ import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import Link from 'next/link';
 import { Renderer, Triangle, Program, Mesh } from 'ogl';
+import gsap from 'gsap';
 
 function Prism({
   height = 3.5,
@@ -335,137 +336,232 @@ function Prism({
 function PrismHero({ children }) {
   return (
     <div style={{ position: 'relative', overflow: 'hidden', background: '#040302' }}>
-      <div style={{
-        position: 'absolute',
-        left: '-8%',
-        top: 0,
-        bottom: 0,
-        width: '46%',
-        zIndex: 1,
-        pointerEvents: 'none',
-      }}>
-        <Prism
-          animationType="rotate"
-          glow={1.3}
-          noise={0.28}
-          transparent={true}
-          scale={3.8}
-          hueShift={0.18}
-          colorFrequency={1.15}
-          bloom={1.15}
-          timeScale={0.38}
-        />
-        <div style={{
-          position: 'absolute',
-          inset: 0,
-          background: 'linear-gradient(to right, transparent 30%, #040302 100%)',
-          pointerEvents: 'none',
-          zIndex: 2,
-        }} />
+      <div style={{ position: 'absolute', left: '-8%', top: 0, bottom: 0, width: '46%', zIndex: 1, pointerEvents: 'none' }}>
+        <Prism animationType="rotate" glow={1.3} noise={0.28} transparent={true} scale={3.8} hueShift={0.18} colorFrequency={1.15} bloom={1.15} timeScale={0.38} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, transparent 30%, #040302 100%)', pointerEvents: 'none', zIndex: 2 }} />
       </div>
-
-      <div style={{
-        position: 'absolute',
-        right: '-8%',
-        top: 0,
-        bottom: 0,
-        width: '46%',
-        zIndex: 1,
-        pointerEvents: 'none',
-      }}>
-        <Prism
-          animationType="rotate"
-          glow={1.3}
-          noise={0.28}
-          transparent={true}
-          scale={3.8}
-          hueShift={0.95}
-          colorFrequency={1.15}
-          bloom={1.15}
-          timeScale={0.44}
-        />
-        <div style={{
-          position: 'absolute',
-          inset: 0,
-          background: 'linear-gradient(to left, transparent 30%, #040302 100%)',
-          pointerEvents: 'none',
-          zIndex: 2,
-        }} />
+      <div style={{ position: 'absolute', right: '-8%', top: 0, bottom: 0, width: '46%', zIndex: 1, pointerEvents: 'none' }}>
+        <Prism animationType="rotate" glow={1.3} noise={0.28} transparent={true} scale={3.8} hueShift={0.95} colorFrequency={1.15} bloom={1.15} timeScale={0.44} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to left, transparent 30%, #040302 100%)', pointerEvents: 'none', zIndex: 2 }} />
       </div>
-
-      <div style={{
-        position: 'absolute',
-        inset: 0,
-        zIndex: 2,
-        backgroundImage: 'linear-gradient(rgba(201,168,76,0.07) 1px,transparent 1px),linear-gradient(90deg,rgba(201,168,76,0.07) 1px,transparent 1px)',
-        backgroundSize: '80px 80px',
-        transform: 'perspective(700px) rotateX(60deg) translateZ(-60px) scale(2)',
-        transformOrigin: '50% 100%',
-        opacity: 0.5,
-        pointerEvents: 'none',
-        mixBlendMode: 'overlay',
-      }} />
-
-      <div style={{
-        position: 'absolute',
-        inset: 0,
-        zIndex: 3,
-        background: 'radial-gradient(ellipse 55% 75% at 50% 50%, rgba(4,3,2,0.65) 0%, transparent 80%)',
-        pointerEvents: 'none',
-      }} />
-
-      <div style={{
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: '110px',
-        zIndex: 4,
-        background: 'linear-gradient(to bottom, transparent, #040302)',
-        pointerEvents: 'none',
-      }} />
-
+      <div style={{ position: 'absolute', inset: 0, zIndex: 2, backgroundImage: 'linear-gradient(rgba(201,168,76,0.07) 1px,transparent 1px),linear-gradient(90deg,rgba(201,168,76,0.07) 1px,transparent 1px)', backgroundSize: '80px 80px', transform: 'perspective(700px) rotateX(60deg) translateZ(-60px) scale(2)', transformOrigin: '50% 100%', opacity: 0.5, pointerEvents: 'none', mixBlendMode: 'overlay' }} />
+      <div style={{ position: 'absolute', inset: 0, zIndex: 3, background: 'radial-gradient(ellipse 55% 75% at 50% 50%, rgba(4,3,2,0.65) 0%, transparent 80%)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '110px', zIndex: 4, background: 'linear-gradient(to bottom, transparent, #040302)', pointerEvents: 'none' }} />
       <div style={{ position: 'relative', zIndex: 5 }}>{children}</div>
     </div>
   );
 }
 
-function useCursor() {
-  const [pos, setPos] = useState({ x: 0, y: 0 });
-  const [trail, setTrail] = useState({ x: 0, y: 0 });
-  const [visible, setVisible] = useState(false);
-  const [hovered, setHovered] = useState(false);
-  const trailRef = useRef({ x: 0, y: 0 }), posRef = useRef({ x: 0, y: 0 });
+function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth <= 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+  return isMobile;
+}
 
-  useEffect(() => { setIsMobile(window.matchMedia('(max-width:768px)').matches); }, []);
+function TargetCursor({ targetSelector = 'a, button', spinDuration = 2, hideDefaultCursor = true, hoverDuration = 0.2, parallaxOn = true }) {
+  const cursorRef = useRef(null);
+  const cornersRef = useRef(null);
+  const spinTl = useRef(null);
+  const dotRef = useRef(null);
+  const isActiveRef = useRef(false);
+  const targetCornerPositionsRef = useRef(null);
+  const tickerFnRef = useRef(null);
+  const activeStrengthRef = useRef(0);
+  const isMobile = useIsMobile();
+  const constants = useRef({ borderWidth: 3, cornerSize: 12 }).current;
+
+  const moveCursor = useCallback((x, y) => {
+    if (!cursorRef.current) return;
+    gsap.to(cursorRef.current, { x, y, duration: 0.1, ease: 'power3.out' });
+  }, []);
 
   useEffect(() => {
-    if (isMobile) return;
-    let raf;
-    const loop = () => {
-      trailRef.current.x += (posRef.current.x - trailRef.current.x) * 0.35;
-      trailRef.current.y += (posRef.current.y - trailRef.current.y) * 0.35;
-      setTrail({ x: trailRef.current.x, y: trailRef.current.y });
-      raf = requestAnimationFrame(loop);
+    if (isMobile || !cursorRef.current) return;
+    const originalCursor = document.body.style.cursor;
+    if (hideDefaultCursor) document.body.style.cursor = 'none';
+    const cursor = cursorRef.current;
+    cornersRef.current = cursor.querySelectorAll('.tc-corner');
+    let activeTarget = null;
+    let currentLeaveHandler = null;
+    let resumeTimeout = null;
+    const cleanupTarget = target => {
+      if (currentLeaveHandler) target.removeEventListener('mouseleave', currentLeaveHandler);
+      currentLeaveHandler = null;
     };
-    raf = requestAnimationFrame(loop);
-    const onMove = (e) => { posRef.current = { x: e.clientX, y: e.clientY }; setPos({ x: e.clientX, y: e.clientY }); setVisible(true); };
-    const addHovers = () => {
-      document.querySelectorAll('a,button,[data-hover]').forEach((el) => {
-        el.addEventListener('mouseenter', () => setHovered(true));
-        el.addEventListener('mouseleave', () => setHovered(false));
+    gsap.set(cursor, { xPercent: -50, yPercent: -50, x: window.innerWidth / 2, y: window.innerHeight / 2 });
+    const createSpinTimeline = () => {
+      if (spinTl.current) spinTl.current.kill();
+      spinTl.current = gsap.timeline({ repeat: -1 }).to(cursor, { rotation: '+=360', duration: spinDuration, ease: 'none' });
+    };
+    createSpinTimeline();
+    const tickerFn = () => {
+      if (!targetCornerPositionsRef.current || !cursorRef.current || !cornersRef.current) return;
+      const strength = activeStrengthRef.current;
+      if (strength === 0) return;
+      const cursorX = gsap.getProperty(cursorRef.current, 'x');
+      const cursorY = gsap.getProperty(cursorRef.current, 'y');
+      Array.from(cornersRef.current).forEach((corner, i) => {
+        const currentX = gsap.getProperty(corner, 'x');
+        const currentY = gsap.getProperty(corner, 'y');
+        const targetX = targetCornerPositionsRef.current[i].x - cursorX;
+        const targetY = targetCornerPositionsRef.current[i].y - cursorY;
+        const finalX = currentX + (targetX - currentX) * strength;
+        const finalY = currentY + (targetY - currentY) * strength;
+        const duration = strength >= 0.99 ? (parallaxOn ? 0.2 : 0) : 0.05;
+        gsap.to(corner, { x: finalX, y: finalY, duration, ease: duration === 0 ? 'none' : 'power1.out', overwrite: 'auto' });
       });
     };
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseleave', () => setVisible(false));
-    addHovers();
-    const obs = new MutationObserver(addHovers);
-    obs.observe(document.body, { subtree: true, childList: true });
-    return () => { cancelAnimationFrame(raf); window.removeEventListener('mousemove', onMove); obs.disconnect(); };
-  }, [isMobile]);
+    tickerFnRef.current = tickerFn;
+    const moveHandler = e => moveCursor(e.clientX, e.clientY);
+    window.addEventListener('mousemove', moveHandler);
+    const scrollHandler = () => {
+      if (!activeTarget || !cursorRef.current) return;
+      const mouseX = gsap.getProperty(cursorRef.current, 'x');
+      const mouseY = gsap.getProperty(cursorRef.current, 'y');
+      const el = document.elementFromPoint(mouseX, mouseY);
+      const stillOver = el && (el === activeTarget || el.closest(targetSelector) === activeTarget);
+      if (!stillOver && currentLeaveHandler) currentLeaveHandler();
+    };
+    window.addEventListener('scroll', scrollHandler, { passive: true });
+    const mouseDownHandler = () => {
+      if (!dotRef.current) return;
+      gsap.to(dotRef.current, { scale: 0.7, duration: 0.3 });
+      gsap.to(cursorRef.current, { scale: 0.9, duration: 0.2 });
+    };
+    const mouseUpHandler = () => {
+      if (!dotRef.current) return;
+      gsap.to(dotRef.current, { scale: 1, duration: 0.3 });
+      gsap.to(cursorRef.current, { scale: 1, duration: 0.2 });
+    };
+    window.addEventListener('mousedown', mouseDownHandler);
+    window.addEventListener('mouseup', mouseUpHandler);
+    const enterHandler = e => {
+      let current = e.target;
+      let target = null;
+      while (current && current !== document.body) {
+        if (current.matches && current.matches(targetSelector)) { target = current; break; }
+        current = current.parentElement;
+      }
+      if (!target || !cursorRef.current || !cornersRef.current) return;
+      if (activeTarget === target) return;
+      if (activeTarget) cleanupTarget(activeTarget);
+      if (resumeTimeout) { clearTimeout(resumeTimeout); resumeTimeout = null; }
+      activeTarget = target;
+      const corners = Array.from(cornersRef.current);
+      corners.forEach(corner => gsap.killTweensOf(corner));
+      gsap.killTweensOf(cursorRef.current, 'rotation');
+      spinTl.current?.pause();
+      gsap.set(cursorRef.current, { rotation: 0 });
+      const rect = target.getBoundingClientRect();
+      const { borderWidth, cornerSize } = constants;
+      const cursorX = gsap.getProperty(cursorRef.current, 'x');
+      const cursorY = gsap.getProperty(cursorRef.current, 'y');
+      targetCornerPositionsRef.current = [
+        { x: rect.left - borderWidth, y: rect.top - borderWidth },
+        { x: rect.right + borderWidth - cornerSize, y: rect.top - borderWidth },
+        { x: rect.right + borderWidth - cornerSize, y: rect.bottom + borderWidth - cornerSize },
+        { x: rect.left - borderWidth, y: rect.bottom + borderWidth - cornerSize },
+      ];
+      isActiveRef.current = true;
+      gsap.ticker.add(tickerFnRef.current);
+      gsap.to(activeStrengthRef, { current: 1, duration: hoverDuration, ease: 'power2.out' });
+      corners.forEach((corner, i) => {
+        gsap.to(corner, { x: targetCornerPositionsRef.current[i].x - cursorX, y: targetCornerPositionsRef.current[i].y - cursorY, duration: 0.2, ease: 'power2.out' });
+      });
+      const leaveHandler = () => {
+        gsap.ticker.remove(tickerFnRef.current);
+        isActiveRef.current = false;
+        targetCornerPositionsRef.current = null;
+        gsap.set(activeStrengthRef, { current: 0, overwrite: true });
+        activeTarget = null;
+        if (cornersRef.current) {
+          const cs = Array.from(cornersRef.current);
+          gsap.killTweensOf(cs);
+          const { cornerSize } = constants;
+          const positions = [
+            { x: -cornerSize * 1.5, y: -cornerSize * 1.5 },
+            { x: cornerSize * 0.5, y: -cornerSize * 1.5 },
+            { x: cornerSize * 0.5, y: cornerSize * 0.5 },
+            { x: -cornerSize * 1.5, y: cornerSize * 0.5 },
+          ];
+          const tl = gsap.timeline();
+          cs.forEach((corner, idx) => tl.to(corner, { x: positions[idx].x, y: positions[idx].y, duration: 0.3, ease: 'power3.out' }, 0));
+        }
+        resumeTimeout = setTimeout(() => {
+          if (!activeTarget && cursorRef.current && spinTl.current) {
+            const norm = gsap.getProperty(cursorRef.current, 'rotation') % 360;
+            spinTl.current.kill();
+            spinTl.current = gsap.timeline({ repeat: -1 }).to(cursorRef.current, { rotation: '+=360', duration: spinDuration, ease: 'none' });
+            gsap.to(cursorRef.current, { rotation: norm + 360, duration: spinDuration * (1 - norm / 360), ease: 'none', onComplete: () => spinTl.current?.restart() });
+          }
+          resumeTimeout = null;
+        }, 50);
+        cleanupTarget(target);
+      };
+      currentLeaveHandler = leaveHandler;
+      target.addEventListener('mouseleave', leaveHandler);
+    };
+    window.addEventListener('mouseover', enterHandler, { passive: true });
+    return () => {
+      if (tickerFnRef.current) gsap.ticker.remove(tickerFnRef.current);
+      window.removeEventListener('mousemove', moveHandler);
+      window.removeEventListener('mouseover', enterHandler);
+      window.removeEventListener('scroll', scrollHandler);
+      window.removeEventListener('mousedown', mouseDownHandler);
+      window.removeEventListener('mouseup', mouseUpHandler);
+      if (activeTarget) cleanupTarget(activeTarget);
+      spinTl.current?.kill();
+      document.body.style.cursor = originalCursor;
+      isActiveRef.current = false;
+      targetCornerPositionsRef.current = null;
+      activeStrengthRef.current = 0;
+    };
+  }, [targetSelector, spinDuration, moveCursor, constants, hideDefaultCursor, isMobile, hoverDuration, parallaxOn]);
 
-  return { pos, trail, visible, hovered, isMobile };
+  if (isMobile) return null;
+
+  return (
+    <div ref={cursorRef} className="tc-wrapper">
+      <div ref={dotRef} className="tc-dot" />
+      <div className="tc-corner tc-tl" />
+      <div className="tc-corner tc-tr" />
+      <div className="tc-corner tc-br" />
+      <div className="tc-corner tc-bl" />
+    </div>
+  );
+}
+
+function ClickSpark({ children, sparkColor = '#C9A84C', sparkSize = 8, sparkRadius = 14, sparkCount = 8, duration = 400 }) {
+  const [sparks, setSparks] = useState([]);
+  const handleClick = useCallback((e) => {
+    const id = Date.now() + Math.random();
+    const newSparks = Array.from({ length: sparkCount }, (_, i) => ({
+      id: id + i, x: e.clientX, y: e.clientY, angle: (360 / sparkCount) * i,
+    }));
+    setSparks(prev => [...prev, ...newSparks]);
+    setTimeout(() => setSparks(prev => prev.filter(s => !newSparks.find(ns => ns.id === s.id))), duration);
+  }, [sparkCount, duration]);
+  return (
+    <div onClick={handleClick} style={{ position: 'relative' }}>
+      {children}
+      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 99999 }}>
+        {sparks.map(spark => (
+          <div key={spark.id} style={{
+            position: 'absolute', left: spark.x, top: spark.y,
+            width: sparkSize, height: sparkSize, borderRadius: '50%',
+            background: sparkColor, transform: 'translate(-50%, -50%)',
+            animation: `sparkFly ${duration}ms ease-out forwards`,
+            '--angle': `${spark.angle}deg`, '--radius': `${sparkRadius}px`,
+          }} />
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function FilterPill({ label, active, onClick }) {
@@ -499,7 +595,7 @@ function BorderGlowCard({ children }) {
   );
 }
 
-function ProductCard({ product, index }) {
+function ProductCard({ product, index, isMobile }) {
   const [hovered, setHovered] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [visible, setVisible] = useState(false);
@@ -519,7 +615,10 @@ function ProductCard({ product, index }) {
 
   const availableSizes = product.sizes ? Object.entries(product.sizes).filter(([, q]) => q > 0).map(([s]) => s) : [];
   const isOutOfStock = product.stock === 0;
-  const stagger = (index % 4) * 0.08, tiltX = hovered ? mousePos.y * -12 : 0, tiltY = hovered ? mousePos.x * 15 : 0;
+  const stagger = (index % 4) * 0.08;
+  const tiltX = hovered ? mousePos.y * -12 : 0;
+  const tiltY = hovered ? mousePos.x * 15 : 0;
+  const imageHeight = isMobile ? '180px' : '320px';
 
   return (
     <Link href={`/shop/${encodeURIComponent(product.name)}`} style={{ textDecoration: 'none', display: 'block' }}>
@@ -530,32 +629,52 @@ function ProductCard({ product, index }) {
               <div key={ci} style={{ position: 'absolute', [v]: 0, [h]: 0, zIndex: 3, width: hovered ? '28px' : '10px', height: hovered ? '28px' : '10px', borderTop: v === 'top' ? '1px solid #C9A84C' : 'none', borderBottom: v === 'bottom' ? '1px solid #C9A84C' : 'none', borderLeft: h === 'left' ? '1px solid #C9A84C' : 'none', borderRight: h === 'right' ? '1px solid #C9A84C' : 'none', transition: 'all 0.5s cubic-bezier(0.16,1,0.3,1)', opacity: hovered ? 1 : 0.4 }} />
             ))}
             <div style={{ position: 'absolute', bottom: 0, left: 0, zIndex: 3, height: '1px', width: hovered ? '100%' : '0%', background: 'linear-gradient(90deg,transparent,#C9A84C 30%,#C9A84C 70%,transparent)', transition: 'width 0.65s cubic-bezier(0.16,1,0.3,1)' }} />
-            <div style={{ width: '100%', height: '320px', background: 'rgba(12,10,6,1)', overflow: 'hidden', position: 'relative' }}>
+            <div style={{ width: '100%', height: imageHeight, background: 'rgba(12,10,6,1)', overflow: 'hidden', position: 'relative' }}>
               {product.imageUrl ? (
                 <img src={product.imageUrl} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover', transform: hovered ? 'scale(1.08)' : 'scale(1)', filter: hovered ? 'brightness(1.05) contrast(1.05)' : isOutOfStock ? 'brightness(0.4) grayscale(0.5)' : 'brightness(0.85)', transition: 'transform 0.7s cubic-bezier(0.16,1,0.3,1),filter 0.5s ease' }} />
               ) : (
                 <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
-                  <span style={{ fontSize: '3rem', filter: 'grayscale(1)', opacity: 0.3 }}>👕</span>
+                  <span style={{ fontSize: isMobile ? '1.5rem' : '3rem', filter: 'grayscale(1)', opacity: 0.3 }}>👕</span>
                   <p style={{ fontSize: '0.5rem', color: '#333', letterSpacing: '0.3em', textTransform: 'uppercase' }}>No Image</p>
                 </div>
               )}
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,transparent 40%,rgba(7,6,4,0.85) 100%)', pointerEvents: 'none', opacity: hovered ? 0.7 : 1, transition: 'opacity 0.5s' }} />
-              {isOutOfStock && <div style={{ position: 'absolute', inset: 0, background: 'rgba(4,3,2,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}><div style={{ border: '1px solid rgba(201,168,76,0.3)', padding: '0.5rem 1.4rem' }}><p style={{ fontSize: '0.52rem', color: 'rgba(201,168,76,0.6)', letterSpacing: '0.4em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif' }}>Sold Out</p></div></div>}
-              {product.category && <div style={{ position: 'absolute', top: '1rem', left: '1rem', zIndex: 2, background: 'rgba(4,3,2,0.8)', backdropFilter: 'blur(8px)', border: '1px solid rgba(201,168,76,0.2)', padding: '0.3rem 0.8rem' }}><p style={{ fontSize: '0.45rem', color: '#C9A84C', letterSpacing: '0.35em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif' }}>{product.category}</p></div>}
-              {product.isNew && <div style={{ position: 'absolute', top: '1rem', right: '1rem', zIndex: 2, background: '#C9A84C', padding: '0.3rem 0.8rem' }}><p style={{ fontSize: '0.45rem', color: '#080604', letterSpacing: '0.35em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', fontWeight: 500 }}>New</p></div>}
-            </div>
-            <div style={{ padding: '1.6rem 1.6rem 2rem' }}>
-              <h3 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: '1.4rem', fontWeight: 300, color: hovered ? '#FFFFFF' : '#E8E0D0', marginBottom: '0.6rem', letterSpacing: '0.02em', textShadow: hovered ? '0 0 30px rgba(255,255,255,0.15)' : 'none', transition: 'color 0.3s,text-shadow 0.3s', lineHeight: 1.3 }}>{product.name}</h3>
-              {product.description && <p style={{ fontSize: '0.6rem', color: hovered ? '#666' : '#4A4030', lineHeight: 1.9, letterSpacing: '0.06em', marginBottom: '1.2rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', transition: 'color 0.3s' }}>{product.description}</p>}
-              {availableSizes.length > 0 && <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>{availableSizes.map((s) => <span key={s} style={{ fontSize: '0.48rem', color: hovered ? 'rgba(201,168,76,0.7)' : '#444', border: '1px solid', borderColor: hovered ? 'rgba(201,168,76,0.3)' : 'rgba(255,255,255,0.08)', padding: '0.2rem 0.5rem', letterSpacing: '0.12em', fontFamily: 'Montserrat,sans-serif', transition: 'all 0.35s' }}>{s}</span>)}</div>}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', borderTop: '1px solid rgba(201,168,76,0.08)', paddingTop: '1.2rem' }}>
-                <div>
-                  <p style={{ fontSize: '0.44rem', color: '#3A3020', letterSpacing: '0.25em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', marginBottom: '0.25rem' }}>Price</p>
-                  <p style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: '1.7rem', fontWeight: 300, color: hovered ? '#C9A84C' : 'rgba(201,168,76,0.8)', textShadow: hovered ? '0 0 30px rgba(201,168,76,0.35)' : 'none', transition: 'color 0.3s,text-shadow 0.3s', lineHeight: 1 }}>R {Number(product.price).toFixed(2)}</p>
+              {isOutOfStock && (
+                <div style={{ position: 'absolute', inset: 0, background: 'rgba(4,3,2,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}>
+                  <div style={{ border: '1px solid rgba(201,168,76,0.3)', padding: isMobile ? '0.3rem 0.6rem' : '0.5rem 1.4rem' }}>
+                    <p style={{ fontSize: isMobile ? '0.4rem' : '0.52rem', color: 'rgba(201,168,76,0.6)', letterSpacing: '0.3em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif' }}>Sold Out</p>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: hovered ? 1 : 0, transform: hovered ? 'translateX(0)' : 'translateX(-12px)', transition: 'all 0.4s cubic-bezier(0.16,1,0.3,1)' }}>
-                  <div style={{ width: '20px', height: '1px', background: '#C9A84C' }} />
-                  <span style={{ fontSize: '0.48rem', color: '#C9A84C', letterSpacing: '0.35em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif' }}>View</span>
+              )}
+              {product.category && (
+                <div style={{ position: 'absolute', top: isMobile ? '0.5rem' : '1rem', left: isMobile ? '0.5rem' : '1rem', zIndex: 2, background: 'rgba(4,3,2,0.8)', backdropFilter: 'blur(8px)', border: '1px solid rgba(201,168,76,0.2)', padding: isMobile ? '0.18rem 0.4rem' : '0.3rem 0.8rem' }}>
+                  <p style={{ fontSize: isMobile ? '0.37rem' : '0.45rem', color: '#C9A84C', letterSpacing: isMobile ? '0.2em' : '0.35em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif' }}>{product.category}</p>
+                </div>
+              )}
+              {product.isNew && (
+                <div style={{ position: 'absolute', top: isMobile ? '0.5rem' : '1rem', right: isMobile ? '0.5rem' : '1rem', zIndex: 2, background: '#C9A84C', padding: isMobile ? '0.18rem 0.4rem' : '0.3rem 0.8rem' }}>
+                  <p style={{ fontSize: isMobile ? '0.37rem' : '0.45rem', color: '#080604', letterSpacing: isMobile ? '0.2em' : '0.35em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', fontWeight: 500 }}>New</p>
+                </div>
+              )}
+            </div>
+            <div style={{ padding: isMobile ? '0.8rem 0.8rem 1rem' : '1.6rem 1.6rem 2rem' }}>
+              <h3 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: isMobile ? '0.95rem' : '1.4rem', fontWeight: 300, color: hovered ? '#FFFFFF' : '#E8E0D0', marginBottom: isMobile ? '0.3rem' : '0.6rem', letterSpacing: '0.02em', textShadow: hovered ? '0 0 30px rgba(255,255,255,0.15)' : 'none', transition: 'color 0.3s,text-shadow 0.3s', lineHeight: 1.3 }}>{product.name}</h3>
+              {!isMobile && product.description && (
+                <p style={{ fontSize: '0.6rem', color: hovered ? '#666' : '#4A4030', lineHeight: 1.9, letterSpacing: '0.06em', marginBottom: '1.2rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', transition: 'color 0.3s' }}>{product.description}</p>
+              )}
+              {!isMobile && availableSizes.length > 0 && (
+                <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+                  {availableSizes.map((s) => <span key={s} style={{ fontSize: '0.48rem', color: hovered ? 'rgba(201,168,76,0.7)' : '#444', border: '1px solid', borderColor: hovered ? 'rgba(201,168,76,0.3)' : 'rgba(255,255,255,0.08)', padding: '0.2rem 0.5rem', letterSpacing: '0.12em', fontFamily: 'Montserrat,sans-serif', transition: 'all 0.35s' }}>{s}</span>)}
+                </div>
+              )}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', borderTop: '1px solid rgba(201,168,76,0.08)', paddingTop: isMobile ? '0.6rem' : '1.2rem' }}>
+                <div>
+                  <p style={{ fontSize: isMobile ? '0.36rem' : '0.44rem', color: '#3A3020', letterSpacing: '0.18em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', marginBottom: isMobile ? '0.15rem' : '0.25rem' }}>Price</p>
+                  <p style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: isMobile ? '1.05rem' : '1.7rem', fontWeight: 300, color: hovered ? '#C9A84C' : 'rgba(201,168,76,0.8)', textShadow: hovered ? '0 0 30px rgba(201,168,76,0.35)' : 'none', transition: 'color 0.3s,text-shadow 0.3s', lineHeight: 1 }}>R {Number(product.price).toFixed(2)}</p>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', opacity: hovered ? 1 : 0, transform: hovered ? 'translateX(0)' : 'translateX(-12px)', transition: 'all 0.4s cubic-bezier(0.16,1,0.3,1)' }}>
+                  <div style={{ width: isMobile ? '10px' : '20px', height: '1px', background: '#C9A84C' }} />
+                  <span style={{ fontSize: isMobile ? '0.38rem' : '0.48rem', color: '#C9A84C', letterSpacing: '0.28em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif' }}>View</span>
                 </div>
               </div>
             </div>
@@ -594,7 +713,7 @@ export default function ShopPage() {
   const [activeCategory, setActiveCategory] = useState('All');
   const [sortBy, setSortBy] = useState('default');
   const [heroVisible, setHeroVisible] = useState(false);
-  const cursor = useCursor();
+  const isMobile = useIsMobile();
 
   useEffect(() => { const t = setTimeout(() => setHeroVisible(true), 80); return () => clearTimeout(t); }, []);
 
@@ -618,83 +737,98 @@ export default function ShopPage() {
     });
 
   return (
-    <div style={{ background: '#040302', minHeight: '100vh', overflowX: 'hidden' }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Montserrat:wght@200;300;400;500&display=swap');
-        @keyframes rrPulse{from{opacity:0.1;transform:translate(-50%,-50%) scale(0.95);}to{opacity:0.5;transform:translate(-50%,-50%) scale(1.05);}}
-        @keyframes rrScrollPulse{0%,100%{opacity:0.8;transform:scaleY(1);}50%{opacity:0.1;transform:scaleY(0.2);}}
-        .filter-bar-inner{max-width:1380px;margin:0 auto;padding:1.2rem 4rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;}
-        .product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:2px;background:rgba(201,168,76,0.04);}
-        .shop-section{padding:5rem 4rem 8rem;max-width:1380px;margin:0 auto;}
-        @media(max-width:768px){
-          .filter-bar-inner{padding:1rem 1.5rem;flex-direction:column;align-items:flex-start;}
-          .filter-pills{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:4px;width:100%;}
-          .filter-pills::-webkit-scrollbar{display:none;}
-          .filter-pills-inner{display:flex;gap:0.5rem;width:max-content;}
-          .sort-count-row{width:100%;display:flex;justify-content:space-between;align-items:center;}
-          .product-grid{grid-template-columns:repeat(2,1fr)!important;gap:1px;}
-          .shop-section{padding:3rem 1rem 5rem;}
-          .hero-section{padding:5rem 1.5rem 4rem!important;}
-          .hero-h1{font-size:clamp(2.5rem,12vw,5rem)!important;}
-        }
-        @media(max-width:480px){.product-grid{grid-template-columns:1fr!important;}}
-        @media(min-width:769px){*{cursor:none!important;}select{cursor:none!important;}}
-        select option{background:#080604;color:#888;}
-      `}</style>
+    <ClickSpark sparkColor="#C9A84C" sparkSize={7} sparkRadius={14} sparkCount={8} duration={400}>
+      <div style={{ background: '#040302', minHeight: '100vh', overflowX: 'hidden' }}>
+        <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Montserrat:wght@200;300;400;500&display=swap');
+          @keyframes rrPulse{from{opacity:0.1;transform:translate(-50%,-50%) scale(0.95);}to{opacity:0.5;transform:translate(-50%,-50%) scale(1.05);}}
+          @keyframes rrScrollPulse{0%,100%{opacity:0.8;transform:scaleY(1);}50%{opacity:0.1;transform:scaleY(0.2);}}
+          @keyframes sparkFly{0%{transform:translate(-50%,-50%) scale(1);opacity:1;}100%{transform:translate(calc(-50% + cos(var(--angle)) * var(--radius) * 3),calc(-50% + sin(var(--angle)) * var(--radius) * 3)) scale(0);opacity:0;}}
+          .tc-wrapper{position:fixed;top:0;left:0;width:0;height:0;pointer-events:none;z-index:99999;will-change:transform;}
+          .tc-dot{position:absolute;width:5px;height:5px;border-radius:50%;background:#C9A84C;top:50%;left:50%;transform:translate(-50%,-50%);box-shadow:0 0 8px rgba(201,168,76,0.8),0 0 16px rgba(201,168,76,0.4);}
+          .tc-corner{position:absolute;width:12px;height:12px;border-color:#C9A84C;border-style:solid;border-width:0;will-change:transform;filter:drop-shadow(0 0 4px rgba(201,168,76,0.6));}
+          .tc-tl{border-top-width:2px;border-left-width:2px;transform:translate(-18px,-18px);}
+          .tc-tr{border-top-width:2px;border-right-width:2px;transform:translate(6px,-18px);}
+          .tc-br{border-bottom-width:2px;border-right-width:2px;transform:translate(6px,6px);}
+          .tc-bl{border-bottom-width:2px;border-left-width:2px;transform:translate(-18px,6px);}
+          .filter-bar-inner{max-width:1380px;margin:0 auto;padding:1.2rem 4rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;}
+          .product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:2px;background:rgba(201,168,76,0.04);}
+          .shop-section{padding:5rem 4rem 8rem;max-width:1380px;margin:0 auto;}
+          @media(max-width:768px){
+            .filter-bar-inner{padding:1rem 1rem;flex-direction:column;align-items:flex-start;}
+            .filter-pills{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:4px;width:100%;}
+            .filter-pills::-webkit-scrollbar{display:none;}
+            .filter-pills-inner{display:flex;gap:0.5rem;width:max-content;}
+            .sort-count-row{width:100%;display:flex;justify-content:space-between;align-items:center;}
+            .product-grid{grid-template-columns:repeat(2,1fr)!important;gap:1px;}
+            .shop-section{padding:2rem 0.75rem 4rem;}
+            .hero-section{padding:4rem 1.5rem 3rem!important;}
+            .hero-h1{font-size:clamp(2.2rem,11vw,4rem)!important;}
+          }
+          @media(max-width:380px){.product-grid{grid-template-columns:1fr!important;}}
+          @media(min-width:769px){*{cursor:none!important;}select{cursor:none!important;}}
+          select option{background:#080604;color:#888;}
+        `}</style>
 
-      {!cursor.isMobile && (<>
-        <div style={{ position: 'fixed', left: cursor.pos.x, top: cursor.pos.y, width: cursor.hovered ? '5px' : '8px', height: cursor.hovered ? '5px' : '8px', background: '#C9A84C', borderRadius: '50%', pointerEvents: 'none', zIndex: 9999, transform: 'translate(-50%,-50%)', opacity: cursor.visible ? 1 : 0, transition: 'opacity 0.3s,width 0.2s,height 0.2s', mixBlendMode: 'difference' }} />
-        <div style={{ position: 'fixed', left: cursor.trail.x, top: cursor.trail.y, width: cursor.hovered ? '50px' : '36px', height: cursor.hovered ? '50px' : '36px', border: '1px solid rgba(201,168,76,0.55)', borderRadius: '50%', pointerEvents: 'none', zIndex: 9998, transform: 'translate(-50%,-50%)', opacity: cursor.visible ? 0.75 : 0, transition: 'opacity 0.3s,width 0.4s cubic-bezier(0.16,1,0.3,1),height 0.4s cubic-bezier(0.16,1,0.3,1)' }} />
-      </>)}
+        {!isMobile && (
+          <TargetCursor
+            targetSelector="a, button"
+            spinDuration={2.4}
+            hideDefaultCursor={true}
+            hoverDuration={0.18}
+            parallaxOn={true}
+          />
+        )}
 
-      <PrismHero>
-        <section className="hero-section" style={{ padding: '7rem 2rem 6rem', textAlign: 'center', minHeight: '420px', borderBottom: '1px solid rgba(201,168,76,0.1)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', marginBottom: '2.5rem', opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'none' : 'translateY(20px)', transition: 'opacity 0.9s ease 0.15s,transform 0.9s ease 0.15s' }}>
-            <div style={{ width: '35px', height: '1px', background: 'linear-gradient(90deg,transparent,#C9A84C)' }} />
-            <p style={{ fontSize: '0.55rem', color: '#C9A84C', letterSpacing: '0.55em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', fontWeight: 300 }}>Browse</p>
-            <div style={{ width: '35px', height: '1px', background: 'linear-gradient(90deg,#C9A84C,transparent)' }} />
-          </div>
-          <div style={{ overflow: 'hidden', marginBottom: '0.3rem' }}>
-            <h1 className="hero-h1" style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: 'clamp(3.5rem,10vw,8.5rem)', fontWeight: 300, color: '#FFFFFF', letterSpacing: '-0.01em', lineHeight: 1, textShadow: '0 0 80px rgba(255,255,255,0.15),0 4px 40px rgba(0,0,0,0.5),0 0 120px rgba(201,168,76,0.3)', opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'none' : 'translateY(80%)', transition: 'opacity 1.1s cubic-bezier(0.16,1,0.3,1) 0.3s,transform 1.1s cubic-bezier(0.16,1,0.3,1) 0.3s' }}>
-              Our{' '}<em style={{ color: '#C9A84C', fontStyle: 'normal', textShadow: '0 0 60px rgba(201,168,76,1),0 0 120px rgba(201,168,76,0.7),0 4px 40px rgba(0,0,0,0.4)' }}>Collection</em>
-            </h1>
-          </div>
-          <div style={{ width: heroVisible ? '100px' : '0px', height: '1px', background: 'linear-gradient(90deg,transparent,#C9A84C,transparent)', margin: '2.5rem auto', transition: 'width 1.4s cubic-bezier(0.16,1,0.3,1) 0.7s' }} />
-          <p style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.45)', maxWidth: '480px', margin: '0 auto', lineHeight: 2, letterSpacing: '0.12em', fontFamily: 'Montserrat,sans-serif', fontWeight: 200, opacity: heroVisible ? 1 : 0, transition: 'opacity 1s ease 0.9s', textShadow: '0 2px 16px rgba(0,0,0,0.6)' }}>
-            Discover our range of premium clothing, designed with quality and style in mind.
-          </p>
-        </section>
-      </PrismHero>
-
-      <div style={{ borderBottom: '1px solid rgba(201,168,76,0.08)', background: 'rgba(5,4,3,0.98)', backdropFilter: 'blur(16px)', position: 'sticky', top: 0, zIndex: 10 }}>
-        <div className="filter-bar-inner">
-          <div className="filter-pills">
-            <div className="filter-pills-inner">
-              {categories.map((cat) => <FilterPill key={cat} label={cat} active={activeCategory === cat} onClick={() => setActiveCategory(cat)} />)}
+        <PrismHero>
+          <section className="hero-section" style={{ padding: '7rem 2rem 6rem', textAlign: 'center', minHeight: '420px', borderBottom: '1px solid rgba(201,168,76,0.1)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', marginBottom: '2.5rem', opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'none' : 'translateY(20px)', transition: 'opacity 0.9s ease 0.15s,transform 0.9s ease 0.15s' }}>
+              <div style={{ width: '35px', height: '1px', background: 'linear-gradient(90deg,transparent,#C9A84C)' }} />
+              <p style={{ fontSize: '0.55rem', color: '#C9A84C', letterSpacing: '0.55em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif', fontWeight: 300 }}>Browse</p>
+              <div style={{ width: '35px', height: '1px', background: 'linear-gradient(90deg,#C9A84C,transparent)' }} />
             </div>
-          </div>
-          <div className="sort-count-row" style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-            {!loading && <p style={{ fontSize: '0.5rem', color: '#3A3020', letterSpacing: '0.3em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif' }}><span style={{ color: '#C9A84C' }}>{filtered.length}</span> items</p>}
-            <div style={{ position: 'relative' }}>
-              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={{ appearance: 'none', background: 'transparent', border: '1px solid rgba(201,168,76,0.15)', color: '#666', fontFamily: 'Montserrat,sans-serif', fontSize: '0.5rem', letterSpacing: '0.3em', textTransform: 'uppercase', padding: '0.5rem 2rem 0.5rem 0.9rem', cursor: 'pointer', outline: 'none' }}>
-                <option value="default">Sort: Default</option>
-                <option value="price-asc">Price: Low → High</option>
-                <option value="price-desc">Price: High → Low</option>
-                <option value="name">Name: A → Z</option>
-              </select>
-              <div style={{ position: 'absolute', right: '0.7rem', top: '50%', transform: 'translateY(-50%)', width: 0, height: 0, borderLeft: '3px solid transparent', borderRight: '3px solid transparent', borderTop: '4px solid rgba(201,168,76,0.4)', pointerEvents: 'none' }} />
+            <div style={{ overflow: 'hidden', marginBottom: '0.3rem' }}>
+              <h1 className="hero-h1" style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: 'clamp(3.5rem,10vw,8.5rem)', fontWeight: 300, color: '#FFFFFF', letterSpacing: '-0.01em', lineHeight: 1, textShadow: '0 0 80px rgba(255,255,255,0.15),0 4px 40px rgba(0,0,0,0.5),0 0 120px rgba(201,168,76,0.3)', opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'none' : 'translateY(80%)', transition: 'opacity 1.1s cubic-bezier(0.16,1,0.3,1) 0.3s,transform 1.1s cubic-bezier(0.16,1,0.3,1) 0.3s' }}>
+                Our{' '}<em style={{ color: '#C9A84C', fontStyle: 'normal', textShadow: '0 0 60px rgba(201,168,76,1),0 0 120px rgba(201,168,76,0.7),0 4px 40px rgba(0,0,0,0.4)' }}>Collection</em>
+              </h1>
+            </div>
+            <div style={{ width: heroVisible ? '100px' : '0px', height: '1px', background: 'linear-gradient(90deg,transparent,#C9A84C,transparent)', margin: '2.5rem auto', transition: 'width 1.4s cubic-bezier(0.16,1,0.3,1) 0.7s' }} />
+            <p style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.45)', maxWidth: '480px', margin: '0 auto', lineHeight: 2, letterSpacing: '0.12em', fontFamily: 'Montserrat,sans-serif', fontWeight: 200, opacity: heroVisible ? 1 : 0, transition: 'opacity 1s ease 0.9s', textShadow: '0 2px 16px rgba(0,0,0,0.6)' }}>
+              Discover our range of premium clothing, designed with quality and style in mind.
+            </p>
+          </section>
+        </PrismHero>
+
+        <div style={{ borderBottom: '1px solid rgba(201,168,76,0.08)', background: 'rgba(5,4,3,0.98)', backdropFilter: 'blur(16px)', position: 'sticky', top: 0, zIndex: 10 }}>
+          <div className="filter-bar-inner">
+            <div className="filter-pills">
+              <div className="filter-pills-inner">
+                {categories.map((cat) => <FilterPill key={cat} label={cat} active={activeCategory === cat} onClick={() => setActiveCategory(cat)} />)}
+              </div>
+            </div>
+            <div className="sort-count-row" style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
+              {!loading && <p style={{ fontSize: '0.5rem', color: '#3A3020', letterSpacing: '0.3em', textTransform: 'uppercase', fontFamily: 'Montserrat,sans-serif' }}><span style={{ color: '#C9A84C' }}>{filtered.length}</span> items</p>}
+              <div style={{ position: 'relative' }}>
+                <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={{ appearance: 'none', background: 'transparent', border: '1px solid rgba(201,168,76,0.15)', color: '#666', fontFamily: 'Montserrat,sans-serif', fontSize: '0.5rem', letterSpacing: '0.3em', textTransform: 'uppercase', padding: '0.5rem 2rem 0.5rem 0.9rem', cursor: 'pointer', outline: 'none' }}>
+                  <option value="default">Sort: Default</option>
+                  <option value="price-asc">Price: Low → High</option>
+                  <option value="price-desc">Price: High → Low</option>
+                  <option value="name">Name: A → Z</option>
+                </select>
+                <div style={{ position: 'absolute', right: '0.7rem', top: '50%', transform: 'translateY(-50%)', width: 0, height: 0, borderLeft: '3px solid transparent', borderRight: '3px solid transparent', borderTop: '4px solid rgba(201,168,76,0.4)', pointerEvents: 'none' }} />
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <section className="shop-section">
-        {loading ? <LoadingState /> : filtered.length === 0 ? <EmptyState filtered={activeCategory !== 'All'} /> : (
-          <div className="product-grid">
-            {filtered.map((p, i) => <ProductCard key={p.id} product={p} index={i} />)}
-          </div>
-        )}
-      </section>
-    </div>
+        <section className="shop-section">
+          {loading ? <LoadingState /> : filtered.length === 0 ? <EmptyState filtered={activeCategory !== 'All'} /> : (
+            <div className="product-grid">
+              {filtered.map((p, i) => <ProductCard key={p.id} product={p} index={i} isMobile={isMobile} />)}
+            </div>
+          )}
+        </section>
+      </div>
+    </ClickSpark>
   );
 }

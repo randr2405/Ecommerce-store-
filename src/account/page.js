@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { doc, updateDoc, collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { updateProfile, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import { db, auth } from '@/lib/firebase';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/lib/context/AuthContext';
 
 function AccountContent() {
   const { user, profile, loading } = useAuth();

@@ -1,11 +1,250 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { doc, updateDoc, collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { updateProfile, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import { db, auth } from '@/lib/firebase';
 import { useAuth } from '@/lib/context/AuthContext';
+import * as THREE from 'three';
+import { BloomEffect, ChromaticAberrationEffect, EffectComposer, EffectPass, RenderPass } from 'postprocessing';
+
+const VERT = `
+varying vec2 vUv;
+void main(){
+  vUv = uv;
+  gl_Position = vec4(position.xy, 0.0, 1.0);
+}
+`;
+
+const FRAG = `
+precision highp float;
+uniform vec3 iResolution;
+uniform float iTime;
+uniform vec2 uSkew;
+uniform float uTilt;
+uniform float uYaw;
+uniform float uLineThickness;
+uniform vec3 uLinesColor;
+uniform vec3 uScanColor;
+uniform float uGridScale;
+uniform float uScanOpacity;
+uniform float uScanGlow;
+uniform float uScanSoftness;
+uniform float uPhaseTaper;
+uniform float uScanDuration;
+uniform float uScanDelay;
+uniform float uNoise;
+uniform float uBloomOpacity;
+varying vec2 vUv;
+
+float smoother01(float a, float b, float x){
+  float t = clamp((x - a) / max(1e-5, (b - a)), 0.0, 1.0);
+  return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
+}
+
+void mainImage(out vec4 fragColor, in vec2 fragCoord){
+  vec2 p = (2.0 * fragCoord - iResolution.xy) / iResolution.y;
+  vec3 ro = vec3(0.0);
+  vec3 rd = normalize(vec3(p, 2.0));
+
+  float cR = cos(uTilt), sR = sin(uTilt);
+  rd.xy = mat2(cR, -sR, sR, cR) * rd.xy;
+  float cY = cos(uYaw), sY = sin(uYaw);
+  rd.xz = mat2(cY, -sY, sY, cY) * rd.xz;
+  rd.xy += clamp(uSkew, vec2(-0.7), vec2(0.7)) * rd.z;
+
+  vec3 color = vec3(0.0);
+  float minT = 1e20;
+  float gridScale = max(1e-5, uGridScale);
+  float fadeStrength = 2.0;
+  vec2 gridUV = vec2(0.0);
+  float hitIsY = 1.0;
+
+  for(int i = 0; i < 4; i++){
+    float isY = float(i < 2);
+    float pos = mix(-0.2, 0.2, float(i)) * isY + mix(-0.5, 0.5, float(i - 2)) * (1.0 - isY);
+    float num = pos - (isY * ro.y + (1.0 - isY) * ro.x);
+    float den = isY * rd.y + (1.0 - isY) * rd.x;
+    float t = num / den;
+    vec3 h = ro + rd * t;
+    bool use = t > 0.0 && t < minT;
+    gridUV = use ? mix(h.zy, h.xz, isY) / gridScale : gridUV;
+    minT = use ? t : minT;
+    hitIsY = use ? isY : hitIsY;
+  }
+
+  vec3 hit = ro + rd * minT;
+  float dist = length(hit - ro);
+
+  float fx = fract(gridUV.x);
+  float fy = fract(gridUV.y);
+  float ax = min(fx, 1.0 - fx);
+  float ay = min(fy, 1.0 - fy);
+  float wx = fwidth(gridUV.x);
+  float wy = fwidth(gridUV.y);
+  float halfPx = max(0.0, uLineThickness) * 0.5;
+  float lineX = 1.0 - smoothstep(halfPx * wx, halfPx * wx + wx, ax);
+  float lineY = 1.0 - smoothstep(halfPx * wy, halfPx * wy + wy, ay);
+  float lineMask = max(lineX, lineY);
+
+  float fade = exp(-dist * fadeStrength);
+
+  float dur = max(0.05, uScanDuration);
+  float del = max(0.0, uScanDelay);
+  float scanZMax = 2.0;
+  float sigma = max(0.001, 0.18 * max(0.1, uScanGlow) * uScanSoftness);
+  float sigmaA = sigma * 2.0;
+
+  float cycle = dur + del;
+  float tCycle = mod(iTime, cycle);
+  float scanPhase = clamp((tCycle - del) / dur, 0.0, 1.0);
+  float t2 = mod(max(0.0, iTime - del), 2.0 * dur);
+  float phase = (t2 < dur) ? (t2 / dur) : (1.0 - (t2 - dur) / dur);
+  float scanZ = phase * scanZMax;
+  float dz = abs(hit.z - scanZ);
+  float lineBand = exp(-0.5 * (dz * dz) / (sigma * sigma));
+  float taper = clamp(uPhaseTaper, 0.0, 0.49);
+  float headFade = smoother01(0.0, taper, phase);
+  float tailFade = 1.0 - smoother01(1.0 - taper, 1.0, phase);
+  float phaseWindow = headFade * tailFade;
+  float combinedPulse = lineBand * phaseWindow * clamp(uScanOpacity, 0.0, 1.0);
+  float auraBand = exp(-0.5 * (dz * dz) / (sigmaA * sigmaA));
+  float combinedAura = (auraBand * 0.25) * phaseWindow * clamp(uScanOpacity, 0.0, 1.0);
+
+  vec3 gridCol = uLinesColor * lineMask * fade;
+  vec3 scanCol = uScanColor * combinedPulse;
+  vec3 scanAura = uScanColor * combinedAura;
+  color = gridCol + scanCol + scanAura;
+
+  float n = fract(sin(dot(gl_FragCoord.xy + vec2(iTime * 123.4), vec2(12.9898, 78.233))) * 43758.5453123);
+  color += (n - 0.5) * uNoise;
+  color = clamp(color, 0.0, 1.0);
+
+  float alpha = clamp(max(lineMask * fade, combinedPulse), 0.0, 1.0);
+  fragColor = vec4(color, alpha);
+}
+
+void main(){
+  vec4 c;
+  mainImage(c, vUv * iResolution.xy);
+  gl_FragColor = c;
+}
+`;
+
+function GridBackground() {
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.NoToneMapping;
+    renderer.autoClear = false;
+    renderer.setClearColor(0x000000, 0);
+    container.appendChild(renderer.domElement);
+
+    const toLinear = (hex) => new THREE.Color(hex).convertSRGBToLinear();
+
+    const uniforms = {
+      iResolution: { value: new THREE.Vector3(container.clientWidth, container.clientHeight, renderer.getPixelRatio()) },
+      iTime: { value: 0 },
+      uSkew: { value: new THREE.Vector2(0, 0) },
+      uTilt: { value: 0 },
+      uYaw: { value: 0 },
+      uLineThickness: { value: 1.2 },
+      uLinesColor: { value: toLinear('#3a2e14') },
+      uScanColor: { value: toLinear('#C9A84C') },
+      uGridScale: { value: 0.12 },
+      uScanOpacity: { value: 0.35 },
+      uNoise: { value: 0.008 },
+      uBloomOpacity: { value: 0.4 },
+      uScanGlow: { value: 0.6 },
+      uScanSoftness: { value: 2.0 },
+      uPhaseTaper: { value: 0.9 },
+      uScanDuration: { value: 3.0 },
+      uScanDelay: { value: 1.5 },
+    };
+
+    const material = new THREE.ShaderMaterial({
+      uniforms,
+      vertexShader: VERT,
+      fragmentShader: FRAG,
+      transparent: true,
+      depthWrite: false,
+      depthTest: false,
+    });
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+    const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
+    scene.add(quad);
+
+    let composer = null;
+    try {
+      composer = new EffectComposer(renderer);
+      const renderPass = new RenderPass(scene, camera);
+      composer.addPass(renderPass);
+      const bloom = new BloomEffect({ intensity: 0.8, luminanceThreshold: 0.1, luminanceSmoothing: 0.3 });
+      bloom.blendMode.opacity.value = 0.4;
+      const chroma = new ChromaticAberrationEffect({ offset: new THREE.Vector2(0.001, 0.001), radialModulation: true, modulationOffset: 0.0 });
+      const effectPass = new EffectPass(camera, bloom, chroma);
+      effectPass.renderToScreen = true;
+      composer.addPass(effectPass);
+    } catch {
+      composer = null;
+    }
+
+    const onResize = () => {
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      uniforms.iResolution.value.set(container.clientWidth, container.clientHeight, renderer.getPixelRatio());
+      if (composer) composer.setSize(container.clientWidth, container.clientHeight);
+    };
+    window.addEventListener('resize', onResize);
+
+    let rafId;
+    let last = performance.now();
+    const tick = () => {
+      const now = performance.now();
+      const dt = Math.max(0, Math.min(0.1, (now - last) / 1000));
+      last = now;
+      uniforms.iTime.value = now / 1000;
+      renderer.clear(true, true, true);
+      if (composer) composer.render(dt);
+      else renderer.render(scene, camera);
+      rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener('resize', onResize);
+      material.dispose();
+      quad.geometry.dispose();
+      if (composer) composer.dispose();
+      renderer.dispose();
+      renderer.forceContextLoss();
+      if (container.contains(renderer.domElement)) container.removeChild(renderer.domElement);
+    };
+  }, []);
+
+  return (
+    <div
+      ref={containerRef}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 0,
+        pointerEvents: 'none',
+        opacity: 0.6,
+      }}
+    />
+  );
+}
 
 function AccountContent() {
   const { user, profile, loading } = useAuth();
@@ -60,6 +299,8 @@ function AccountContent() {
           min-height: 100vh;
           background: #0A0A0A;
           padding: 7rem 1.5rem 4rem;
+          position: relative;
+          z-index: 1;
         }
         .acc-inner {
           max-width: 900px;
@@ -93,7 +334,6 @@ function AccountContent() {
           font-size: 0.65rem; color: #555;
           letter-spacing: 0.08em; margin-top: 0.2rem;
         }
-
         .acc-tabs {
           display: flex; gap: 0;
           border-bottom: 1px solid rgba(201,168,76,0.12);
@@ -116,7 +356,6 @@ function AccountContent() {
         }
         .acc-tab:hover { color: #999; }
         .acc-tab--active { color: #C9A84C; border-bottom-color: #C9A84C; }
-
         .acc-section-title {
           font-family: 'Cormorant Garamond', serif;
           font-size: 1.1rem; font-weight: 600;
@@ -124,15 +363,15 @@ function AccountContent() {
           margin-bottom: 1.5rem;
           text-transform: uppercase;
         }
-
         .acc-card {
-          background: rgba(255,255,255,0.02);
+          background: rgba(10,10,10,0.75);
           border: 1px solid rgba(201,168,76,0.12);
           border-radius: 12px;
           padding: 1.8rem;
           margin-bottom: 1.5rem;
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
         }
-
         .acc-field { margin-bottom: 1.2rem; }
         .acc-label {
           display: block;
@@ -155,14 +394,12 @@ function AccountContent() {
         .acc-input::placeholder { color: #333; }
         .acc-input:focus { border-color: rgba(201,168,76,0.4); }
         .acc-input:disabled { opacity: 0.4; cursor: not-allowed; }
-
         .acc-input-row {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 1rem;
         }
         @media (max-width: 560px) { .acc-input-row { grid-template-columns: 1fr; } }
-
         .acc-btn {
           padding: 0.72rem 1.8rem;
           background: linear-gradient(135deg, #C9A84C, #E8C96D);
@@ -193,7 +430,6 @@ function AccountContent() {
           background: rgba(220,80,80,0.07);
           border-color: rgba(220,80,80,0.5);
         }
-
         .acc-msg {
           font-family: 'Montserrat', sans-serif;
           font-size: 0.65rem; letter-spacing: 0.05em;
@@ -202,17 +438,18 @@ function AccountContent() {
         }
         .acc-msg--error { color: #e07070; background: rgba(220,80,80,0.08); border: 1px solid rgba(220,80,80,0.2); }
         .acc-msg--success { color: #7ec87e; background: rgba(80,180,80,0.08); border: 1px solid rgba(80,180,80,0.2); }
-
         .acc-divider {
           height: 1px; background: rgba(201,168,76,0.1);
           margin: 1.5rem 0;
         }
-
         .acc-order-row {
           display: flex; align-items: center; justify-content: space-between;
           padding: 1.1rem 1.4rem;
           border: 1px solid rgba(201,168,76,0.1);
           border-radius: 10px; margin-bottom: 0.8rem;
+          background: rgba(10,10,10,0.6);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
           transition: border-color 0.2s, background 0.2s;
           flex-wrap: wrap; gap: 0.8rem;
         }
@@ -243,9 +480,8 @@ function AccountContent() {
         }
         .acc-order-badge--pending   { color: #d4a843; background: rgba(212,168,67,0.1);  border: 1px solid rgba(212,168,67,0.25); }
         .acc-order-badge--delivered { color: #7ec87e; background: rgba(80,180,80,0.1);   border: 1px solid rgba(80,180,80,0.25); }
-        .acc-order-badge--shipped   { color: #7ab4d4; background: rgba,122,180,212,0.1); border: 1px solid rgba(122,180,212,0.25); }
+        .acc-order-badge--shipped   { color: #7ab4d4; background: rgba(122,180,212,0.1); border: 1px solid rgba(122,180,212,0.25); }
         .acc-order-badge--cancelled { color: #e07070; background: rgba(220,80,80,0.1);   border: 1px solid rgba(220,80,80,0.25); }
-
         .acc-empty {
           text-align: center; padding: 3.5rem 1rem;
         }
@@ -260,12 +496,13 @@ function AccountContent() {
           font-size: 0.65rem; color: #333;
           letter-spacing: 0.05em;
         }
-
         .acc-address-card {
           border: 1px solid rgba(201,168,76,0.12);
           border-radius: 10px; padding: 1.2rem 1.4rem;
           margin-bottom: 0.8rem; position: relative;
-          background: rgba(255,255,255,0.01);
+          background: rgba(10,10,10,0.6);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
           transition: border-color 0.2s;
         }
         .acc-address-card:hover { border-color: rgba(201,168,76,0.25); }
@@ -286,15 +523,20 @@ function AccountContent() {
         .acc-address-actions {
           display: flex; gap: 0.6rem; margin-top: 0.8rem;
         }
-
         .acc-add-addr-form {
           border: 1px dashed rgba(201,168,76,0.15);
           border-radius: 10px; padding: 1.5rem;
           margin-top: 1rem;
+          background: rgba(10,10,10,0.6);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
           animation: fadeIn 0.25s ease;
         }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
+
+      <GridBackground />
 
       <div className="acc-page">
         <div className="acc-inner">
@@ -359,12 +601,7 @@ function AccountTab({ user }) {
         <form onSubmit={handleSave}>
           <div className="acc-field">
             <label className="acc-label">Full Name</label>
-            <input
-              className="acc-input"
-              value={name}
-              onChange={e => { setName(e.target.value); setMsg(null); }}
-              placeholder="Your full name"
-            />
+            <input className="acc-input" value={name} onChange={e => { setName(e.target.value); setMsg(null); }} placeholder="Your full name" />
           </div>
           <div className="acc-field">
             <label className="acc-label">Email Address</label>
@@ -372,12 +609,7 @@ function AccountTab({ user }) {
           </div>
           <div className="acc-field">
             <label className="acc-label">Phone Number</label>
-            <input
-              className="acc-input"
-              value={phone}
-              onChange={e => setPhone(e.target.value)}
-              placeholder="+27 81 000 0000"
-            />
+            <input className="acc-input" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+27 81 000 0000" />
           </div>
           <button type="submit" className="acc-btn" disabled={saving}>
             {saving ? 'Saving...' : 'Save Changes'}
@@ -405,19 +637,17 @@ function OrdersTab({ orders, loading }) {
       <div className="acc-empty-title">No orders yet</div>
       <div className="acc-empty-sub">Your order history will appear here.</div>
       <div style={{ marginTop: '1.5rem' }}>
-        <a href="/shop" className="acc-btn" style={{ textDecoration: 'none', display: 'inline-block' }}>
-          Shop Now
-        </a>
+        <a href="/shop" className="acc-btn" style={{ textDecoration: 'none', display: 'inline-block' }}>Shop Now</a>
       </div>
     </div>
   );
 
   const statusClass = (s) => {
     switch ((s || '').toLowerCase()) {
-      case 'delivered':  return 'acc-order-badge--delivered';
-      case 'shipped':    return 'acc-order-badge--shipped';
-      case 'cancelled':  return 'acc-order-badge--cancelled';
-      default:           return 'acc-order-badge--pending';
+      case 'delivered': return 'acc-order-badge--delivered';
+      case 'shipped':   return 'acc-order-badge--shipped';
+      case 'cancelled': return 'acc-order-badge--cancelled';
+      default:          return 'acc-order-badge--pending';
     }
   };
 

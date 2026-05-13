@@ -537,7 +537,7 @@ function LiquidChrome({ baseColor = [0.1, 0.1, 0.1], speed = 0.2, amplitude = 0.
   const isMobile = useIsMobile();
 
   useEffect(() => {
-    if (isMobile || !containerRef.current) return;
+    if (!containerRef.current) return;
     const container = containerRef.current;
     const renderer = new Renderer({ antialias: true });
     const gl = renderer.gl;
@@ -615,7 +615,7 @@ function LiquidChrome({ baseColor = [0.1, 0.1, 0.1], speed = 0.2, amplitude = 0.
       program.uniforms.uMouse.value[0] = (event.clientX - rect.left) / rect.width;
       program.uniforms.uMouse.value[1] = 1 - (event.clientY - rect.top) / rect.height;
     }
-    if (interactive) container.addEventListener('mousemove', handleMouseMove);
+    if (interactive && !isMobile) container.addEventListener('mousemove', handleMouseMove);
     let animationId;
     function update(t) {
       animationId = requestAnimationFrame(update);
@@ -627,22 +627,13 @@ function LiquidChrome({ baseColor = [0.1, 0.1, 0.1], speed = 0.2, amplitude = 0.
     return () => {
       cancelAnimationFrame(animationId);
       window.removeEventListener('resize', resize);
-      if (interactive) container.removeEventListener('mousemove', handleMouseMove);
+      if (interactive && !isMobile) container.removeEventListener('mousemove', handleMouseMove);
       if (gl.canvas.parentElement) gl.canvas.parentElement.removeChild(gl.canvas);
       gl.getExtension('WEBGL_lose_context')?.loseContext();
     };
   }, [baseColor, speed, amplitude, frequencyX, frequencyY, interactive, isMobile]);
 
-  if (isMobile) {
-    return (
-      <div style={{
-        position: 'absolute', inset: 0,
-        background: 'linear-gradient(135deg, #0a0700 0%, #1a1000 30%, #0d0900 60%, #050300 100%)',
-      }} />
-    );
-  }
-
-  return <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }} />;
+  return <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'absolute', inset: 0, willChange: 'transform', transform: 'translateZ(0)' }} />;
 }
 
 function Marquee() {
@@ -1139,6 +1130,7 @@ export default function HomePage() {
             overflow: 'hidden',
             perspective: isMobile ? 'none' : '1200px',
             minHeight: isMobile ? '400px' : '600px',
+            isolation: 'isolate',
           }}
         >
           <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
@@ -1153,10 +1145,9 @@ export default function HomePage() {
             transform: isMobile ? 'none' : `rotateX(${brandTilt * 0.4}deg) scale(${0.94 + brandScroll * 0.09})`,
             opacity: isMobile ? 1 : Math.min(1, brandScroll * 3),
             willChange: isMobile ? 'auto' : 'transform, opacity',
-            backfaceVisibility: 'hidden',
           }}>
             <p style={{ fontSize: '0.55rem', color: '#C9A84C', letterSpacing: '0.6em', textTransform: 'uppercase', marginBottom: '2rem', fontFamily: 'Montserrat, sans-serif', textShadow: '0 0 20px rgba(201,168,76,0.5)' }}>Our Mission</p>
-            <div style={{ position: 'relative', padding: isMobile ? '1.5rem' : '3rem 3.5rem', background: 'rgba(4,3,2,0.65)', border: '1px solid rgba(201,168,76,0.12)', backdropFilter: 'blur(12px)', marginBottom: isMobile ? '2rem' : '3.5rem' }}>
+            <div style={{ position: 'relative', padding: isMobile ? '1.5rem' : '3rem 3.5rem', background: isMobile ? 'rgba(4,3,2,0.9)' : 'rgba(4,3,2,0.65)', border: '1px solid rgba(201,168,76,0.12)', backdropFilter: isMobile ? 'none' : 'blur(12px)', marginBottom: isMobile ? '2rem' : '3.5rem' }}>
               <h2 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: isMobile ? 'clamp(1.3rem, 4.5vw, 2rem)' : 'clamp(1.8rem, 4vw, 3.2rem)', fontWeight: 300, fontStyle: 'italic', color: '#F5F0E8', lineHeight: 1.7, textShadow: '0 2px 20px rgba(0,0,0,0.9), 0 0 40px rgba(0,0,0,0.8)', margin: 0 }}>
                 "Premium clothing that combines{' '}
                 <span style={{ color: '#EDD070', fontStyle: 'normal', textShadow: '0 0 30px rgba(201,168,76,0.7), 0 2px 20px rgba(0,0,0,0.9)' }}>elegance with comfort</span>,

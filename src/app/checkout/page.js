@@ -5,6 +5,7 @@ import Link from 'next/link';
 import gsap from 'gsap';
 import * as THREE from 'three';
 import { Effect, EffectComposer, EffectPass, RenderPass } from 'postprocessing';
+import { useAuth } from '@/context/AuthContext';
 
 const createTouchTexture = () => {
   const size = 64;
@@ -698,11 +699,185 @@ function TargetCursor({ targetSelector = 'a, button', spinDuration = 2, hideDefa
   );
 }
 
+function GuestLoginGate({ onGuest, onLogin }) {
+  return (
+    <div style={{
+      paddingTop: '70px',
+      minHeight: '100vh',
+      background: '#0A0A0A',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '70px 1.5rem 4rem',
+    }}>
+      <style>{`
+        .gate-card {
+          width: 100%;
+          max-width: 480px;
+          border: 1px solid rgba(201,168,76,0.2);
+          background: #0F0F0F;
+          padding: 3rem 2.5rem;
+          text-align: center;
+          animation: gateIn 0.35s cubic-bezier(0.16,1,0.3,1);
+        }
+        @keyframes gateIn {
+          from { opacity: 0; transform: translateY(16px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .gate-divider {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          margin: 2rem 0;
+        }
+        .gate-divider-line {
+          flex: 1;
+          height: 1px;
+          background: rgba(201,168,76,0.12);
+        }
+        .gate-divider-text {
+          font-family: 'Montserrat', sans-serif;
+          font-size: 0.6rem;
+          letter-spacing: 0.2em;
+          text-transform: uppercase;
+          color: #444;
+        }
+        .gate-btn-primary {
+          width: 100%;
+          padding: 0.95rem;
+          background: linear-gradient(135deg, #C9A84C, #E8C96D);
+          border: none;
+          cursor: pointer;
+          font-family: 'Montserrat', sans-serif;
+          font-size: 0.68rem;
+          font-weight: 700;
+          letter-spacing: 0.2em;
+          text-transform: uppercase;
+          color: #0A0A0A;
+          transition: opacity 0.2s, transform 0.2s;
+          margin-bottom: 1rem;
+        }
+        .gate-btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+        .gate-btn-ghost {
+          width: 100%;
+          padding: 0.95rem;
+          background: none;
+          border: 1px solid rgba(201,168,76,0.25);
+          cursor: pointer;
+          font-family: 'Montserrat', sans-serif;
+          font-size: 0.68rem;
+          font-weight: 500;
+          letter-spacing: 0.2em;
+          text-transform: uppercase;
+          color: #888;
+          transition: color 0.2s, border-color 0.2s, background 0.2s;
+        }
+        .gate-btn-ghost:hover {
+          color: #C9A84C;
+          border-color: rgba(201,168,76,0.5);
+          background: rgba(201,168,76,0.05);
+        }
+        .gate-perks {
+          display: flex;
+          flex-direction: column;
+          gap: 0.55rem;
+          margin: 1.8rem 0 0;
+          text-align: left;
+        }
+        .gate-perk {
+          display: flex;
+          align-items: center;
+          gap: 0.7rem;
+          font-family: 'Montserrat', sans-serif;
+          font-size: 0.65rem;
+          color: #666;
+          letter-spacing: 0.04em;
+        }
+        .gate-perk-dot {
+          width: 4px;
+          height: 4px;
+          border-radius: 50%;
+          background: #C9A84C;
+          flex-shrink: 0;
+        }
+      `}</style>
+
+      <div className="gate-card">
+        <div style={{
+          fontFamily: 'Cormorant Garamond, serif',
+          fontSize: '0.75rem',
+          letterSpacing: '0.35em',
+          textTransform: 'uppercase',
+          color: '#C9A84C',
+          marginBottom: '0.6rem',
+        }}>
+          R&amp;R AGENCIES
+        </div>
+        <h2 style={{
+          fontFamily: 'Cormorant Garamond, serif',
+          fontSize: '2rem',
+          fontWeight: 600,
+          color: '#F5F0E8',
+          letterSpacing: '0.05em',
+          marginBottom: '0.5rem',
+          lineHeight: 1.15,
+        }}>
+          How would you like to proceed?
+        </h2>
+        <div style={{ width: '32px', height: '1px', background: '#C9A84C', margin: '1.2rem auto' }} />
+        <p style={{
+          fontFamily: 'Montserrat, sans-serif',
+          fontSize: '0.72rem',
+          color: '#666',
+          letterSpacing: '0.04em',
+          lineHeight: 1.8,
+          marginBottom: '2rem',
+        }}>
+          Sign in for a faster checkout with saved addresses and order history, or continue as a guest.
+        </p>
+
+        <button className="gate-btn-primary" onClick={onLogin}>
+          Sign In / Register
+        </button>
+
+        <div className="gate-divider">
+          <div className="gate-divider-line" />
+          <span className="gate-divider-text">or</span>
+          <div className="gate-divider-line" />
+        </div>
+
+        <button className="gate-btn-ghost" onClick={onGuest}>
+          Continue as Guest
+        </button>
+
+        <div className="gate-perks">
+          <div className="gate-perk">
+            <span className="gate-perk-dot" />
+            Save addresses for future orders
+          </div>
+          <div className="gate-perk">
+            <span className="gate-perk-dot" />
+            Track your order history in one place
+          </div>
+          <div className="gate-perk">
+            <span className="gate-perk-dot" />
+            Faster checkout every time
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function CheckoutPage() {
+  const { user, profile, loading: authLoading } = useAuth();
   const [cart, setCart] = useState([]);
   const [mounted, setMounted] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [guestMode, setGuestMode] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const isMobile = useIsMobile();
+
   const [form, setForm] = useState({
     firstName: '',
     lastName: '',
@@ -720,6 +895,31 @@ export default function CheckoutPage() {
     setCart(stored);
   }, []);
 
+  useEffect(() => {
+    if (user) {
+      const nameParts = (user.displayName || '').split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+      setForm(f => ({
+        ...f,
+        firstName,
+        lastName,
+        email: user.email || '',
+        phone: profile?.phone || f.phone,
+      }));
+      if (profile?.addresses?.length > 0) {
+        const addr = profile.addresses[0];
+        setForm(f => ({
+          ...f,
+          address: addr.line1 || f.address,
+          city: addr.city || f.city,
+          province: addr.province || f.province,
+          zip: addr.postal || f.zip,
+        }));
+      }
+    }
+  }, [user, profile]);
+
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   const handleChange = (e) => {
@@ -735,12 +935,17 @@ export default function CheckoutPage() {
         return;
       }
     }
-    setLoading(true);
+    setCheckoutLoading(true);
     try {
       const res = await fetch('/api/payfast-initiate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ form, subtotal: subtotal.toFixed(2), cartLength: cart.length }),
+        body: JSON.stringify({
+          form,
+          subtotal: subtotal.toFixed(2),
+          cartLength: cart.length,
+          userId: user?.uid || null,
+        }),
       });
       const pfData = await res.json();
       const pfForm = document.createElement('form');
@@ -758,11 +963,15 @@ export default function CheckoutPage() {
     } catch (err) {
       console.error('PayFast error:', err);
       alert('Payment could not be initiated. Please try again.');
-      setLoading(false);
+      setCheckoutLoading(false);
     }
   };
 
-  if (!mounted) return null;
+  const handleLoginChoice = () => {
+    setShowAuthModal(true);
+  };
+
+  if (!mounted || authLoading) return null;
 
   if (cart.length === 0) {
     return (
@@ -772,6 +981,45 @@ export default function CheckoutPage() {
           <Link href="/shop" className="btn-gold">Browse Collection</Link>
         </div>
       </div>
+    );
+  }
+
+  if (!user && !guestMode) {
+    return (
+      <ClickSpark sparkColor="#C9A84C" sparkSize={7} sparkRadius={14} sparkCount={8} duration={400}>
+        <>
+          {!isMobile && (
+            <TargetCursor
+              targetSelector="a, button, input"
+              spinDuration={2.4}
+              hideDefaultCursor={true}
+              hoverDuration={0.18}
+              parallaxOn={true}
+            />
+          )}
+          <style>{`
+            @media (min-width: 769px) { * { cursor: none !important; } }
+            .tc-wrapper { position: fixed; top: 0; left: 0; width: 0; height: 0; pointer-events: none; z-index: 99999; will-change: transform; }
+            .tc-dot { position: absolute; width: 5px; height: 5px; border-radius: 50%; background: #C9A84C; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 8px rgba(201,168,76,0.8), 0 0 16px rgba(201,168,76,0.4); }
+            .tc-corner { position: absolute; width: 12px; height: 12px; border-color: #C9A84C; border-style: solid; border-width: 0; will-change: transform; filter: drop-shadow(0 0 4px rgba(201,168,76,0.6)); }
+            .tc-tl { border-top-width: 2px; border-left-width: 2px; transform: translate(-18px, -18px); }
+            .tc-tr { border-top-width: 2px; border-right-width: 2px; transform: translate(6px, -18px); }
+            .tc-br { border-bottom-width: 2px; border-right-width: 2px; transform: translate(6px, 6px); }
+            .tc-bl { border-bottom-width: 2px; border-left-width: 2px; transform: translate(-18px, 6px); }
+            @keyframes sparkFly {
+              0% { transform: translate(-50%,-50%) scale(1); opacity: 1; }
+              100% { transform: translate(calc(-50% + cos(var(--angle)) * var(--radius) * 3), calc(-50% + sin(var(--angle)) * var(--radius) * 3)) scale(0); opacity: 0; }
+            }
+          `}</style>
+          <GuestLoginGate
+            onGuest={() => setGuestMode(true)}
+            onLogin={handleLoginChoice}
+          />
+          {showAuthModal && (
+            <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+          )}
+        </>
+      </ClickSpark>
     );
   }
 
@@ -854,6 +1102,24 @@ export default function CheckoutPage() {
               <p style={{ fontSize: '0.85rem', color: '#999', maxWidth: '500px', margin: '0 auto', lineHeight: 1.9 }}>
                 Complete your details below and proceed to secure payment via PayFast.
               </p>
+              {guestMode && !user && (
+                <button
+                  onClick={() => setGuestMode(false)}
+                  style={{
+                    marginTop: '1rem',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontFamily: 'Montserrat, sans-serif',
+                    fontSize: '0.62rem',
+                    color: '#C9A84C',
+                    letterSpacing: '0.1em',
+                    textDecoration: 'underline',
+                  }}
+                >
+                  Sign in instead
+                </button>
+              )}
             </div>
           </section>
 
@@ -863,6 +1129,31 @@ export default function CheckoutPage() {
               <div className="checkout-form-box" style={{ border: '1px solid rgba(201,168,76,0.2)', padding: '3rem', background: '#0F0F0F' }}>
                 <p className="section-label" style={{ marginBottom: '0.5rem' }}>Your Details</p>
                 <h2 style={{ fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', color: '#F5F0E8', marginBottom: '2rem' }}>Delivery Information</h2>
+
+                {user && (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.6rem',
+                    padding: '0.7rem 1rem',
+                    background: 'rgba(201,168,76,0.06)',
+                    border: '1px solid rgba(201,168,76,0.15)',
+                    marginBottom: '1.8rem',
+                  }}>
+                    <div style={{
+                      width: '24px', height: '24px', borderRadius: '50%',
+                      background: 'linear-gradient(135deg, #C9A84C, #E8C96D)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontFamily: 'Montserrat, sans-serif', fontSize: '0.55rem',
+                      fontWeight: 700, color: '#0A0A0A', flexShrink: 0,
+                    }}>
+                      {user.displayName ? user.displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : user.email[0].toUpperCase()}
+                    </div>
+                    <span style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.65rem', color: '#888', letterSpacing: '0.04em' }}>
+                      Signed in as <span style={{ color: '#C9A84C' }}>{user.displayName || user.email}</span>
+                    </span>
+                  </div>
+                )}
 
                 <div className="name-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
                   {[
@@ -955,11 +1246,11 @@ export default function CheckoutPage() {
                   </p>
                   <button
                     onClick={handlePayFast}
-                    disabled={loading}
+                    disabled={checkoutLoading}
                     className="btn-gold"
-                    style={{ width: '100%', cursor: loading ? 'not-allowed' : 'pointer', border: 'none', opacity: loading ? 0.7 : 1 }}
+                    style={{ width: '100%', cursor: checkoutLoading ? 'not-allowed' : 'pointer', border: 'none', opacity: checkoutLoading ? 0.7 : 1 }}
                   >
-                    {loading ? 'Redirecting to PayFast...' : `Pay R ${subtotal.toFixed(2)} via PayFast`}
+                    {checkoutLoading ? 'Redirecting to PayFast...' : `Pay R ${subtotal.toFixed(2)} via PayFast`}
                   </button>
                 </div>
               </div>
@@ -1027,6 +1318,240 @@ export default function CheckoutPage() {
       </>
     </ClickSpark>
   );
+}
+
+function AuthModal({ isOpen, onClose }) {
+  const [mode, setMode] = useState('login');
+  const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '' });
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { login, register, resetPassword } = useAuth();
+  const overlayRef = useRef(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setError(''); setSuccess('');
+    setForm({ name: '', email: '', password: '', confirm: '' });
+    setMode('login');
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, [isOpen]);
+
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  if (!isOpen) return null;
+
+  const set = (field) => (e) => {
+    setForm(f => ({ ...f, [field]: e.target.value }));
+    setError('');
+  };
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    if (!form.email || !form.password) return setError('Please fill in all fields.');
+    setLoading(true);
+    try {
+      await login(form.email, form.password);
+      onClose();
+    } catch (err) {
+      setError(friendlyError(err.code));
+    } finally { setLoading(false); }
+  };
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    if (!form.name || !form.email || !form.password || !form.confirm)
+      return setError('Please fill in all fields.');
+    if (form.password !== form.confirm)
+      return setError('Passwords do not match.');
+    if (form.password.length < 8)
+      return setError('Password must be at least 8 characters.');
+    setLoading(true);
+    try {
+      await register(form.email, form.password, form.name);
+      onClose();
+    } catch (err) {
+      setError(friendlyError(err.code));
+    } finally { setLoading(false); }
+  };
+
+  const handleForgot = async (e) => {
+    e.preventDefault();
+    if (!form.email) return setError('Enter your email address.');
+    setLoading(true);
+    try {
+      await resetPassword(form.email);
+      setSuccess('Reset link sent — check your inbox.');
+    } catch (err) {
+      setError(friendlyError(err.code));
+    } finally { setLoading(false); }
+  };
+
+  return (
+    <>
+      <style>{`
+        .rr-modal-overlay {
+          position: fixed; inset: 0; z-index: 2000;
+          background: rgba(0,0,0,0.8);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+          display: flex; align-items: center; justify-content: center;
+          padding: 1rem;
+          animation: rrFadeIn 0.2s ease;
+        }
+        @keyframes rrFadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .rr-modal-box {
+          width: 100%; max-width: 400px;
+          background: #0D0D0D;
+          border: 1px solid rgba(201,168,76,0.2);
+          border-radius: 16px;
+          overflow: hidden;
+          box-shadow: 0 32px 80px rgba(0,0,0,0.7);
+          animation: rrSlideUp 0.25s cubic-bezier(0.16,1,0.3,1);
+        }
+        @keyframes rrSlideUp {
+          from { opacity: 0; transform: translateY(20px) scale(0.97); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .rr-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 1.4rem 1.6rem 0; }
+        .rr-modal-logo { font-family: 'Cormorant Garamond', serif; font-size: 1.1rem; font-weight: 600; letter-spacing: 0.2em; color: #C9A84C; text-transform: uppercase; }
+        .rr-modal-close { background: none; border: none; cursor: pointer; color: #555; padding: 0.3rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: color 0.2s, background 0.2s; }
+        .rr-modal-close:hover { color: #C9A84C; background: rgba(201,168,76,0.1); }
+        .rr-modal-tabs { display: flex; margin: 1.2rem 1.6rem 0; border-bottom: 1px solid rgba(201,168,76,0.1); }
+        .rr-modal-tab { flex: 1; background: none; border: none; cursor: pointer; font-family: 'Montserrat', sans-serif; font-size: 0.65rem; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; color: #555; padding: 0.7rem 0.5rem; border-bottom: 1px solid transparent; transition: color 0.2s, border-color 0.2s; margin-bottom: -1px; }
+        .rr-modal-tab:hover { color: #999; }
+        .rr-modal-tab--active { color: #C9A84C; border-bottom-color: #C9A84C; }
+        .rr-modal-body { padding: 1.6rem; }
+        .rr-modal-title { font-family: 'Cormorant Garamond', serif; font-size: 0.75rem; font-weight: 400; letter-spacing: 0.25em; text-transform: uppercase; color: #555; margin-bottom: 1.4rem; }
+        .rr-modal-field { margin-bottom: 1rem; }
+        .rr-modal-label { display: block; font-family: 'Montserrat', sans-serif; font-size: 0.6rem; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; color: #666; margin-bottom: 0.4rem; }
+        .rr-modal-input { width: 100%; padding: 0.7rem 0.9rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(201,168,76,0.15); border-radius: 8px; font-family: 'Montserrat', sans-serif; font-size: 0.78rem; color: #ddd; outline: none; transition: border-color 0.2s, background 0.2s; box-sizing: border-box; }
+        .rr-modal-input::placeholder { color: #444; }
+        .rr-modal-input:focus { border-color: rgba(201,168,76,0.45); background: rgba(201,168,76,0.03); }
+        .rr-modal-error { font-family: 'Montserrat', sans-serif; font-size: 0.65rem; color: #e07070; letter-spacing: 0.05em; margin-bottom: 1rem; padding: 0.6rem 0.8rem; background: rgba(220,80,80,0.08); border: 1px solid rgba(220,80,80,0.2); border-radius: 6px; }
+        .rr-modal-success { font-family: 'Montserrat', sans-serif; font-size: 0.65rem; color: #7ec87e; letter-spacing: 0.05em; margin-bottom: 1rem; padding: 0.6rem 0.8rem; background: rgba(80,180,80,0.08); border: 1px solid rgba(80,180,80,0.2); border-radius: 6px; }
+        .rr-modal-submit { width: 100%; padding: 0.85rem; background: linear-gradient(135deg, #C9A84C, #E8C96D); border: none; border-radius: 8px; cursor: pointer; font-family: 'Montserrat', sans-serif; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: #0A0A0A; transition: opacity 0.2s, transform 0.2s; margin-top: 0.4rem; }
+        .rr-modal-submit:hover:not(:disabled) { opacity: 0.88; transform: translateY(-1px); }
+        .rr-modal-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+        .rr-modal-link { background: none; border: none; cursor: pointer; font-family: 'Montserrat', sans-serif; font-size: 0.62rem; color: #C9A84C; letter-spacing: 0.08em; text-decoration: underline; padding: 0; transition: opacity 0.2s; }
+        .rr-modal-link:hover { opacity: 0.7; }
+        .rr-modal-footer { text-align: center; margin-top: 1.2rem; font-family: 'Montserrat', sans-serif; font-size: 0.62rem; color: #555; letter-spacing: 0.05em; }
+      `}</style>
+
+      <div
+        ref={overlayRef}
+        className="rr-modal-overlay"
+        onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
+      >
+        <div className="rr-modal-box">
+          <div className="rr-modal-header">
+            <div className="rr-modal-logo">R&amp;R</div>
+            <button className="rr-modal-close" onClick={onClose} aria-label="Close">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+
+          {mode !== 'forgot' && (
+            <div className="rr-modal-tabs">
+              <button className={`rr-modal-tab${mode === 'login' ? ' rr-modal-tab--active' : ''}`} onClick={() => { setMode('login'); setError(''); setSuccess(''); }}>Sign In</button>
+              <button className={`rr-modal-tab${mode === 'register' ? ' rr-modal-tab--active' : ''}`} onClick={() => { setMode('register'); setError(''); setSuccess(''); }}>Register</button>
+            </div>
+          )}
+
+          <div className="rr-modal-body">
+            {mode === 'login' && (
+              <>
+                <p className="rr-modal-title">Welcome back</p>
+                {error && <div className="rr-modal-error">{error}</div>}
+                <div className="rr-modal-field">
+                  <label className="rr-modal-label">Email</label>
+                  <input className="rr-modal-input" type="email" placeholder="you@example.com" value={form.email} onChange={set('email')} autoComplete="email" />
+                </div>
+                <div className="rr-modal-field">
+                  <label className="rr-modal-label">Password</label>
+                  <input className="rr-modal-input" type="password" placeholder="••••••••" value={form.password} onChange={set('password')} autoComplete="current-password" />
+                </div>
+                <div style={{ textAlign: 'right', marginBottom: '1rem', marginTop: '-0.4rem' }}>
+                  <button type="button" className="rr-modal-link" onClick={() => { setMode('forgot'); setError(''); }}>Forgot password?</button>
+                </div>
+                <button className="rr-modal-submit" disabled={loading} onClick={handleLogin}>{loading ? 'Signing in...' : 'Sign In'}</button>
+              </>
+            )}
+
+            {mode === 'register' && (
+              <>
+                <p className="rr-modal-title">Create your account</p>
+                {error && <div className="rr-modal-error">{error}</div>}
+                <div className="rr-modal-field">
+                  <label className="rr-modal-label">Full Name</label>
+                  <input className="rr-modal-input" type="text" placeholder="Your name" value={form.name} onChange={set('name')} autoComplete="name" />
+                </div>
+                <div className="rr-modal-field">
+                  <label className="rr-modal-label">Email</label>
+                  <input className="rr-modal-input" type="email" placeholder="you@example.com" value={form.email} onChange={set('email')} autoComplete="email" />
+                </div>
+                <div className="rr-modal-field">
+                  <label className="rr-modal-label">Password</label>
+                  <input className="rr-modal-input" type="password" placeholder="Min. 8 characters" value={form.password} onChange={set('password')} autoComplete="new-password" />
+                </div>
+                <div className="rr-modal-field">
+                  <label className="rr-modal-label">Confirm Password</label>
+                  <input className="rr-modal-input" type="password" placeholder="••••••••" value={form.confirm} onChange={set('confirm')} autoComplete="new-password" />
+                </div>
+                <button className="rr-modal-submit" disabled={loading} onClick={handleRegister}>{loading ? 'Creating account...' : 'Create Account'}</button>
+              </>
+            )}
+
+            {mode === 'forgot' && (
+              <>
+                <p className="rr-modal-title">Reset your password</p>
+                {error && <div className="rr-modal-error">{error}</div>}
+                {success && <div className="rr-modal-success">{success}</div>}
+                {!success && (
+                  <>
+                    <div className="rr-modal-field">
+                      <label className="rr-modal-label">Email</label>
+                      <input className="rr-modal-input" type="email" placeholder="you@example.com" value={form.email} onChange={set('email')} autoComplete="email" />
+                    </div>
+                    <button className="rr-modal-submit" disabled={loading} onClick={handleForgot}>{loading ? 'Sending...' : 'Send Reset Link'}</button>
+                  </>
+                )}
+                <div className="rr-modal-footer" style={{ marginTop: '1rem' }}>
+                  <button type="button" className="rr-modal-link" onClick={() => { setMode('login'); setError(''); setSuccess(''); }}>Back to sign in</button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function friendlyError(code) {
+  switch (code) {
+    case 'auth/user-not-found':
+    case 'auth/wrong-password':
+    case 'auth/invalid-credential':
+      return 'Incorrect email or password.';
+    case 'auth/email-already-in-use':
+      return 'An account with this email already exists.';
+    case 'auth/invalid-email':
+      return 'Please enter a valid email address.';
+    case 'auth/weak-password':
+      return 'Password must be at least 8 characters.';
+    case 'auth/too-many-requests':
+      return 'Too many attempts. Please try again later.';
+    default:
+      return 'Something went wrong. Please try again.';
+  }
 }
 
 const labelStyle = {

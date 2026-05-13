@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Toaster } from 'react-hot-toast';
+import { AuthProvider, useAuth } from '@/context/AuthContext';
 import './globals.css';
 
 function GlobalStyles() {
@@ -110,6 +111,7 @@ function GlobalStyles() {
         border-radius: 50%;
         transition: color 0.2s, background 0.2s;
         text-decoration: none;
+        position: relative;
       }
       .rr-pill-icon-link:hover {
         color: #C9A84C;
@@ -134,6 +136,120 @@ function GlobalStyles() {
         justify-content: center;
         padding: 0 3px;
         line-height: 1;
+      }
+
+      .rr-profile-wrapper {
+        position: relative;
+      }
+
+      .rr-profile-btn {
+        color: #888;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.3rem;
+        border-radius: 50%;
+        transition: color 0.2s, background 0.2s;
+        background: none;
+        border: none;
+        cursor: pointer;
+      }
+      .rr-profile-btn:hover,
+      .rr-profile-btn--active {
+        color: #C9A84C;
+        background: rgba(201,168,76,0.1);
+      }
+
+      .rr-profile-avatar {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #C9A84C, #E8C96D);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Montserrat', sans-serif;
+        font-size: 0.6rem;
+        font-weight: 700;
+        color: #0A0A0A;
+        letter-spacing: 0.05em;
+      }
+
+      .rr-profile-dropdown {
+        position: absolute;
+        top: calc(100% + 0.8rem);
+        right: 0;
+        min-width: 200px;
+        background: rgba(10,10,10,0.97);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(201,168,76,0.2);
+        border-radius: 12px;
+        box-shadow: 0 16px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(201,168,76,0.06);
+        overflow: hidden;
+        transform-origin: top right;
+        animation: rrDropIn 0.2s cubic-bezier(0.16,1,0.3,1);
+      }
+
+      @keyframes rrDropIn {
+        from { opacity: 0; transform: scale(0.92) translateY(-6px); }
+        to   { opacity: 1; transform: scale(1)    translateY(0); }
+      }
+
+      .rr-dropdown-header {
+        padding: 1rem 1.2rem 0.8rem;
+        border-bottom: 1px solid rgba(201,168,76,0.1);
+      }
+      .rr-dropdown-name {
+        font-family: 'Cormorant Garamond', serif;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #E8C96D;
+        letter-spacing: 0.05em;
+      }
+      .rr-dropdown-email {
+        font-family: 'Montserrat', sans-serif;
+        font-size: 0.6rem;
+        color: #666;
+        letter-spacing: 0.04em;
+        margin-top: 0.15rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 160px;
+      }
+
+      .rr-dropdown-item {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        padding: 0.7rem 1.2rem;
+        text-decoration: none;
+        font-family: 'Montserrat', sans-serif;
+        font-size: 0.68rem;
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: #888;
+        transition: color 0.2s, background 0.2s;
+        cursor: pointer;
+        background: none;
+        border: none;
+        width: 100%;
+        text-align: left;
+      }
+      .rr-dropdown-item:hover {
+        color: #C9A84C;
+        background: rgba(201,168,76,0.06);
+      }
+      .rr-dropdown-item--danger:hover {
+        color: #e07070;
+        background: rgba(220,80,80,0.06);
+      }
+      .rr-dropdown-divider {
+        height: 1px;
+        background: rgba(201,168,76,0.1);
+        margin: 0.2rem 0;
       }
 
       .rr-hamburger {
@@ -166,7 +282,6 @@ function GlobalStyles() {
       .rr-hamburger--open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
       .rr-hamburger--open span:nth-child(3) { transform: translateY(-5.5px) rotate(-45deg); }
 
-      /* ─── Bubble Mobile Menu Overlay ───────────────────────────────── */
       .rr-bubble-overlay {
         display: none;
         position: fixed;
@@ -210,17 +325,15 @@ function GlobalStyles() {
         transform: scale(0.75) translateY(20px);
         opacity: 0;
         transition:
-          transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
+          transform 0.45s cubic-bezier(0.34,1.56,0.64,1),
           opacity 0.35s ease,
           background 0.25s,
           border-color 0.25s;
       }
-
       .rr-bubble-item--entered {
         transform: scale(1) translateY(0);
         opacity: 1;
       }
-
       .rr-bubble-item::before {
         content: '';
         position: absolute;
@@ -230,15 +343,12 @@ function GlobalStyles() {
         transition: opacity 0.3s;
       }
       .rr-bubble-item:hover::before,
-      .rr-bubble-item--active::before {
-        opacity: 1;
-      }
+      .rr-bubble-item--active::before { opacity: 1; }
       .rr-bubble-item:hover,
       .rr-bubble-item--active {
         border-color: rgba(201,168,76,0.55);
         background: rgba(201,168,76,0.1);
       }
-
       .rr-bubble-item-label {
         font-family: 'Cormorant Garamond', serif;
         font-size: 1.5rem;
@@ -251,10 +361,7 @@ function GlobalStyles() {
         z-index: 1;
       }
       .rr-bubble-item:hover .rr-bubble-item-label,
-      .rr-bubble-item--active .rr-bubble-item-label {
-        color: #E8C96D;
-      }
-
+      .rr-bubble-item--active .rr-bubble-item-label { color: #E8C96D; }
       .rr-bubble-item-dot {
         position: absolute;
         right: 1.5rem;
@@ -286,9 +393,7 @@ function GlobalStyles() {
         transition: opacity 0.5s ease 0.6s;
         pointer-events: none;
       }
-      .rr-bubble-overlay--visible .rr-bubble-close-hint {
-        opacity: 1;
-      }
+      .rr-bubble-overlay--visible .rr-bubble-close-hint { opacity: 1; }
 
       .rr-bubble-wordmark {
         position: absolute;
@@ -305,11 +410,8 @@ function GlobalStyles() {
         opacity: 0;
         transition: opacity 0.5s ease 0.2s;
       }
-      .rr-bubble-overlay--visible .rr-bubble-wordmark {
-        opacity: 1;
-      }
+      .rr-bubble-overlay--visible .rr-bubble-wordmark { opacity: 1; }
 
-      /* ─── Responsive ────────────────────────────────────────────────── */
       @media (max-width: 768px) {
         .rr-pill-track { display: none; }
         .rr-hamburger { display: flex; }
@@ -332,23 +434,25 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
-        <GlobalStyles />
-        <PillNav />
-        <main>{children}</main>
-        <Footer />
-        <Toaster
-          position="top-right"
-          toastOptions={{
-            style: {
-              background: '#1A1A1A',
-              color: '#E8C96D',
-              border: '1px solid #C9A84C',
-              fontFamily: 'Montserrat, sans-serif',
-              fontSize: '0.8rem',
-              letterSpacing: '0.05em',
-            },
-          }}
-        />
+        <AuthProvider>
+          <GlobalStyles />
+          <PillNav />
+          <main>{children}</main>
+          <Footer />
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              style: {
+                background: '#1A1A1A',
+                color: '#E8C96D',
+                border: '1px solid #C9A84C',
+                fontFamily: 'Montserrat, sans-serif',
+                fontSize: '0.8rem',
+                letterSpacing: '0.05em',
+              },
+            }}
+          />
+        </AuthProvider>
       </body>
     </html>
   );
@@ -361,12 +465,97 @@ const NAV_ITEMS = [
   { label: 'Contact', href: '/contact' },
 ];
 
+function ProfileButton({ onOpenModal }) {
+  const { user, logout } = useAuth();
+  const [open, setOpen] = useState(false);
+  const wrapperRef = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const initials = user?.displayName
+    ? user.displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+    : null;
+
+  const handleLogout = async () => {
+    setOpen(false);
+    await logout();
+  };
+
+  return (
+    <div className="rr-profile-wrapper" ref={wrapperRef}>
+      <button
+        className={`rr-profile-btn${open ? ' rr-profile-btn--active' : ''}`}
+        onClick={() => user ? setOpen(v => !v) : onOpenModal()}
+        aria-label="Profile"
+        title="Profile"
+      >
+        {user && initials ? (
+          <div className="rr-profile-avatar">{initials}</div>
+        ) : (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="8" r="4" />
+            <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+          </svg>
+        )}
+      </button>
+
+      {open && user && (
+        <div className="rr-profile-dropdown">
+          <div className="rr-dropdown-header">
+            <div className="rr-dropdown-name">{user.displayName || 'Welcome'}</div>
+            <div className="rr-dropdown-email">{user.email}</div>
+          </div>
+
+          <a href="/account" className="rr-dropdown-item" onClick={() => setOpen(false)}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+            </svg>
+            My Account
+          </a>
+
+          <a href="/account?tab=orders" className="rr-dropdown-item" onClick={() => setOpen(false)}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/>
+            </svg>
+            My Orders
+          </a>
+
+          <a href="/account?tab=addresses" className="rr-dropdown-item" onClick={() => setOpen(false)}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
+            </svg>
+            Addresses
+          </a>
+
+          <div className="rr-dropdown-divider" />
+
+          <button className="rr-dropdown-item rr-dropdown-item--danger" onClick={handleLogout}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+            Sign Out
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PillNav() {
   const [cartCount, setCartCount] = useState(0);
   const [activeHref, setActiveHref] = useState('/');
   const [mobileOpen, setMobileOpen] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState(null);
   const [enteredItems, setEnteredItems] = useState([]);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
   const overlayRef = useRef(null);
   const timerRefs = useRef([]);
 
@@ -414,9 +603,7 @@ function PillNav() {
   }, [mobileOpen]);
 
   useEffect(() => {
-    const handleKey = (e) => {
-      if (e.key === 'Escape') setMobileOpen(false);
-    };
+    const handleKey = (e) => { if (e.key === 'Escape') setMobileOpen(false); };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
   }, []);
@@ -444,12 +631,8 @@ function PillNav() {
         </div>
 
         <div className="rr-pill-icons">
-          <a href="/profile" title="Profile" className="rr-pill-icon-link">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="8" r="4" />
-              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
-            </svg>
-          </a>
+          <ProfileButton onOpenModal={() => setAuthModalOpen(true)} />
+
           <a href="/cart" title="Cart" className="rr-pill-icon-link rr-pill-icon-cart">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
@@ -478,7 +661,6 @@ function PillNav() {
         aria-hidden={!mobileOpen}
       >
         <span className="rr-bubble-wordmark">R&amp;R AGENCIES</span>
-
         <div className="rr-bubble-grid">
           {NAV_ITEMS.map((item, i) => (
             <a
@@ -492,11 +674,368 @@ function PillNav() {
             </a>
           ))}
         </div>
-
         <span className="rr-bubble-close-hint">tap outside to close</span>
+      </div>
+
+      {authModalOpen && (
+        <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
+      )}
+    </>
+  );
+}
+
+function AuthModal({ isOpen, onClose }) {
+  const [mode, setMode] = useState('login');
+  const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '' });
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { login, register, resetPassword } = useAuth();
+  const overlayRef = useRef(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setError(''); setSuccess('');
+    setForm({ name: '', email: '', password: '', confirm: '' });
+    setMode('login');
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, [isOpen]);
+
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  if (!isOpen) return null;
+
+  const set = (field) => (e) => {
+    setForm(f => ({ ...f, [field]: e.target.value }));
+    setError('');
+  };
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    if (!form.email || !form.password) return setError('Please fill in all fields.');
+    setLoading(true);
+    try {
+      await login(form.email, form.password);
+      onClose();
+    } catch (err) {
+      setError(friendlyError(err.code));
+    } finally { setLoading(false); }
+  };
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    if (!form.name || !form.email || !form.password || !form.confirm)
+      return setError('Please fill in all fields.');
+    if (form.password !== form.confirm)
+      return setError('Passwords do not match.');
+    if (form.password.length < 8)
+      return setError('Password must be at least 8 characters.');
+    setLoading(true);
+    try {
+      await register(form.email, form.password, form.name);
+      onClose();
+    } catch (err) {
+      setError(friendlyError(err.code));
+    } finally { setLoading(false); }
+  };
+
+  const handleForgot = async (e) => {
+    e.preventDefault();
+    if (!form.email) return setError('Enter your email address.');
+    setLoading(true);
+    try {
+      await resetPassword(form.email);
+      setSuccess('Reset link sent — check your inbox.');
+    } catch (err) {
+      setError(friendlyError(err.code));
+    } finally { setLoading(false); }
+  };
+
+  return (
+    <>
+      <style>{`
+        .rr-modal-overlay {
+          position: fixed; inset: 0; z-index: 2000;
+          background: rgba(0,0,0,0.8);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+          display: flex; align-items: center; justify-content: center;
+          padding: 1rem;
+          animation: rrFadeIn 0.2s ease;
+        }
+        @keyframes rrFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .rr-modal-box {
+          width: 100%; max-width: 400px;
+          background: #0D0D0D;
+          border: 1px solid rgba(201,168,76,0.2);
+          border-radius: 16px;
+          overflow: hidden;
+          box-shadow: 0 32px 80px rgba(0,0,0,0.7);
+          animation: rrSlideUp 0.25s cubic-bezier(0.16,1,0.3,1);
+        }
+        @keyframes rrSlideUp {
+          from { opacity: 0; transform: translateY(20px) scale(0.97); }
+          to   { opacity: 1; transform: translateY(0)    scale(1); }
+        }
+
+        .rr-modal-header {
+          display: flex; align-items: center; justify-content: space-between;
+          padding: 1.4rem 1.6rem 0;
+        }
+        .rr-modal-logo {
+          font-family: 'Cormorant Garamond', serif;
+          font-size: 1.1rem; font-weight: 600;
+          letter-spacing: 0.2em; color: #C9A84C;
+          text-transform: uppercase;
+        }
+        .rr-modal-close {
+          background: none; border: none; cursor: pointer;
+          color: #555; padding: 0.3rem; border-radius: 50%;
+          display: flex; align-items: center; justify-content: center;
+          transition: color 0.2s, background 0.2s;
+        }
+        .rr-modal-close:hover { color: #C9A84C; background: rgba(201,168,76,0.1); }
+
+        .rr-modal-tabs {
+          display: flex; gap: 0; margin: 1.2rem 1.6rem 0;
+          border-bottom: 1px solid rgba(201,168,76,0.1);
+        }
+        .rr-modal-tab {
+          flex: 1; background: none; border: none; cursor: pointer;
+          font-family: 'Montserrat', sans-serif;
+          font-size: 0.65rem; font-weight: 500;
+          letter-spacing: 0.2em; text-transform: uppercase;
+          color: #555; padding: 0.7rem 0.5rem;
+          border-bottom: 1px solid transparent;
+          transition: color 0.2s, border-color 0.2s;
+          margin-bottom: -1px;
+        }
+        .rr-modal-tab:hover { color: #999; }
+        .rr-modal-tab--active { color: #C9A84C; border-bottom-color: #C9A84C; }
+
+        .rr-modal-body { padding: 1.6rem; }
+
+        .rr-modal-title {
+          font-family: 'Cormorant Garamond', serif;
+          font-size: 0.75rem; font-weight: 400;
+          letter-spacing: 0.25em; text-transform: uppercase;
+          color: #555; margin-bottom: 1.4rem;
+        }
+
+        .rr-modal-field { margin-bottom: 1rem; }
+        .rr-modal-label {
+          display: block;
+          font-family: 'Montserrat', sans-serif;
+          font-size: 0.6rem; font-weight: 500;
+          letter-spacing: 0.2em; text-transform: uppercase;
+          color: #666; margin-bottom: 0.4rem;
+        }
+        .rr-modal-input {
+          width: 100%; padding: 0.7rem 0.9rem;
+          background: rgba(255,255,255,0.03);
+          border: 1px solid rgba(201,168,76,0.15);
+          border-radius: 8px;
+          font-family: 'Montserrat', sans-serif;
+          font-size: 0.78rem; color: #ddd;
+          outline: none;
+          transition: border-color 0.2s, background 0.2s;
+          box-sizing: border-box;
+        }
+        .rr-modal-input::placeholder { color: #444; }
+        .rr-modal-input:focus {
+          border-color: rgba(201,168,76,0.45);
+          background: rgba(201,168,76,0.03);
+        }
+
+        .rr-modal-error {
+          font-family: 'Montserrat', sans-serif;
+          font-size: 0.65rem; color: #e07070;
+          letter-spacing: 0.05em; margin-bottom: 1rem;
+          padding: 0.6rem 0.8rem;
+          background: rgba(220,80,80,0.08);
+          border: 1px solid rgba(220,80,80,0.2);
+          border-radius: 6px;
+        }
+        .rr-modal-success {
+          font-family: 'Montserrat', sans-serif;
+          font-size: 0.65rem; color: #7ec87e;
+          letter-spacing: 0.05em; margin-bottom: 1rem;
+          padding: 0.6rem 0.8rem;
+          background: rgba(80,180,80,0.08);
+          border: 1px solid rgba(80,180,80,0.2);
+          border-radius: 6px;
+        }
+
+        .rr-modal-submit {
+          width: 100%; padding: 0.85rem;
+          background: linear-gradient(135deg, #C9A84C, #E8C96D);
+          border: none; border-radius: 8px; cursor: pointer;
+          font-family: 'Montserrat', sans-serif;
+          font-size: 0.68rem; font-weight: 700;
+          letter-spacing: 0.2em; text-transform: uppercase;
+          color: #0A0A0A;
+          transition: opacity 0.2s, transform 0.2s;
+          margin-top: 0.4rem;
+        }
+        .rr-modal-submit:hover:not(:disabled) { opacity: 0.88; transform: translateY(-1px); }
+        .rr-modal-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .rr-modal-link {
+          background: none; border: none; cursor: pointer;
+          font-family: 'Montserrat', sans-serif;
+          font-size: 0.62rem; color: #C9A84C;
+          letter-spacing: 0.08em; text-decoration: underline;
+          padding: 0; transition: opacity 0.2s;
+        }
+        .rr-modal-link:hover { opacity: 0.7; }
+
+        .rr-modal-footer {
+          text-align: center; margin-top: 1.2rem;
+          font-family: 'Montserrat', sans-serif;
+          font-size: 0.62rem; color: #555;
+          letter-spacing: 0.05em;
+        }
+      `}</style>
+
+      <div
+        ref={overlayRef}
+        className="rr-modal-overlay"
+        onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
+      >
+        <div className="rr-modal-box">
+          <div className="rr-modal-header">
+            <div className="rr-modal-logo">R&amp;R</div>
+            <button className="rr-modal-close" onClick={onClose} aria-label="Close">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+
+          {mode !== 'forgot' && (
+            <div className="rr-modal-tabs">
+              <button
+                className={`rr-modal-tab${mode === 'login' ? ' rr-modal-tab--active' : ''}`}
+                onClick={() => { setMode('login'); setError(''); setSuccess(''); }}
+              >
+                Sign In
+              </button>
+              <button
+                className={`rr-modal-tab${mode === 'register' ? ' rr-modal-tab--active' : ''}`}
+                onClick={() => { setMode('register'); setError(''); setSuccess(''); }}
+              >
+                Register
+              </button>
+            </div>
+          )}
+
+          <div className="rr-modal-body">
+            {mode === 'login' && (
+              <>
+                <p className="rr-modal-title">Welcome back</p>
+                {error && <div className="rr-modal-error">{error}</div>}
+                <form onSubmit={handleLogin}>
+                  <div className="rr-modal-field">
+                    <label className="rr-modal-label">Email</label>
+                    <input className="rr-modal-input" type="email" placeholder="you@example.com" value={form.email} onChange={set('email')} autoComplete="email" />
+                  </div>
+                  <div className="rr-modal-field">
+                    <label className="rr-modal-label">Password</label>
+                    <input className="rr-modal-input" type="password" placeholder="••••••••" value={form.password} onChange={set('password')} autoComplete="current-password" />
+                  </div>
+                  <div style={{ textAlign: 'right', marginBottom: '1rem', marginTop: '-0.4rem' }}>
+                    <button type="button" className="rr-modal-link" onClick={() => { setMode('forgot'); setError(''); }}>
+                      Forgot password?
+                    </button>
+                  </div>
+                  <button type="submit" className="rr-modal-submit" disabled={loading}>
+                    {loading ? 'Signing in...' : 'Sign In'}
+                  </button>
+                </form>
+              </>
+            )}
+
+            {mode === 'register' && (
+              <>
+                <p className="rr-modal-title">Create your account</p>
+                {error && <div className="rr-modal-error">{error}</div>}
+                <form onSubmit={handleRegister}>
+                  <div className="rr-modal-field">
+                    <label className="rr-modal-label">Full Name</label>
+                    <input className="rr-modal-input" type="text" placeholder="Your name" value={form.name} onChange={set('name')} autoComplete="name" />
+                  </div>
+                  <div className="rr-modal-field">
+                    <label className="rr-modal-label">Email</label>
+                    <input className="rr-modal-input" type="email" placeholder="you@example.com" value={form.email} onChange={set('email')} autoComplete="email" />
+                  </div>
+                  <div className="rr-modal-field">
+                    <label className="rr-modal-label">Password</label>
+                    <input className="rr-modal-input" type="password" placeholder="Min. 8 characters" value={form.password} onChange={set('password')} autoComplete="new-password" />
+                  </div>
+                  <div className="rr-modal-field">
+                    <label className="rr-modal-label">Confirm Password</label>
+                    <input className="rr-modal-input" type="password" placeholder="••••••••" value={form.confirm} onChange={set('confirm')} autoComplete="new-password" />
+                  </div>
+                  <button type="submit" className="rr-modal-submit" disabled={loading}>
+                    {loading ? 'Creating account...' : 'Create Account'}
+                  </button>
+                </form>
+              </>
+            )}
+
+            {mode === 'forgot' && (
+              <>
+                <p className="rr-modal-title">Reset your password</p>
+                {error && <div className="rr-modal-error">{error}</div>}
+                {success && <div className="rr-modal-success">{success}</div>}
+                {!success && (
+                  <form onSubmit={handleForgot}>
+                    <div className="rr-modal-field">
+                      <label className="rr-modal-label">Email</label>
+                      <input className="rr-modal-input" type="email" placeholder="you@example.com" value={form.email} onChange={set('email')} autoComplete="email" />
+                    </div>
+                    <button type="submit" className="rr-modal-submit" disabled={loading}>
+                      {loading ? 'Sending...' : 'Send Reset Link'}
+                    </button>
+                  </form>
+                )}
+                <div className="rr-modal-footer" style={{ marginTop: '1rem' }}>
+                  <button type="button" className="rr-modal-link" onClick={() => { setMode('login'); setError(''); setSuccess(''); }}>
+                    Back to sign in
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       </div>
     </>
   );
+}
+
+function friendlyError(code) {
+  switch (code) {
+    case 'auth/user-not-found':
+    case 'auth/wrong-password':
+    case 'auth/invalid-credential':
+      return 'Incorrect email or password.';
+    case 'auth/email-already-in-use':
+      return 'An account with this email already exists.';
+    case 'auth/invalid-email':
+      return 'Please enter a valid email address.';
+    case 'auth/weak-password':
+      return 'Password must be at least 8 characters.';
+    case 'auth/too-many-requests':
+      return 'Too many attempts. Please try again later.';
+    default:
+      return 'Something went wrong. Please try again.';
+  }
 }
 
 function Footer() {

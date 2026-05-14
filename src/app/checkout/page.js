@@ -795,9 +795,11 @@ export default function CheckoutPage() {
     }, 900);
   }, [form.city, form.province, form.zip]);
 
-  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const shippingCost = selectedRate?.price ?? 0;
-  const total = subtotal + shippingCost;
+ const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+const freeDeliveryThreshold = 600;
+const qualifiesForFree = subtotal >= freeDeliveryThreshold;
+const shippingCost = qualifiesForFree ? 0 : (selectedRate?.price ?? 0);
+const total = subtotal + shippingCost;
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -1122,7 +1124,40 @@ export default function CheckoutPage() {
                   </div>
                 )}
 
-                {shippingLoading && (
+                {!qualifiesForFree && subtotal > 0 && (
+  <div style={{
+    padding: '0.85rem 1rem', marginBottom: '1.2rem',
+    background: 'rgba(201,168,76,0.06)', border: '1px solid rgba(201,168,76,0.25)',
+    display: 'flex', alignItems: 'center', gap: '0.6rem',
+  }}>
+    <div style={{ flex: 1 }}>
+      <p style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.68rem', color: '#C9A84C', letterSpacing: '0.08em', margin: 0, fontWeight: 700 }}>
+        🚚 FREE DELIVERY OVER R600
+      </p>
+      <p style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.62rem', color: '#888', margin: '0.3rem 0 0', letterSpacing: '0.04em' }}>
+        Add <span style={{ color: '#C9A84C', fontWeight: 600 }}>R {(freeDeliveryThreshold - subtotal).toFixed(2)}</span> more to qualify — save on shipping
+      </p>
+    </div>
+    <div style={{ width: '100%', maxWidth: '80px' }}>
+      <div style={{ height: '3px', background: 'rgba(201,168,76,0.15)', borderRadius: '2px', overflow: 'hidden' }}>
+        <div style={{ height: '100%', width: `${Math.min((subtotal / freeDeliveryThreshold) * 100, 100)}%`, background: '#C9A84C', borderRadius: '2px', transition: 'width 0.4s ease' }} />
+      </div>
+    </div>
+  </div>
+)}
+
+{qualifiesForFree && (
+  <div style={{
+    padding: '0.85rem 1rem', marginBottom: '1.2rem',
+    background: 'rgba(80,180,80,0.06)', border: '1px solid rgba(80,180,80,0.25)',
+  }}>
+    <p style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.68rem', color: '#7ec87e', letterSpacing: '0.08em', margin: 0, fontWeight: 700 }}>
+      ✓ FREE DELIVERY UNLOCKED
+    </p>
+  </div>
+)}
+
+{shippingLoading && (
                   <div style={{ padding: '1rem 0', fontSize: '0.72rem', color: '#888', letterSpacing: '0.05em', fontFamily: 'Montserrat, sans-serif' }}>
                     ↻ Calculating shipping rates...
                   </div>
@@ -1176,6 +1211,12 @@ export default function CheckoutPage() {
                 <div style={{ borderTop: '1px solid rgba(201,168,76,0.1)', paddingTop: '2rem' }}>
                   <p style={{ fontSize: '0.72rem', color: '#555', lineHeight: 1.8, marginBottom: '1.5rem' }}>
                     🔒 You will be redirected to <span style={{ color: '#C9A84C' }}>PayFast</span> to complete secure payment. R&amp;R Agencies never stores your card details.
+</p>
+<div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.75rem', padding: '0.65rem 0.9rem', background: 'rgba(201,168,76,0.04)', border: '1px solid rgba(201,168,76,0.12)' }}>
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+  <p style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.62rem', color: '#666', letterSpacing: '0.04em', margin: 0, lineHeight: 1.6 }}>
+    Delivered by <span style={{ color: '#C9A84C', fontWeight: 600 }}>The Courier Guy</span> — trusted by thousands of South African businesses for fast, reliable delivery nationwide.
+  </p>
                   </p>
                   <button
                     onClick={handlePayFast}
@@ -1220,7 +1261,7 @@ export default function CheckoutPage() {
                   {selectedRate && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
                       <p style={{ fontSize: '0.65rem', color: '#888', fontFamily: 'Montserrat, sans-serif', letterSpacing: '0.05em' }}>Shipping · {selectedRate.service}</p>
-                      <p style={{ fontSize: '0.78rem', color: '#888' }}>R {selectedRate.price.toFixed(2)}</p>
+                     <p style={{ fontSize: '0.78rem', color: qualifiesForFree ? '#7ec87e' : '#888' }}>{qualifiesForFree ? 'FREE' : `R ${selectedRate.price.toFixed(2)}`}</p>
                     </div>
                   )}
                   {!selectedRate && shippingRates.length === 0 && !shippingLoading && (

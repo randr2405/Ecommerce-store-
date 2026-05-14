@@ -31,11 +31,9 @@ export async function POST(req) {
     item_name:     "RnR Agencies Order",
   };
 
-  const signatureFields = { ...pfData };
-  delete signatureFields.merchant_key;
-
+  // Include merchant_key in signature (do NOT delete it)
   const pfParamString =
-    Object.entries(signatureFields)
+    Object.entries(pfData)
       .filter(([, val]) => String(val ?? "").trim() !== "")
       .map(([key, val]) =>
         `${key}=${encodeURIComponent(String(val).trim()).replace(/%20/g, "+")}`

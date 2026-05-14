@@ -805,22 +805,15 @@ function useGooglePlacesAutocomplete(onSelect) {
 
 // ─── Address Autocomplete Input Component ───────────────────────────────────
 function AddressAutocompleteInput({ value, onChange, onAddressSelect, style, labelStyle }) {
-  const [inputValue, setInputValue] = useState(value || '');
   const [isFocused, setIsFocused] = useState(false);
 
   const handleSelect = useCallback((addressData) => {
-    setInputValue(addressData.formatted || addressData.address);
     onAddressSelect(addressData);
   }, [onAddressSelect]);
 
   const inputRef = useGooglePlacesAutocomplete(handleSelect);
 
-  useEffect(() => {
-    setInputValue(value || '');
-  }, [value]);
-
   const handleChange = (e) => {
-    setInputValue(e.target.value);
     onChange(e.target.value);
   };
 
@@ -831,13 +824,11 @@ function AddressAutocompleteInput({ value, onChange, onAddressSelect, style, lab
         <input
           ref={inputRef}
           type="text"
-          value={inputValue}
+          defaultValue={value || ''}
           onChange={handleChange}
           placeholder="Start typing your address..."
           autoComplete="off"
-          onFocus={() => {
-            setIsFocused(true);
-          }}
+          onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           style={{
             ...style,

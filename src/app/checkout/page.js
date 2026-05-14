@@ -1217,7 +1217,7 @@ const total = subtotal + shippingCost;
   <p style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.62rem', color: '#666', letterSpacing: '0.04em', margin: 0, lineHeight: 1.6 }}>
     Delivered by <span style={{ color: '#C9A84C', fontWeight: 600 }}>The Courier Guy</span> — trusted by thousands of South African businesses for fast, reliable delivery nationwide.
   </p>
-                 
+</div>
                   <button
                     onClick={handlePayFast}
                     disabled={checkoutLoading}

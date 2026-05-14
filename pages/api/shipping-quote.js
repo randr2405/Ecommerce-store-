@@ -29,17 +29,17 @@ export default async function handler(req, res) {
     },
     parcels: [
       {
-        length: 30,
-        width: 20,
-        height: 15,
-        weight: 1,
+        submitted_length_cm: 30,
+        submitted_width_cm: 20,
+        submitted_height_cm: 15,
+        submitted_weight_kg: 1,
       },
     ],
     declared_value: 500,
   };
 
   try {
-    const response = await fetch('https://api.shiplogic.com/rates', {
+    const response = await fetch('https://api.portal.thecourierguy.co.za/rates', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -48,12 +48,19 @@ export default async function handler(req, res) {
       body: JSON.stringify(body),
     });
 
-    const data = await response.json();
+    const responseText = await response.text();
+    console.log('TCG raw response:', responseText);
 
-    console.log('ShipLogic response:', JSON.stringify(data, null, 2));
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch {
+      console.error('TCG returned non-JSON:', responseText);
+      return res.status(500).json({ error: 'Courier API returned an invalid response.' });
+    }
 
     if (!response.ok) {
-      console.error('ShipLogic error:', data);
+      console.error('TCG error:', data);
       return res.status(400).json({ error: data?.message || 'Quote failed' });
     }
 

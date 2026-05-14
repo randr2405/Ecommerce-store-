@@ -69,7 +69,7 @@ export default async function handler(req, res) {
       .sort((a, b) => a.rate - b.rate)
       .map((r) => ({
         service: r.service_level?.name || r.service_level_code,
-        code: r.service_level_code,
+        code: r.service_level?.name || r.service_level_code || r.service_level?.id,
         price: parseFloat(r.rate.toFixed(2)),
         eta: r.estimated_delivery_date || null,
       }));

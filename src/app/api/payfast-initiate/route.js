@@ -11,7 +11,11 @@ export async function POST(req) {
 
   const finalAmount = parseFloat(subtotal).toFixed(2);
 
-  // Build the data object — field ORDER matters for PayFast
+  // Sanitize phone number to 10 digits starting with 0
+  const cleanPhone = (form.phone || "")
+    .replace(/\D/g, "")
+    .replace(/^27/, "0");
+
   const pfData = {
     merchant_id:   merchantId,
     merchant_key:  merchantKey,
@@ -21,12 +25,12 @@ export async function POST(req) {
     name_first:    form.firstName,
     name_last:     form.lastName,
     email_address: form.email,
-    cell_number:   form.phone,
+    cell_number:   cleanPhone,
     amount:        finalAmount,
     item_name:     "RnR Agencies Order",
   };
 
-  // Signature is built WITHOUT merchant_key, and WITHOUT empty fields
+  // Signature excludes merchant_key
   const signatureFields = { ...pfData };
   delete signatureFields.merchant_key;
 
@@ -44,10 +48,21 @@ export async function POST(req) {
 
   pfData.signature = md5(pfParamString);
 
-  // Save pending order
+  // ── DEBUG LOGS — remove these once PayFast is working ──
+  console.log("=== PAYFAST DEBUG ===");
+  console.log("MERCHANT ID:", merchantId);
+  console.log("MERCHANT KEY SET:", !!merchantKey);
+  console.log("PASSPHRASE SET:", !!passphrase);
+  console.log("SITE URL:", siteUrl);
+  console.log("AMOUNT:", finalAmount);
+  console.log("CLEAN PHONE:", cleanPhone);
+  console.log("PARAM STRING:", pfParamString);
+  console.log("SIGNATURE:", pfData.signature);
+  console.log("=====================");
+
   const db = getDb();
   await db.collection("pendingOrders").add({
-    email_address: form.email,
+    email_address:   form.email,
     cart:            cart || [],
     shippingService: shippingService || "",
     shippingCost:    shippingCost || 0,

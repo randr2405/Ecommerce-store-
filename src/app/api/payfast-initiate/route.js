@@ -41,9 +41,22 @@ export async function POST(req) {
         `${key}=${encodeURIComponent(String(val).trim()).replace(/%20/g, "+")}`
       )
       .join("&") +
-    `&passphrase=${encodeURIComponent(passphrase.trim()).replace(/%20/g, "+")}`;
+    (passphrase
+      ? `&passphrase=${encodeURIComponent(passphrase.trim()).replace(/%20/g, "+")}`
+      : "");
 
   pfData.signature = md5(pfParamString);
+
+  console.log("=== PAYFAST DEBUG ===");
+  console.log("MERCHANT ID:", merchantId);
+  console.log("MERCHANT KEY SET:", !!merchantKey);
+  console.log("PASSPHRASE SET:", !!passphrase);
+  console.log("SITE URL:", siteUrl);
+  console.log("AMOUNT:", finalAmount);
+  console.log("CLEAN PHONE:", cleanPhone);
+  console.log("PARAM STRING:", pfParamString);
+  console.log("SIGNATURE:", pfData.signature);
+  console.log("=====================");
 
   try {
     const db = getDb();

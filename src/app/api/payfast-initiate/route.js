@@ -10,7 +10,7 @@ export async function POST(req) {
   const siteUrl     = process.env.NEXT_PUBLIC_SITE_URL;
 
   const discountAmount = parseFloat(discount || 0);
-  const finalAmount = (parseFloat(subtotal) - discountAmount).toFixed(2);
+
 
   const pfData = {
     merchant_id:   merchantId,

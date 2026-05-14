@@ -776,8 +776,29 @@ function useGooglePlacesAutocomplete(onSelect) {
       });
     });
 
-    autocompleteRef.current = ac;
+    // Nuke pac-icons via MutationObserver
+    const observer = new MutationObserver(() => {
+      document.querySelectorAll('.pac-icon, .pac-icon-marker').forEach(el => {
+        el.style.cssText = 'display:none!important;width:0!important;height:0!important;margin:0!important;padding:0!important;background:none!important;';
+      });
+      document.querySelectorAll('.pac-item').forEach(el => {
+        el.style.cssText = 'display:block!important;color:#aaa!important;background:#1A1A1A!important;padding:0.65rem 1rem!important;font-size:0.72rem!important;';
+      });
+      document.querySelectorAll('.pac-container').forEach(el => {
+        el.style.cssText = 'background:#1A1A1A!important;border:1px solid rgba(201,168,76,0.25)!important;z-index:999999!important;';
+      });
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    autocompleteRef.current = { ac, observer };
   }, [scriptLoaded, onSelect]);
+
+  useEffect(() => {
+    return () => {
+      autocompleteRef.current?.observer?.disconnect();
+    };
+  }, []);
 
   return inputRef;
 }

@@ -1169,7 +1169,7 @@ const total = subtotal + shippingCost;
                   </div>
                 )}
 
-                {shippingRates.length > 0 && (
+                {shippingRates.length > 0 && !qualifiesForFree && (
                   <div style={{ marginBottom: '2.5rem' }}>
                     <label style={labelStyle}>Delivery Option</label>
                     {shippingRates.map((rate) => (

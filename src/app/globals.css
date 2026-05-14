@@ -102,35 +102,41 @@ h1, h2, h3, h4, h5 {
 }
 
 .pac-container {
+  position: fixed !important;
   background-color: #1A1A1A !important;
   border: 1px solid rgba(201, 168, 76, 0.25) !important;
   border-top: none !important;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8) !important;
   font-family: 'Montserrat', sans-serif !important;
-  z-index: 99999 !important;
+  z-index: 999999 !important;
   border-radius: 0 !important;
+  margin-top: 0 !important;
 }
 
 .pac-item {
-  padding: 0.6rem 1rem !important;
+  padding: 0.65rem 1rem !important;
   border-top: 1px solid rgba(201, 168, 76, 0.08) !important;
   cursor: pointer !important;
-  color: #888 !important;
-  font-size: 0.7rem !important;
+  color: #aaa !important;
+  font-size: 0.72rem !important;
   letter-spacing: 0.03em !important;
   background-color: #1A1A1A !important;
   line-height: 1.6 !important;
+  display: flex !important;
+  align-items: center !important;
 }
 
 .pac-item:hover,
 .pac-item-selected {
-  background-color: rgba(201, 168, 76, 0.08) !important;
+  background-color: rgba(201, 168, 76, 0.1) !important;
+  color: #F5F0E8 !important;
 }
 
 .pac-item-query {
   color: #F5F0E8 !important;
   font-size: 0.75rem !important;
   font-family: 'Montserrat', sans-serif !important;
+  padding-right: 4px !important;
 }
 
 .pac-matched {
@@ -142,10 +148,18 @@ h1, h2, h3, h4, h5 {
 .pac-icon-marker,
 .hdpi .pac-icon {
   display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 .pac-logo:after {
   display: none !important;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="tel"] {
+  color: #F5F0E8 !important;
 }
 
 @layer base {

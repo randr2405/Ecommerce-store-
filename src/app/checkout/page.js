@@ -79,10 +79,7 @@ const createTouchTexture = () => {
     texture.needsUpdate = true;
   };
   return {
-    canvas,
-    texture,
-    addTouch,
-    update,
+    canvas, texture, addTouch, update,
     set radiusScale(v) { radius = 0.1 * size * v; },
     get radiusScale() { return radius / (0.1 * size); },
     size
@@ -116,9 +113,7 @@ const createLiquidEffect = (texture, opts) => {
 };
 
 const SHAPE_MAP = { square: 0, circle: 1, triangle: 2, diamond: 3 };
-
 const VERTEX_SRC = `void main() { gl_Position = vec4(position, 1.0); }`;
-
 const FRAGMENT_SRC = `
 precision highp float;
 uniform vec3  uColor;
@@ -245,28 +240,12 @@ void main(){
 const MAX_CLICKS = 10;
 
 const PixelBlast = ({
-  variant = 'square',
-  pixelSize = 3,
-  color = '#B497CF',
-  className,
-  style,
-  antialias = true,
-  patternScale = 2,
-  patternDensity = 1,
-  liquid = false,
-  liquidStrength = 0.1,
-  liquidRadius = 1,
-  pixelSizeJitter = 0,
-  enableRipples = true,
-  rippleIntensityScale = 1,
-  rippleThickness = 0.1,
-  rippleSpeed = 0.3,
-  liquidWobbleSpeed = 4.5,
-  autoPauseOffscreen = true,
-  speed = 0.5,
-  transparent = true,
-  edgeFade = 0.5,
-  noiseAmount = 0
+  variant = 'square', pixelSize = 3, color = '#B497CF', className, style,
+  antialias = true, patternScale = 2, patternDensity = 1, liquid = false,
+  liquidStrength = 0.1, liquidRadius = 1, pixelSizeJitter = 0, enableRipples = true,
+  rippleIntensityScale = 1, rippleThickness = 0.1, rippleSpeed = 0.3,
+  liquidWobbleSpeed = 4.5, autoPauseOffscreen = true, speed = 0.5,
+  transparent = true, edgeFade = 0.5, noiseAmount = 0
 }) => {
   const containerRef = useRef(null);
   const visibilityRef = useRef({ visible: true });
@@ -327,13 +306,8 @@ const PixelBlast = ({
       const scene = new THREE.Scene();
       const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
       const material = new THREE.ShaderMaterial({
-        vertexShader: VERTEX_SRC,
-        fragmentShader: FRAGMENT_SRC,
-        uniforms,
-        transparent: true,
-        depthTest: false,
-        depthWrite: false,
-        glslVersion: THREE.GLSL3
+        vertexShader: VERTEX_SRC, fragmentShader: FRAGMENT_SRC, uniforms,
+        transparent: true, depthTest: false, depthWrite: false, glslVersion: THREE.GLSL3
       });
       const quadGeom = new THREE.PlaneGeometry(2, 2);
       const quad = new THREE.Mesh(quadGeom, material);
@@ -360,9 +334,7 @@ const PixelBlast = ({
         return Math.random();
       };
       const timeOffset = randomFloat() * 1000;
-      let composer;
-      let touch;
-      let liquidEffect;
+      let composer; let touch; let liquidEffect;
       if (liquid) {
         touch = createTouchTexture();
         touch.radiusScale = liquidRadius;
@@ -702,167 +674,40 @@ function TargetCursor({ targetSelector = 'a, button', spinDuration = 2, hideDefa
 function GuestLoginGate({ onGuest, onLogin }) {
   return (
     <div style={{
-      paddingTop: '70px',
-      minHeight: '100vh',
-      background: '#0A0A0A',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
+      paddingTop: '70px', minHeight: '100vh', background: '#0A0A0A',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
       padding: '70px 1.5rem 4rem',
     }}>
       <style>{`
-        .gate-card {
-          width: 100%;
-          max-width: 480px;
-          border: 1px solid rgba(201,168,76,0.2);
-          background: #0F0F0F;
-          padding: 3rem 2.5rem;
-          text-align: center;
-          animation: gateIn 0.35s cubic-bezier(0.16,1,0.3,1);
-        }
-        @keyframes gateIn {
-          from { opacity: 0; transform: translateY(16px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        .gate-divider {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          margin: 2rem 0;
-        }
-        .gate-divider-line {
-          flex: 1;
-          height: 1px;
-          background: rgba(201,168,76,0.12);
-        }
-        .gate-divider-text {
-          font-family: 'Montserrat', sans-serif;
-          font-size: 0.6rem;
-          letter-spacing: 0.2em;
-          text-transform: uppercase;
-          color: #444;
-        }
-        .gate-btn-primary {
-          width: 100%;
-          padding: 0.95rem;
-          background: linear-gradient(135deg, #C9A84C, #E8C96D);
-          border: none;
-          cursor: pointer;
-          font-family: 'Montserrat', sans-serif;
-          font-size: 0.68rem;
-          font-weight: 700;
-          letter-spacing: 0.2em;
-          text-transform: uppercase;
-          color: #0A0A0A;
-          transition: opacity 0.2s, transform 0.2s;
-          margin-bottom: 1rem;
-        }
+        .gate-card { width: 100%; max-width: 480px; border: 1px solid rgba(201,168,76,0.2); background: #0F0F0F; padding: 3rem 2.5rem; text-align: center; animation: gateIn 0.35s cubic-bezier(0.16,1,0.3,1); }
+        @keyframes gateIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+        .gate-divider { display: flex; align-items: center; gap: 1rem; margin: 2rem 0; }
+        .gate-divider-line { flex: 1; height: 1px; background: rgba(201,168,76,0.12); }
+        .gate-divider-text { font-family: 'Montserrat', sans-serif; font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; color: #444; }
+        .gate-btn-primary { width: 100%; padding: 0.95rem; background: linear-gradient(135deg, #C9A84C, #E8C96D); border: none; cursor: pointer; font-family: 'Montserrat', sans-serif; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: #0A0A0A; transition: opacity 0.2s, transform 0.2s; margin-bottom: 1rem; }
         .gate-btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
-        .gate-btn-ghost {
-          width: 100%;
-          padding: 0.95rem;
-          background: none;
-          border: 1px solid rgba(201,168,76,0.25);
-          cursor: pointer;
-          font-family: 'Montserrat', sans-serif;
-          font-size: 0.68rem;
-          font-weight: 500;
-          letter-spacing: 0.2em;
-          text-transform: uppercase;
-          color: #888;
-          transition: color 0.2s, border-color 0.2s, background 0.2s;
-        }
-        .gate-btn-ghost:hover {
-          color: #C9A84C;
-          border-color: rgba(201,168,76,0.5);
-          background: rgba(201,168,76,0.05);
-        }
-        .gate-perks {
-          display: flex;
-          flex-direction: column;
-          gap: 0.55rem;
-          margin: 1.8rem 0 0;
-          text-align: left;
-        }
-        .gate-perk {
-          display: flex;
-          align-items: center;
-          gap: 0.7rem;
-          font-family: 'Montserrat', sans-serif;
-          font-size: 0.65rem;
-          color: #666;
-          letter-spacing: 0.04em;
-        }
-        .gate-perk-dot {
-          width: 4px;
-          height: 4px;
-          border-radius: 50%;
-          background: #C9A84C;
-          flex-shrink: 0;
-        }
+        .gate-btn-ghost { width: 100%; padding: 0.95rem; background: none; border: 1px solid rgba(201,168,76,0.25); cursor: pointer; font-family: 'Montserrat', sans-serif; font-size: 0.68rem; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; color: #888; transition: color 0.2s, border-color 0.2s, background 0.2s; }
+        .gate-btn-ghost:hover { color: #C9A84C; border-color: rgba(201,168,76,0.5); background: rgba(201,168,76,0.05); }
+        .gate-perks { display: flex; flex-direction: column; gap: 0.55rem; margin: 1.8rem 0 0; text-align: left; }
+        .gate-perk { display: flex; align-items: center; gap: 0.7rem; font-family: 'Montserrat', sans-serif; font-size: 0.65rem; color: #666; letter-spacing: 0.04em; }
+        .gate-perk-dot { width: 4px; height: 4px; border-radius: 50%; background: #C9A84C; flex-shrink: 0; }
       `}</style>
-
       <div className="gate-card">
-        <div style={{
-          fontFamily: 'Cormorant Garamond, serif',
-          fontSize: '0.75rem',
-          letterSpacing: '0.35em',
-          textTransform: 'uppercase',
-          color: '#C9A84C',
-          marginBottom: '0.6rem',
-        }}>
-          R&amp;R AGENCIES
-        </div>
-        <h2 style={{
-          fontFamily: 'Cormorant Garamond, serif',
-          fontSize: '2rem',
-          fontWeight: 600,
-          color: '#F5F0E8',
-          letterSpacing: '0.05em',
-          marginBottom: '0.5rem',
-          lineHeight: 1.15,
-        }}>
-          How would you like to proceed?
-        </h2>
+        <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '0.75rem', letterSpacing: '0.35em', textTransform: 'uppercase', color: '#C9A84C', marginBottom: '0.6rem' }}>R&amp;R AGENCIES</div>
+        <h2 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '2rem', fontWeight: 600, color: '#F5F0E8', letterSpacing: '0.05em', marginBottom: '0.5rem', lineHeight: 1.15 }}>How would you like to proceed?</h2>
         <div style={{ width: '32px', height: '1px', background: '#C9A84C', margin: '1.2rem auto' }} />
-        <p style={{
-          fontFamily: 'Montserrat, sans-serif',
-          fontSize: '0.72rem',
-          color: '#666',
-          letterSpacing: '0.04em',
-          lineHeight: 1.8,
-          marginBottom: '2rem',
-        }}>
-          Sign in for a faster checkout with saved addresses and order history, or continue as a guest.
-        </p>
-
-        <button className="gate-btn-primary" onClick={onLogin}>
-          Sign In / Register
-        </button>
-
+        <p style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.72rem', color: '#666', letterSpacing: '0.04em', lineHeight: 1.8, marginBottom: '2rem' }}>Sign in for a faster checkout with saved addresses and order history, or continue as a guest.</p>
+        <button className="gate-btn-primary" onClick={onLogin}>Sign In / Register</button>
         <div className="gate-divider">
           <div className="gate-divider-line" />
           <span className="gate-divider-text">or</span>
           <div className="gate-divider-line" />
         </div>
-
-        <button className="gate-btn-ghost" onClick={onGuest}>
-          Continue as Guest
-        </button>
-
+        <button className="gate-btn-ghost" onClick={onGuest}>Continue as Guest</button>
         <div className="gate-perks">
-          <div className="gate-perk">
-            <span className="gate-perk-dot" />
-            Save addresses for future orders
-          </div>
-          <div className="gate-perk">
-            <span className="gate-perk-dot" />
-            Track your order history in one place
-          </div>
-          <div className="gate-perk">
-            <span className="gate-perk-dot" />
-            Faster checkout every time
-          </div>
+          <div className="gate-perk"><span className="gate-perk-dot" />Save addresses for future orders</div>
+          <div className="gate-perk"><span className="gate-perk-dot" />Track your order history in one place</div>
+          <div className="gate-perk"><span className="gate-perk-dot" />Faster checkout every time</div>
         </div>
       </div>
     </div>
@@ -878,15 +723,15 @@ export default function CheckoutPage() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const isMobile = useIsMobile();
 
+  const [shippingRates, setShippingRates] = useState([]);
+  const [selectedRate, setSelectedRate] = useState(null);
+  const [shippingLoading, setShippingLoading] = useState(false);
+  const [shippingError, setShippingError] = useState('');
+  const debounceRef = useRef(null);
+
   const [form, setForm] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    address: '',
-    city: '',
-    province: '',
-    zip: '',
+    firstName: '', lastName: '', email: '', phone: '',
+    address: '', city: '', province: '', zip: '',
   });
 
   useEffect(() => {
@@ -901,9 +746,7 @@ export default function CheckoutPage() {
       const firstName = nameParts[0] || '';
       const lastName = nameParts.slice(1).join(' ') || '';
       setForm(f => ({
-        ...f,
-        firstName,
-        lastName,
+        ...f, firstName, lastName,
         email: user.email || '',
         phone: profile?.phone || f.phone,
       }));
@@ -920,7 +763,39 @@ export default function CheckoutPage() {
     }
   }, [user, profile]);
 
+  useEffect(() => {
+    const { city, province, zip } = form;
+    if (!city || !province || !zip || zip.length < 4) return;
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      setShippingLoading(true);
+      setShippingError('');
+      setShippingRates([]);
+      setSelectedRate(null);
+      try {
+        const res = await fetch('/api/shipping-quote', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ city: form.city, province: form.province, zip: form.zip, address: form.address }),
+        });
+        const data = await res.json();
+        if (data.rates?.length) {
+          setShippingRates(data.rates);
+          setSelectedRate(data.rates[0]);
+        } else {
+          setShippingError('No shipping options found for this address.');
+        }
+      } catch {
+        setShippingError('Could not fetch shipping rates.');
+      } finally {
+        setShippingLoading(false);
+      }
+    }, 900);
+  }, [form.city, form.province, form.zip]);
+
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const shippingCost = selectedRate?.price ?? 0;
+  const total = subtotal + shippingCost;
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -942,7 +817,9 @@ export default function CheckoutPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           form,
-          subtotal: subtotal.toFixed(2),
+          subtotal: total.toFixed(2),
+          shippingService: selectedRate?.service || 'Standard',
+          shippingCost: shippingCost.toFixed(2),
           cartLength: cart.length,
           userId: user?.uid || null,
         }),
@@ -967,9 +844,7 @@ export default function CheckoutPage() {
     }
   };
 
-  const handleLoginChoice = () => {
-    setShowAuthModal(true);
-  };
+  const handleLoginChoice = () => setShowAuthModal(true);
 
   if (!mounted || authLoading) return null;
 
@@ -989,13 +864,7 @@ export default function CheckoutPage() {
       <ClickSpark sparkColor="#C9A84C" sparkSize={7} sparkRadius={14} sparkCount={8} duration={400}>
         <>
           {!isMobile && (
-            <TargetCursor
-              targetSelector="a, button, input"
-              spinDuration={2.4}
-              hideDefaultCursor={true}
-              hoverDuration={0.18}
-              parallaxOn={true}
-            />
+            <TargetCursor targetSelector="a, button, input" spinDuration={2.4} hideDefaultCursor={true} hoverDuration={0.18} parallaxOn={true} />
           )}
           <style>{`
             @media (min-width: 769px) { * { cursor: none !important; } }
@@ -1011,13 +880,8 @@ export default function CheckoutPage() {
               100% { transform: translate(calc(-50% + cos(var(--angle)) * var(--radius) * 3), calc(-50% + sin(var(--angle)) * var(--radius) * 3)) scale(0); opacity: 0; }
             }
           `}</style>
-          <GuestLoginGate
-            onGuest={() => setGuestMode(true)}
-            onLogin={handleLoginChoice}
-          />
-          {showAuthModal && (
-            <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
-          )}
+          <GuestLoginGate onGuest={() => setGuestMode(true)} onLogin={handleLoginChoice} />
+          {showAuthModal && <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />}
         </>
       </ClickSpark>
     );
@@ -1027,18 +891,11 @@ export default function CheckoutPage() {
     <ClickSpark sparkColor="#C9A84C" sparkSize={7} sparkRadius={14} sparkCount={8} duration={400}>
       <>
         {!isMobile && (
-          <TargetCursor
-            targetSelector="a, button, input, textarea, select"
-            spinDuration={2.4}
-            hideDefaultCursor={true}
-            hoverDuration={0.18}
-            parallaxOn={true}
-          />
+          <TargetCursor targetSelector="a, button, input, textarea, select" spinDuration={2.4} hideDefaultCursor={true} hoverDuration={0.18} parallaxOn={true} />
         )}
 
         <style>{`
           @media (min-width: 769px) { * { cursor: none !important; } }
-
           .tc-wrapper { position: fixed; top: 0; left: 0; width: 0; height: 0; pointer-events: none; z-index: 99999; will-change: transform; }
           .tc-dot { position: absolute; width: 5px; height: 5px; border-radius: 50%; background: #C9A84C; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 8px rgba(201,168,76,0.8), 0 0 16px rgba(201,168,76,0.4); }
           .tc-corner { position: absolute; width: 12px; height: 12px; border-color: #C9A84C; border-style: solid; border-width: 0; will-change: transform; filter: drop-shadow(0 0 4px rgba(201,168,76,0.6)); }
@@ -1046,12 +903,10 @@ export default function CheckoutPage() {
           .tc-tr { border-top-width: 2px; border-right-width: 2px; transform: translate(6px, -18px); }
           .tc-br { border-bottom-width: 2px; border-right-width: 2px; transform: translate(6px, 6px); }
           .tc-bl { border-bottom-width: 2px; border-left-width: 2px; transform: translate(-18px, 6px); }
-
           @keyframes sparkFly {
             0% { transform: translate(-50%,-50%) scale(1); opacity: 1; }
             100% { transform: translate(calc(-50% + cos(var(--angle)) * var(--radius) * 3), calc(-50% + sin(var(--angle)) * var(--radius) * 3)) scale(0); opacity: 0; }
           }
-
           @media (max-width: 768px) {
             .checkout-grid { grid-template-columns: 1fr !important; }
             .name-grid { grid-template-columns: 1fr !important; }
@@ -1065,28 +920,14 @@ export default function CheckoutPage() {
 
         <div style={{ paddingTop: '70px' }}>
           <section className="checkout-hero" style={{
-            position: 'relative',
-            padding: '6rem 2rem',
-            textAlign: 'center',
-            borderBottom: '1px solid rgba(201,168,76,0.15)',
-            background: '#0A0A0A',
-            overflow: 'hidden',
+            position: 'relative', padding: '6rem 2rem', textAlign: 'center',
+            borderBottom: '1px solid rgba(201,168,76,0.15)', background: '#0A0A0A', overflow: 'hidden',
           }}>
             <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
               <PixelBlast
-                variant="circle"
-                pixelSize={4}
-                color="#C9A84C"
-                patternScale={1.8}
-                patternDensity={0.72}
-                pixelSizeJitter={0.4}
-                enableRipples={true}
-                rippleSpeed={0.25}
-                rippleThickness={0.08}
-                rippleIntensityScale={0.9}
-                edgeFade={0.18}
-                speed={0.18}
-                transparent={true}
+                variant="circle" pixelSize={4} color="#C9A84C" patternScale={1.8} patternDensity={0.72}
+                pixelSizeJitter={0.4} enableRipples={true} rippleSpeed={0.25} rippleThickness={0.08}
+                rippleIntensityScale={0.9} edgeFade={0.18} speed={0.18} transparent={true}
                 style={{ width: '100%', height: '100%' }}
               />
             </div>
@@ -1103,20 +944,11 @@ export default function CheckoutPage() {
                 Complete your details below and proceed to secure payment via PayFast.
               </p>
               {guestMode && !user && (
-                <button
-                  onClick={() => setGuestMode(false)}
-                  style={{
-                    marginTop: '1rem',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontFamily: 'Montserrat, sans-serif',
-                    fontSize: '0.62rem',
-                    color: '#C9A84C',
-                    letterSpacing: '0.1em',
-                    textDecoration: 'underline',
-                  }}
-                >
+                <button onClick={() => setGuestMode(false)} style={{
+                  marginTop: '1rem', background: 'none', border: 'none', cursor: 'pointer',
+                  fontFamily: 'Montserrat, sans-serif', fontSize: '0.62rem', color: '#C9A84C',
+                  letterSpacing: '0.1em', textDecoration: 'underline',
+                }}>
                   Sign in instead
                 </button>
               )}
@@ -1132,13 +964,8 @@ export default function CheckoutPage() {
 
                 {user && (
                   <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.6rem',
-                    padding: '0.7rem 1rem',
-                    background: 'rgba(201,168,76,0.06)',
-                    border: '1px solid rgba(201,168,76,0.15)',
-                    marginBottom: '1.8rem',
+                    display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.7rem 1rem',
+                    background: 'rgba(201,168,76,0.06)', border: '1px solid rgba(201,168,76,0.15)', marginBottom: '1.8rem',
                   }}>
                     <div style={{
                       width: '24px', height: '24px', borderRadius: '50%',
@@ -1162,63 +989,31 @@ export default function CheckoutPage() {
                   ].map(f => (
                     <div key={f.name}>
                       <label style={labelStyle}>{f.label} *</label>
-                      <input
-                        type="text"
-                        name={f.name}
-                        value={form[f.name]}
-                        onChange={handleChange}
-                        placeholder={f.placeholder}
-                        style={inputStyle}
-                        onFocus={e => e.target.style.borderColor = '#C9A84C'}
-                        onBlur={e => e.target.style.borderColor = 'rgba(201,168,76,0.2)'}
-                      />
+                      <input type="text" name={f.name} value={form[f.name]} onChange={handleChange} placeholder={f.placeholder} style={inputStyle}
+                        onFocus={e => e.target.style.borderColor = '#C9A84C'} onBlur={e => e.target.style.borderColor = 'rgba(201,168,76,0.2)'} />
                     </div>
                   ))}
                 </div>
 
                 <div style={{ marginBottom: '1.5rem' }}>
                   <label style={labelStyle}>Email Address *</label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={form.email}
-                    onChange={handleChange}
-                    placeholder="your@email.com"
-                    style={inputStyle}
-                    onFocus={e => e.target.style.borderColor = '#C9A84C'}
-                    onBlur={e => e.target.style.borderColor = 'rgba(201,168,76,0.2)'}
-                  />
+                  <input type="email" name="email" value={form.email} onChange={handleChange} placeholder="your@email.com" style={inputStyle}
+                    onFocus={e => e.target.style.borderColor = '#C9A84C'} onBlur={e => e.target.style.borderColor = 'rgba(201,168,76,0.2)'} />
                 </div>
 
                 <div style={{ marginBottom: '1.5rem' }}>
                   <label style={labelStyle}>Phone Number *</label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={form.phone}
-                    onChange={handleChange}
-                    placeholder="081 336 5266"
-                    style={inputStyle}
-                    onFocus={e => e.target.style.borderColor = '#C9A84C'}
-                    onBlur={e => e.target.style.borderColor = 'rgba(201,168,76,0.2)'}
-                  />
+                  <input type="tel" name="phone" value={form.phone} onChange={handleChange} placeholder="081 336 5266" style={inputStyle}
+                    onFocus={e => e.target.style.borderColor = '#C9A84C'} onBlur={e => e.target.style.borderColor = 'rgba(201,168,76,0.2)'} />
                 </div>
 
                 <div style={{ marginBottom: '1.5rem' }}>
                   <label style={labelStyle}>Street Address</label>
-                  <input
-                    type="text"
-                    name="address"
-                    value={form.address}
-                    onChange={handleChange}
-                    placeholder="123 Main Road"
-                    style={inputStyle}
-                    onFocus={e => e.target.style.borderColor = '#C9A84C'}
-                    onBlur={e => e.target.style.borderColor = 'rgba(201,168,76,0.2)'}
-                  />
+                  <input type="text" name="address" value={form.address} onChange={handleChange} placeholder="123 Main Road" style={inputStyle}
+                    onFocus={e => e.target.style.borderColor = '#C9A84C'} onBlur={e => e.target.style.borderColor = 'rgba(201,168,76,0.2)'} />
                 </div>
 
-                <div className="address-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '2.5rem' }}>
+                <div className="address-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
                   {[
                     { label: 'City', name: 'city', placeholder: 'Verulam' },
                     { label: 'Province', name: 'province', placeholder: 'KwaZulu-Natal' },
@@ -1226,19 +1021,62 @@ export default function CheckoutPage() {
                   ].map(f => (
                     <div key={f.name}>
                       <label style={labelStyle}>{f.label}</label>
-                      <input
-                        type="text"
-                        name={f.name}
-                        value={form[f.name]}
-                        onChange={handleChange}
-                        placeholder={f.placeholder}
-                        style={inputStyle}
-                        onFocus={e => e.target.style.borderColor = '#C9A84C'}
-                        onBlur={e => e.target.style.borderColor = 'rgba(201,168,76,0.2)'}
-                      />
+                      <input type="text" name={f.name} value={form[f.name]} onChange={handleChange} placeholder={f.placeholder} style={inputStyle}
+                        onFocus={e => e.target.style.borderColor = '#C9A84C'} onBlur={e => e.target.style.borderColor = 'rgba(201,168,76,0.2)'} />
                     </div>
                   ))}
                 </div>
+
+                {shippingLoading && (
+                  <div style={{ padding: '1rem 0', fontSize: '0.72rem', color: '#888', letterSpacing: '0.05em', fontFamily: 'Montserrat, sans-serif' }}>
+                    ↻ Calculating shipping rates...
+                  </div>
+                )}
+
+                {shippingError && (
+                  <div style={{ padding: '0.75rem 1rem', background: 'rgba(220,80,80,0.08)', border: '1px solid rgba(220,80,80,0.2)', fontSize: '0.68rem', color: '#e07070', marginBottom: '1.2rem', fontFamily: 'Montserrat, sans-serif' }}>
+                    {shippingError}
+                  </div>
+                )}
+
+                {shippingRates.length > 0 && (
+                  <div style={{ marginBottom: '2.5rem' }}>
+                    <label style={labelStyle}>Delivery Option</label>
+                    {shippingRates.map((rate) => (
+                      <div
+                        key={rate.code}
+                        onClick={() => setSelectedRate(rate)}
+                        style={{
+                          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                          padding: '0.9rem 1rem', marginBottom: '0.5rem', cursor: 'pointer',
+                          border: `1px solid ${selectedRate?.code === rate.code ? '#C9A84C' : 'rgba(201,168,76,0.2)'}`,
+                          background: selectedRate?.code === rate.code ? 'rgba(201,168,76,0.06)' : '#1A1A1A',
+                          transition: 'border-color 0.2s, background 0.2s',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                          <div style={{
+                            width: '14px', height: '14px', borderRadius: '50%',
+                            border: `2px solid ${selectedRate?.code === rate.code ? '#C9A84C' : '#444'}`,
+                            background: selectedRate?.code === rate.code ? '#C9A84C' : 'transparent',
+                            flexShrink: 0, transition: 'all 0.2s',
+                          }} />
+                          <div>
+                            <p style={{ fontSize: '0.75rem', color: '#F5F0E8', margin: 0, fontFamily: 'Montserrat, sans-serif' }}>{rate.service}</p>
+                            {rate.eta && (
+                              <p style={{ fontSize: '0.6rem', color: '#666', margin: '0.2rem 0 0', letterSpacing: '0.05em', fontFamily: 'Montserrat, sans-serif' }}>
+                                Est. delivery: {rate.eta}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <p style={{ fontSize: '0.88rem', color: '#C9A84C', fontFamily: 'Cormorant Garamond, serif', margin: 0, fontWeight: 600 }}>
+                          R {rate.price.toFixed(2)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 <div style={{ borderTop: '1px solid rgba(201,168,76,0.1)', paddingTop: '2rem' }}>
                   <p style={{ fontSize: '0.72rem', color: '#555', lineHeight: 1.8, marginBottom: '1.5rem' }}>
@@ -1250,17 +1088,14 @@ export default function CheckoutPage() {
                     className="btn-gold"
                     style={{ width: '100%', cursor: checkoutLoading ? 'not-allowed' : 'pointer', border: 'none', opacity: checkoutLoading ? 0.7 : 1 }}
                   >
-                    {checkoutLoading ? 'Redirecting to PayFast...' : `Pay R ${subtotal.toFixed(2)} via PayFast`}
+                    {checkoutLoading ? 'Redirecting to PayFast...' : `Pay R ${total.toFixed(2)} via PayFast`}
                   </button>
                 </div>
               </div>
 
               <div className="order-summary-sticky" style={{
-                border: '1px solid rgba(201,168,76,0.2)',
-                padding: '2.5rem',
-                background: '#0F0F0F',
-                position: 'sticky',
-                top: '90px',
+                border: '1px solid rgba(201,168,76,0.2)', padding: '2.5rem', background: '#0F0F0F',
+                position: 'sticky', top: '90px',
               }}>
                 <p className="section-label" style={{ marginBottom: '0.5rem' }}>Your Order</p>
                 <h2 style={{ fontSize: '1.5rem', color: '#F5F0E8', marginBottom: '2rem' }}>Summary</h2>
@@ -1270,11 +1105,7 @@ export default function CheckoutPage() {
                     <div key={`${item.id}-${item.size}`} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', alignItems: 'flex-start' }}>
                       <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                         {item.imageUrl && (
-                          <img
-                            src={item.imageUrl}
-                            alt={item.name}
-                            style={{ width: '40px', height: '48px', objectFit: 'cover', border: '1px solid rgba(201,168,76,0.15)' }}
-                          />
+                          <img src={item.imageUrl} alt={item.name} style={{ width: '40px', height: '48px', objectFit: 'cover', border: '1px solid rgba(201,168,76,0.15)' }} />
                         )}
                         <div>
                           <p style={{ fontSize: '0.75rem', color: '#ccc', maxWidth: '160px', lineHeight: 1.4 }}>{item.name}</p>
@@ -1286,27 +1117,34 @@ export default function CheckoutPage() {
                   ))}
                 </div>
 
-                <div style={{
-                  borderTop: '1px solid rgba(201,168,76,0.15)',
-                  paddingTop: '1.5rem',
-                  marginTop: '0.5rem',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                }}>
-                  <p style={{ fontSize: '0.65rem', color: '#C9A84C', letterSpacing: '0.2em', textTransform: 'uppercase' }}>Total</p>
-                  <p style={{ fontSize: '1.5rem', color: '#C9A84C', fontFamily: 'Cormorant Garamond, serif' }}>
-                    R {subtotal.toFixed(2)}
-                  </p>
+                <div style={{ borderTop: '1px solid rgba(201,168,76,0.15)', paddingTop: '1.5rem', marginTop: '0.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                    <p style={{ fontSize: '0.65rem', color: '#888', fontFamily: 'Montserrat, sans-serif', letterSpacing: '0.1em' }}>Subtotal</p>
+                    <p style={{ fontSize: '0.78rem', color: '#888' }}>R {subtotal.toFixed(2)}</p>
+                  </div>
+                  {selectedRate && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                      <p style={{ fontSize: '0.65rem', color: '#888', fontFamily: 'Montserrat, sans-serif', letterSpacing: '0.05em' }}>Shipping · {selectedRate.service}</p>
+                      <p style={{ fontSize: '0.78rem', color: '#888' }}>R {selectedRate.price.toFixed(2)}</p>
+                    </div>
+                  )}
+                  {!selectedRate && shippingRates.length === 0 && !shippingLoading && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                      <p style={{ fontSize: '0.65rem', color: '#555', fontFamily: 'Montserrat, sans-serif', letterSpacing: '0.05em' }}>Shipping</p>
+                      <p style={{ fontSize: '0.65rem', color: '#555', fontFamily: 'Montserrat, sans-serif' }}>Calculated at address</p>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.75rem', borderTop: '1px solid rgba(201,168,76,0.1)' }}>
+                    <p style={{ fontSize: '0.65rem', color: '#C9A84C', letterSpacing: '0.2em', textTransform: 'uppercase' }}>Total</p>
+                    <p style={{ fontSize: '1.5rem', color: '#C9A84C', fontFamily: 'Cormorant Garamond, serif' }}>
+                      R {total.toFixed(2)}
+                    </p>
+                  </div>
                 </div>
 
                 <div style={{ marginTop: '1.5rem' }}>
-                  <Link
-                    href="/cart"
-                    style={{ fontSize: '0.65rem', color: '#555', textDecoration: 'none', letterSpacing: '0.1em' }}
-                    onMouseEnter={e => e.target.style.color = '#C9A84C'}
-                    onMouseLeave={e => e.target.style.color = '#555'}
-                  >
+                  <Link href="/cart" style={{ fontSize: '0.65rem', color: '#555', textDecoration: 'none', letterSpacing: '0.1em' }}
+                    onMouseEnter={e => e.target.style.color = '#C9A84C'} onMouseLeave={e => e.target.style.color = '#555'}>
                     ← Edit Cart
                   </Link>
                 </div>
@@ -1365,12 +1203,9 @@ function AuthModal({ isOpen, onClose }) {
 
   const handleRegister = async (e) => {
     e.preventDefault();
-    if (!form.name || !form.email || !form.password || !form.confirm)
-      return setError('Please fill in all fields.');
-    if (form.password !== form.confirm)
-      return setError('Passwords do not match.');
-    if (form.password.length < 8)
-      return setError('Password must be at least 8 characters.');
+    if (!form.name || !form.email || !form.password || !form.confirm) return setError('Please fill in all fields.');
+    if (form.password !== form.confirm) return setError('Passwords do not match.');
+    if (form.password.length < 8) return setError('Password must be at least 8 characters.');
     setLoading(true);
     try {
       await register(form.email, form.password, form.name);
@@ -1395,29 +1230,10 @@ function AuthModal({ isOpen, onClose }) {
   return (
     <>
       <style>{`
-        .rr-modal-overlay {
-          position: fixed; inset: 0; z-index: 2000;
-          background: rgba(0,0,0,0.8);
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
-          display: flex; align-items: center; justify-content: center;
-          padding: 1rem;
-          animation: rrFadeIn 0.2s ease;
-        }
+        .rr-modal-overlay { position: fixed; inset: 0; z-index: 2000; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; padding: 1rem; animation: rrFadeIn 0.2s ease; }
         @keyframes rrFadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .rr-modal-box {
-          width: 100%; max-width: 400px;
-          background: #0D0D0D;
-          border: 1px solid rgba(201,168,76,0.2);
-          border-radius: 16px;
-          overflow: hidden;
-          box-shadow: 0 32px 80px rgba(0,0,0,0.7);
-          animation: rrSlideUp 0.25s cubic-bezier(0.16,1,0.3,1);
-        }
-        @keyframes rrSlideUp {
-          from { opacity: 0; transform: translateY(20px) scale(0.97); }
-          to   { opacity: 1; transform: translateY(0) scale(1); }
-        }
+        .rr-modal-box { width: 100%; max-width: 400px; background: #0D0D0D; border: 1px solid rgba(201,168,76,0.2); border-radius: 16px; overflow: hidden; box-shadow: 0 32px 80px rgba(0,0,0,0.7); animation: rrSlideUp 0.25s cubic-bezier(0.16,1,0.3,1); }
+        @keyframes rrSlideUp { from { opacity: 0; transform: translateY(20px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
         .rr-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 1.4rem 1.6rem 0; }
         .rr-modal-logo { font-family: 'Cormorant Garamond', serif; font-size: 1.1rem; font-weight: 600; letter-spacing: 0.2em; color: #C9A84C; text-transform: uppercase; }
         .rr-modal-close { background: none; border: none; cursor: pointer; color: #555; padding: 0.3rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: color 0.2s, background 0.2s; }
@@ -1442,12 +1258,7 @@ function AuthModal({ isOpen, onClose }) {
         .rr-modal-link:hover { opacity: 0.7; }
         .rr-modal-footer { text-align: center; margin-top: 1.2rem; font-family: 'Montserrat', sans-serif; font-size: 0.62rem; color: #555; letter-spacing: 0.05em; }
       `}</style>
-
-      <div
-        ref={overlayRef}
-        className="rr-modal-overlay"
-        onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
-      >
+      <div ref={overlayRef} className="rr-modal-overlay" onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}>
         <div className="rr-modal-box">
           <div className="rr-modal-header">
             <div className="rr-modal-logo">R&amp;R</div>
@@ -1457,14 +1268,12 @@ function AuthModal({ isOpen, onClose }) {
               </svg>
             </button>
           </div>
-
           {mode !== 'forgot' && (
             <div className="rr-modal-tabs">
               <button className={`rr-modal-tab${mode === 'login' ? ' rr-modal-tab--active' : ''}`} onClick={() => { setMode('login'); setError(''); setSuccess(''); }}>Sign In</button>
               <button className={`rr-modal-tab${mode === 'register' ? ' rr-modal-tab--active' : ''}`} onClick={() => { setMode('register'); setError(''); setSuccess(''); }}>Register</button>
             </div>
           )}
-
           <div className="rr-modal-body">
             {mode === 'login' && (
               <>
@@ -1484,7 +1293,6 @@ function AuthModal({ isOpen, onClose }) {
                 <button className="rr-modal-submit" disabled={loading} onClick={handleLogin}>{loading ? 'Signing in...' : 'Sign In'}</button>
               </>
             )}
-
             {mode === 'register' && (
               <>
                 <p className="rr-modal-title">Create your account</p>
@@ -1508,7 +1316,6 @@ function AuthModal({ isOpen, onClose }) {
                 <button className="rr-modal-submit" disabled={loading} onClick={handleRegister}>{loading ? 'Creating account...' : 'Create Account'}</button>
               </>
             )}
-
             {mode === 'forgot' && (
               <>
                 <p className="rr-modal-title">Reset your password</p>
@@ -1555,24 +1362,12 @@ function friendlyError(code) {
 }
 
 const labelStyle = {
-  fontSize: '0.65rem',
-  letterSpacing: '0.2em',
-  textTransform: 'uppercase',
-  color: '#C9A84C',
-  display: 'block',
-  marginBottom: '0.5rem',
-  fontFamily: 'Montserrat, sans-serif',
+  fontSize: '0.65rem', letterSpacing: '0.2em', textTransform: 'uppercase',
+  color: '#C9A84C', display: 'block', marginBottom: '0.5rem', fontFamily: 'Montserrat, sans-serif',
 };
 
 const inputStyle = {
-  width: '100%',
-  background: '#1A1A1A',
-  border: '1px solid rgba(201,168,76,0.2)',
-  color: '#F5F0E8',
-  padding: '0.85rem 1rem',
-  fontSize: '0.82rem',
-  fontFamily: 'Montserrat, sans-serif',
-  outline: 'none',
-  letterSpacing: '0.03em',
-  boxSizing: 'border-box',
+  width: '100%', background: '#1A1A1A', border: '1px solid rgba(201,168,76,0.2)',
+  color: '#F5F0E8', padding: '0.85rem 1rem', fontSize: '0.82rem',
+  fontFamily: 'Montserrat, sans-serif', outline: 'none', letterSpacing: '0.03em', boxSizing: 'border-box',
 };

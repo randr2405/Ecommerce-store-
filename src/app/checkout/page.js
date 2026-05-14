@@ -851,7 +851,7 @@ export default function CheckoutPage() {
           subtotal: total.toFixed(2),
           shippingService: selectedRate?.service || 'Standard',
           shippingCost: shippingCost.toFixed(2),
-          cartLength: cart.length,
+          cart: cart,
           userId: user?.uid || null,
           promoCode: promoResult?.code || null,
           discount: promoDiscount.toFixed(2),

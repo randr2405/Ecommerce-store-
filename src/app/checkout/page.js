@@ -710,148 +710,6 @@ function GuestLoginGate({ onGuest, onLogin }) {
   );
 }
 
-// ─── Google Places Autocomplete Hook ────────────────────────────────────────
-function useGooglePlacesAutocomplete(onSelect) {
-  const inputRef = useRef(null);
-  const autocompleteRef = useRef(null);
-  const [scriptLoaded, setScriptLoaded] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (window.google?.maps?.places) { setScriptLoaded(true); return; }
-    const existing = document.querySelector('script[data-gmaps]');
-    if (existing) {
-      existing.addEventListener('load', () => setScriptLoaded(true));
-      return;
-    }
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}&libraries=places`;
-    script.async = true;
-    script.defer = true;
-    script.dataset.gmaps = 'true';
-    script.onload = () => setScriptLoaded(true);
-    document.head.appendChild(script);
-  }, []);
-
-  useEffect(() => {
-    if (!scriptLoaded || !inputRef.current) return;
-    if (autocompleteRef.current) return;
-
-    const ac = new window.google.maps.places.Autocomplete(inputRef.current, {
-      componentRestrictions: { country: 'za' },
-      fields: ['address_components', 'formatted_address'],
-      types: ['address'],
-    });
-
-    ac.addListener('place_changed', () => {
-      const place = ac.getPlace();
-      if (!place.address_components) return;
-
-      let streetNumber = '';
-      let route = '';
-      let suburb = '';
-      let city = '';
-      let province = '';
-      let postalCode = '';
-
-      for (const comp of place.address_components) {
-        const types = comp.types;
-        if (types.includes('street_number')) streetNumber = comp.long_name;
-        else if (types.includes('route')) route = comp.long_name;
-        else if (types.includes('sublocality') || types.includes('sublocality_level_1')) suburb = comp.long_name;
-        else if (types.includes('locality')) city = comp.long_name;
-        else if (types.includes('administrative_area_level_1')) province = comp.long_name;
-        else if (types.includes('postal_code')) postalCode = comp.long_name;
-      }
-
-      const streetAddress = streetNumber ? `${streetNumber} ${route}` : route;
-
-      onSelect({
-        address: streetAddress,
-        suburb,
-        city: city || suburb,
-        province,
-        zip: postalCode,
-        formatted: place.formatted_address,
-      });
-    });
-
-    // Nuke pac-icons via MutationObserver
-    const observer = new MutationObserver(() => {
-      document.querySelectorAll('.pac-icon, .pac-icon-marker').forEach(el => {
-        el.style.cssText = 'display:none!important;width:0!important;height:0!important;margin:0!important;padding:0!important;background:none!important;';
-      });
-      document.querySelectorAll('.pac-item').forEach(el => {
-        el.style.cssText = 'display:block!important;color:#aaa!important;background:#1A1A1A!important;padding:0.65rem 1rem!important;font-size:0.72rem!important;';
-      });
-      document.querySelectorAll('.pac-container').forEach(el => {
-        el.style.cssText = 'background:#1A1A1A!important;border:1px solid rgba(201,168,76,0.25)!important;z-index:999999!important;';
-      });
-    });
-
-    observer.observe(document.body, { childList: true, subtree: true });
-
-    autocompleteRef.current = { ac, observer };
-  }, [scriptLoaded, onSelect]);
-
-  useEffect(() => {
-    return () => {
-      autocompleteRef.current?.observer?.disconnect();
-    };
-  }, []);
-
-  return inputRef;
-}
-
-// ─── Address Autocomplete Input Component ───────────────────────────────────
-function AddressAutocompleteInput({ value, onChange, onAddressSelect, style, labelStyle }) {
-  const [isFocused, setIsFocused] = useState(false);
-
-  const handleSelect = useCallback((addressData) => {
-    onAddressSelect(addressData);
-  }, [onAddressSelect]);
-
-  const inputRef = useGooglePlacesAutocomplete(handleSelect);
-
-  const handleChange = (e) => {
-    onChange(e.target.value);
-  };
-
-  return (
-    <div style={{ position: 'relative' }}>
-      <label style={labelStyle}>Street Address</label>
-      <div style={{ position: 'relative' }}>
-        <input
-          ref={inputRef}
-          type="text"
-          defaultValue={value || ''}
-          onChange={handleChange}
-          placeholder="Start typing your address..."
-          autoComplete="off"
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          style={{
-            ...style,
-            borderColor: isFocused ? '#C9A84C' : 'rgba(201,168,76,0.2)',
-            paddingRight: '2.5rem',
-          }}
-        />
-        <div style={{
-          position: 'absolute', right: '0.85rem', top: '50%', transform: 'translateY(-50%)',
-          pointerEvents: 'none', opacity: 0.4,
-        }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" strokeWidth="2">
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-          </svg>
-        </div>
-      </div>
-      <p style={{ fontSize: '0.58rem', color: '#555', fontFamily: 'Montserrat, sans-serif', letterSpacing: '0.05em', marginTop: '0.3rem' }}>
-        Powered by Google · South Africa only
-      </p>
-    </div>
-  );
-}
-//try
 export default function CheckoutPage() {
   const { user, profile, loading: authLoading } = useAuth();
   const [cart, setCart] = useState([]);
@@ -945,17 +803,6 @@ export default function CheckoutPage() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleAddressSelect = useCallback((addressData) => {
-    setForm(f => ({
-      ...f,
-      address: addressData.address || f.address,
-      suburb: addressData.suburb || f.suburb,
-      city: addressData.city || f.city,
-      province: addressData.province || f.province,
-      zip: addressData.zip || f.zip,
-    }));
-  }, []);
-
   const handlePayFast = async (e) => {
     e.preventDefault();
     const required = ['firstName', 'lastName', 'email', 'phone'];
@@ -1019,7 +866,7 @@ export default function CheckoutPage() {
       <ClickSpark sparkColor="#C9A84C" sparkSize={7} sparkRadius={14} sparkCount={8} duration={400}>
         <>
           {!isMobile && (
-            <TargetCursor targetSelector="a, button, input" spinDuration={2.4} hideDefaultCursor={true} hoverDuration={0.18} parallaxOn={true} />
+            <TargetCursor targetSelector="a, button, input, select" spinDuration={2.4} hideDefaultCursor={true} hoverDuration={0.18} parallaxOn={true} />
           )}
           <style>{`
             @media (min-width: 769px) { * { cursor: none !important; } }
@@ -1034,12 +881,6 @@ export default function CheckoutPage() {
               0% { transform: translate(-50%,-50%) scale(1); opacity: 1; }
               100% { transform: translate(calc(-50% + cos(var(--angle)) * var(--radius) * 3), calc(-50% + sin(var(--angle)) * var(--radius) * 3)) scale(0); opacity: 0; }
             }
-            .pac-container { background: #1A1A1A !important; border: 1px solid rgba(201,168,76,0.25) !important; border-top: none !important; box-shadow: 0 8px 32px rgba(0,0,0,0.6) !important; font-family: 'Montserrat', sans-serif !important; }
-            .pac-item { padding: 0.6rem 1rem !important; border-top: 1px solid rgba(201,168,76,0.08) !important; cursor: pointer !important; color: #888 !important; font-size: 0.7rem !important; }
-            .pac-item:hover, .pac-item-selected { background: rgba(201,168,76,0.08) !important; }
-            .pac-item-query { color: #F5F0E8 !important; font-size: 0.75rem !important; }
-            .pac-matched { color: #C9A84C !important; }
-            .pac-icon { display: none !important; }
           `}</style>
           <GuestLoginGate onGuest={() => setGuestMode(true)} onLogin={handleLoginChoice} />
           {showAuthModal && <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />}
@@ -1077,14 +918,11 @@ export default function CheckoutPage() {
             .checkout-hero { padding: 4rem 1.5rem !important; }
             .checkout-section { padding: 3rem 1.25rem 5rem !important; }
           }
-          .pac-container { background: #1A1A1A !important; border: 1px solid rgba(201,168,76,0.25) !important; border-top: none !important; box-shadow: 0 8px 32px rgba(0,0,0,0.6) !important; font-family: 'Montserrat', sans-serif !important; z-index: 99999 !important; }
-          .pac-item { padding: 0.6rem 1rem !important; border-top: 1px solid rgba(201,168,76,0.08) !important; cursor: pointer !important; color: #888 !important; font-size: 0.7rem !important; letter-spacing: 0.03em !important; }
-          .pac-item:hover, .pac-item-selected { background: rgba(201,168,76,0.08) !important; }
-          .pac-item-query { color: #F5F0E8 !important; font-size: 0.75rem !important; }
-          .pac-matched { color: #C9A84C !important; font-weight: 600 !important; }
-          .pac-icon { display: none !important; }
-          .pac-logo { display: none !important; }
-          .filled-field { background: rgba(201,168,76,0.04) !important; border-color: rgba(201,168,76,0.35) !important; }
+          .rr-select { width: 100%; background: #1A1A1A; border: 1px solid rgba(201,168,76,0.2); color: #F5F0E8; padding: 0.85rem 1rem; font-size: 0.82rem; font-family: 'Montserrat', sans-serif; outline: none; letter-spacing: 0.03em; box-sizing: border-box; appearance: none; -webkit-appearance: none; cursor: pointer; }
+          .rr-select:focus { border-color: #C9A84C; }
+          .rr-select option { background: #1A1A1A; color: #F5F0E8; }
+          .rr-select-wrap { position: relative; }
+          .rr-select-wrap::after { content: '▾'; position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); color: #C9A84C; pointer-events: none; font-size: 0.8rem; }
         `}</style>
 
         <div style={{ paddingTop: '70px' }}>
@@ -1177,40 +1015,96 @@ export default function CheckoutPage() {
                 </div>
 
                 <div style={{ marginBottom: '1.5rem' }}>
-                  <AddressAutocompleteInput
+                  <label style={labelStyle}>Street Address</label>
+                  <input
+                    type="text"
+                    name="address"
                     value={form.address}
-                    onChange={(val) => setForm(f => ({ ...f, address: val }))}
-                    onAddressSelect={handleAddressSelect}
+                    onChange={handleChange}
+                    placeholder="49 Ilchester Avenue"
                     style={inputStyle}
-                    labelStyle={labelStyle}
+                    onFocus={e => e.target.style.borderColor = '#C9A84C'}
+                    onBlur={e => e.target.style.borderColor = 'rgba(201,168,76,0.2)'}
                   />
                 </div>
 
-                <div className="address-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-                  {[
-                    { label: 'Suburb', name: 'suburb', placeholder: 'Verulam' },
-                    { label: 'City', name: 'city', placeholder: 'Durban' },
-                    { label: 'Province', name: 'province', placeholder: 'KwaZulu-Natal' },
-                    { label: 'Postal Code', name: 'zip', placeholder: '4340' },
-                  ].map(f => (
-                    <div key={f.name}>
-                      <label style={labelStyle}>{f.label}</label>
-                      <input
-                        type="text"
-                        name={f.name}
-                        value={form[f.name]}
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label style={labelStyle}>Suburb</label>
+                  <input
+                    type="text"
+                    name="suburb"
+                    value={form.suburb}
+                    onChange={handleChange}
+                    placeholder="Verulam"
+                    style={inputStyle}
+                    onFocus={e => e.target.style.borderColor = '#C9A84C'}
+                    onBlur={e => e.target.style.borderColor = 'rgba(201,168,76,0.2)'}
+                  />
+                </div>
+
+                <div className="address-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+                  <div>
+                    <label style={labelStyle}>City</label>
+                    <input
+                      type="text"
+                      name="city"
+                      value={form.city}
+                      onChange={handleChange}
+                      placeholder="Durban"
+                      style={{
+                        ...inputStyle,
+                        borderColor: form.city ? 'rgba(201,168,76,0.35)' : 'rgba(201,168,76,0.2)',
+                        background: form.city ? 'rgba(201,168,76,0.04)' : '#1A1A1A',
+                      }}
+                      onFocus={e => e.target.style.borderColor = '#C9A84C'}
+                      onBlur={e => e.target.style.borderColor = form.city ? 'rgba(201,168,76,0.35)' : 'rgba(201,168,76,0.2)'}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={labelStyle}>Province</label>
+                    <div className="rr-select-wrap">
+                      <select
+                        name="province"
+                        value={form.province}
                         onChange={handleChange}
-                        placeholder={f.placeholder}
+                        className="rr-select"
                         style={{
-                          ...inputStyle,
-                          borderColor: form[f.name] ? 'rgba(201,168,76,0.35)' : 'rgba(201,168,76,0.2)',
-                          background: form[f.name] ? 'rgba(201,168,76,0.04)' : '#1A1A1A',
+                          borderColor: form.province ? 'rgba(201,168,76,0.35)' : 'rgba(201,168,76,0.2)',
+                          background: form.province ? 'rgba(201,168,76,0.04)' : '#1A1A1A',
                         }}
-                        onFocus={e => e.target.style.borderColor = '#C9A84C'}
-                        onBlur={e => e.target.style.borderColor = form[f.name] ? 'rgba(201,168,76,0.35)' : 'rgba(201,168,76,0.2)'}
-                      />
+                      >
+                        <option value="">Select province</option>
+                        <option value="KwaZulu-Natal">KwaZulu-Natal</option>
+                        <option value="Gauteng">Gauteng</option>
+                        <option value="Western Cape">Western Cape</option>
+                        <option value="Eastern Cape">Eastern Cape</option>
+                        <option value="Free State">Free State</option>
+                        <option value="Limpopo">Limpopo</option>
+                        <option value="Mpumalanga">Mpumalanga</option>
+                        <option value="Northern Cape">Northern Cape</option>
+                        <option value="North West">North West</option>
+                      </select>
                     </div>
-                  ))}
+                  </div>
+
+                  <div>
+                    <label style={labelStyle}>Postal Code</label>
+                    <input
+                      type="text"
+                      name="zip"
+                      value={form.zip}
+                      onChange={handleChange}
+                      placeholder="4340"
+                      style={{
+                        ...inputStyle,
+                        borderColor: form.zip ? 'rgba(201,168,76,0.35)' : 'rgba(201,168,76,0.2)',
+                        background: form.zip ? 'rgba(201,168,76,0.04)' : '#1A1A1A',
+                      }}
+                      onFocus={e => e.target.style.borderColor = '#C9A84C'}
+                      onBlur={e => e.target.style.borderColor = form.zip ? 'rgba(201,168,76,0.35)' : 'rgba(201,168,76,0.2)'}
+                    />
+                  </div>
                 </div>
 
                 {form.city && form.province && form.zip && (

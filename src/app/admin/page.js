@@ -13,14 +13,8 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (loading) return;
-    if (!user) {
-      router.push("/login");
-      return;
-    }
-    if (user.email !== process.env.NEXT_PUBLIC_ADMIN_EMAIL) {
-      router.push("/");
-      return;
-    }
+    if (!user) { router.push("/"); return; }
+    if (user.email !== process.env.NEXT_PUBLIC_ADMIN_EMAIL) { router.push("/"); return; }
     async function fetchOrders() {
       const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
       const snap = await getDocs(q);
@@ -29,15 +23,15 @@ export default function AdminPage() {
     fetchOrders();
   }, [user, loading]);
 
-  if (loading || !user) return <p style={{ padding: "2rem" }}>Loading...</p>;
+  if (loading || !user) return <p style={{ padding: "2rem", color: "#fff" }}>Loading...</p>;
 
   return (
-    <div style={{ padding: "2rem", fontFamily: "sans-serif" }}>
-      <h1>Orders Dashboard</h1>
+    <div style={{ padding: "2rem", fontFamily: "sans-serif", background: "#0A0A0A", minHeight: "100vh", color: "#fff" }}>
+      <h1 style={{ color: "#C9A84C" }}>Orders Dashboard</h1>
       <p style={{ color: "#666" }}>{orders.length} orders total</p>
       {orders.map((order) => (
-        <div key={order.id} style={{ border: "1px solid #ccc", padding: "1rem", marginBottom: "1rem", borderRadius: "8px" }}>
-          <p><strong>{order.name}</strong> - {order.email}</p>
+        <div key={order.id} style={{ border: "1px solid rgba(201,168,76,0.2)", padding: "1rem", marginBottom: "1rem", borderRadius: "8px" }}>
+          <p><strong style={{ color: "#C9A84C" }}>{order.name}</strong> - {order.email}</p>
           <p>Amount: R{order.amount} | Shipping: {order.shippingService} (R{order.shippingCost})</p>
           <p>Status: {order.status} | {order.createdAt?.toDate?.().toLocaleString()}</p>
           <ul>

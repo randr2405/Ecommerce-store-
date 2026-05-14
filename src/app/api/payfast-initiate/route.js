@@ -43,8 +43,8 @@ export async function POST(req) {
       )
       .join("&") +
     (passphrase
-      ? `&passphrase=${encodeURIComponent(passphrase.trim()).replace(/%20/g, "+")}`
-      : "");
+  ? `&passphrase=${encodeURIComponent(passphrase.trim()).replace(/%20/g, "+")}`
+  : "");
 
   pfData.signature = md5(pfParamString);
 

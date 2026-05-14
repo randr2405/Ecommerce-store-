@@ -129,10 +129,6 @@ uniform float uRippleThickness;
 uniform float uRippleIntensity;
 uniform float uEdgeFade;
 uniform int   uShapeType;
-const int SHAPE_SQUARE   = 0;
-const int SHAPE_CIRCLE   = 1;
-const int SHAPE_TRIANGLE = 2;
-const int SHAPE_DIAMOND  = 3;
 const int MAX_CLICKS = 10;
 uniform vec2  uClickPos  [MAX_CLICKS];
 uniform float uClickTimes[MAX_CLICKS];
@@ -714,6 +710,136 @@ function GuestLoginGate({ onGuest, onLogin }) {
   );
 }
 
+// ─── Google Places Autocomplete Hook ────────────────────────────────────────
+function useGooglePlacesAutocomplete(onSelect) {
+  const inputRef = useRef(null);
+  const autocompleteRef = useRef(null);
+  const [scriptLoaded, setScriptLoaded] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.google?.maps?.places) { setScriptLoaded(true); return; }
+    const existing = document.querySelector('script[data-gmaps]');
+    if (existing) {
+      existing.addEventListener('load', () => setScriptLoaded(true));
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+    script.dataset.gmaps = 'true';
+    script.onload = () => setScriptLoaded(true);
+    document.head.appendChild(script);
+  }, []);
+
+  useEffect(() => {
+    if (!scriptLoaded || !inputRef.current) return;
+    if (autocompleteRef.current) return;
+
+    const ac = new window.google.maps.places.Autocomplete(inputRef.current, {
+      componentRestrictions: { country: 'za' },
+      fields: ['address_components', 'formatted_address'],
+      types: ['address'],
+    });
+
+    ac.addListener('place_changed', () => {
+      const place = ac.getPlace();
+      if (!place.address_components) return;
+
+      let streetNumber = '';
+      let route = '';
+      let suburb = '';
+      let city = '';
+      let province = '';
+      let postalCode = '';
+
+      for (const comp of place.address_components) {
+        const types = comp.types;
+        if (types.includes('street_number')) streetNumber = comp.long_name;
+        else if (types.includes('route')) route = comp.long_name;
+        else if (types.includes('sublocality') || types.includes('sublocality_level_1')) suburb = comp.long_name;
+        else if (types.includes('locality')) city = comp.long_name;
+        else if (types.includes('administrative_area_level_1')) province = comp.long_name;
+        else if (types.includes('postal_code')) postalCode = comp.long_name;
+      }
+
+      const streetAddress = streetNumber ? `${streetNumber} ${route}` : route;
+
+      onSelect({
+        address: streetAddress,
+        suburb,
+        city: city || suburb,
+        province,
+        zip: postalCode,
+        formatted: place.formatted_address,
+      });
+    });
+
+    autocompleteRef.current = ac;
+  }, [scriptLoaded, onSelect]);
+
+  return inputRef;
+}
+
+// ─── Address Autocomplete Input Component ───────────────────────────────────
+function AddressAutocompleteInput({ value, onChange, onAddressSelect, style, labelStyle }) {
+  const [inputValue, setInputValue] = useState(value || '');
+  const [isFocused, setIsFocused] = useState(false);
+
+  const handleSelect = useCallback((addressData) => {
+    setInputValue(addressData.formatted || addressData.address);
+    onAddressSelect(addressData);
+  }, [onAddressSelect]);
+
+  const inputRef = useGooglePlacesAutocomplete(handleSelect);
+
+  useEffect(() => {
+    setInputValue(value || '');
+  }, [value]);
+
+  const handleChange = (e) => {
+    setInputValue(e.target.value);
+    onChange(e.target.value);
+  };
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <label style={labelStyle}>Street Address</label>
+      <div style={{ position: 'relative' }}>
+        <input
+          ref={inputRef}
+          type="text"
+          value={inputValue}
+          onChange={handleChange}
+          placeholder="Start typing your address..."
+          autoComplete="off"
+          onFocus={() => {
+            setIsFocused(true);
+          }}
+          onBlur={() => setIsFocused(false)}
+          style={{
+            ...style,
+            borderColor: isFocused ? '#C9A84C' : 'rgba(201,168,76,0.2)',
+            paddingRight: '2.5rem',
+          }}
+        />
+        <div style={{
+          position: 'absolute', right: '0.85rem', top: '50%', transform: 'translateY(-50%)',
+          pointerEvents: 'none', opacity: 0.4,
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" strokeWidth="2">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+        </div>
+      </div>
+      <p style={{ fontSize: '0.58rem', color: '#555', fontFamily: 'Montserrat, sans-serif', letterSpacing: '0.05em', marginTop: '0.3rem' }}>
+        Powered by Google · South Africa only
+      </p>
+    </div>
+  );
+}
+
 export default function CheckoutPage() {
   const { user, profile, loading: authLoading } = useAuth();
   const [cart, setCart] = useState([]);
@@ -731,7 +857,7 @@ export default function CheckoutPage() {
 
   const [form, setForm] = useState({
     firstName: '', lastName: '', email: '', phone: '',
-    address: '', city: '', province: '', zip: '',
+    address: '', suburb: '', city: '', province: '', zip: '',
   });
 
   useEffect(() => {
@@ -776,7 +902,13 @@ export default function CheckoutPage() {
         const res = await fetch('/api/shipping-quote', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ city: form.city, province: form.province, zip: form.zip, address: form.address }),
+          body: JSON.stringify({
+            city: form.city,
+            province: form.province,
+            zip: form.zip,
+            address: form.address,
+            suburb: form.suburb,
+          }),
         });
         const data = await res.json();
         if (data.rates?.length) {
@@ -800,6 +932,17 @@ export default function CheckoutPage() {
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
+
+  const handleAddressSelect = useCallback((addressData) => {
+    setForm(f => ({
+      ...f,
+      address: addressData.address || f.address,
+      suburb: addressData.suburb || f.suburb,
+      city: addressData.city || f.city,
+      province: addressData.province || f.province,
+      zip: addressData.zip || f.zip,
+    }));
+  }, []);
 
   const handlePayFast = async (e) => {
     e.preventDefault();
@@ -879,6 +1022,12 @@ export default function CheckoutPage() {
               0% { transform: translate(-50%,-50%) scale(1); opacity: 1; }
               100% { transform: translate(calc(-50% + cos(var(--angle)) * var(--radius) * 3), calc(-50% + sin(var(--angle)) * var(--radius) * 3)) scale(0); opacity: 0; }
             }
+            .pac-container { background: #1A1A1A !important; border: 1px solid rgba(201,168,76,0.25) !important; border-top: none !important; box-shadow: 0 8px 32px rgba(0,0,0,0.6) !important; font-family: 'Montserrat', sans-serif !important; }
+            .pac-item { padding: 0.6rem 1rem !important; border-top: 1px solid rgba(201,168,76,0.08) !important; cursor: pointer !important; color: #888 !important; font-size: 0.7rem !important; }
+            .pac-item:hover, .pac-item-selected { background: rgba(201,168,76,0.08) !important; }
+            .pac-item-query { color: #F5F0E8 !important; font-size: 0.75rem !important; }
+            .pac-matched { color: #C9A84C !important; }
+            .pac-icon { display: none !important; }
           `}</style>
           <GuestLoginGate onGuest={() => setGuestMode(true)} onLogin={handleLoginChoice} />
           {showAuthModal && <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />}
@@ -910,12 +1059,20 @@ export default function CheckoutPage() {
           @media (max-width: 768px) {
             .checkout-grid { grid-template-columns: 1fr !important; }
             .name-grid { grid-template-columns: 1fr !important; }
-            .address-grid { grid-template-columns: 1fr !important; }
+            .address-grid { grid-template-columns: 1fr 1fr !important; }
             .order-summary-sticky { position: static !important; }
             .checkout-form-box { padding: 1.75rem 1.25rem !important; }
             .checkout-hero { padding: 4rem 1.5rem !important; }
             .checkout-section { padding: 3rem 1.25rem 5rem !important; }
           }
+          .pac-container { background: #1A1A1A !important; border: 1px solid rgba(201,168,76,0.25) !important; border-top: none !important; box-shadow: 0 8px 32px rgba(0,0,0,0.6) !important; font-family: 'Montserrat', sans-serif !important; z-index: 99999 !important; }
+          .pac-item { padding: 0.6rem 1rem !important; border-top: 1px solid rgba(201,168,76,0.08) !important; cursor: pointer !important; color: #888 !important; font-size: 0.7rem !important; letter-spacing: 0.03em !important; }
+          .pac-item:hover, .pac-item-selected { background: rgba(201,168,76,0.08) !important; }
+          .pac-item-query { color: #F5F0E8 !important; font-size: 0.75rem !important; }
+          .pac-matched { color: #C9A84C !important; font-weight: 600 !important; }
+          .pac-icon { display: none !important; }
+          .pac-logo { display: none !important; }
+          .filled-field { background: rgba(201,168,76,0.04) !important; border-color: rgba(201,168,76,0.35) !important; }
         `}</style>
 
         <div style={{ paddingTop: '70px' }}>
@@ -1008,24 +1165,56 @@ export default function CheckoutPage() {
                 </div>
 
                 <div style={{ marginBottom: '1.5rem' }}>
-                  <label style={labelStyle}>Street Address</label>
-                  <input type="text" name="address" value={form.address} onChange={handleChange} placeholder="123 Main Road" style={inputStyle}
-                    onFocus={e => e.target.style.borderColor = '#C9A84C'} onBlur={e => e.target.style.borderColor = 'rgba(201,168,76,0.2)'} />
+                  <AddressAutocompleteInput
+                    value={form.address}
+                    onChange={(val) => setForm(f => ({ ...f, address: val }))}
+                    onAddressSelect={handleAddressSelect}
+                    style={inputStyle}
+                    labelStyle={labelStyle}
+                  />
                 </div>
 
-                <div className="address-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div className="address-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
                   {[
-                    { label: 'City', name: 'city', placeholder: 'Verulam' },
+                    { label: 'Suburb', name: 'suburb', placeholder: 'Verulam' },
+                    { label: 'City', name: 'city', placeholder: 'Durban' },
                     { label: 'Province', name: 'province', placeholder: 'KwaZulu-Natal' },
                     { label: 'Postal Code', name: 'zip', placeholder: '4340' },
                   ].map(f => (
                     <div key={f.name}>
                       <label style={labelStyle}>{f.label}</label>
-                      <input type="text" name={f.name} value={form[f.name]} onChange={handleChange} placeholder={f.placeholder} style={inputStyle}
-                        onFocus={e => e.target.style.borderColor = '#C9A84C'} onBlur={e => e.target.style.borderColor = 'rgba(201,168,76,0.2)'} />
+                      <input
+                        type="text"
+                        name={f.name}
+                        value={form[f.name]}
+                        onChange={handleChange}
+                        placeholder={f.placeholder}
+                        style={{
+                          ...inputStyle,
+                          borderColor: form[f.name] ? 'rgba(201,168,76,0.35)' : 'rgba(201,168,76,0.2)',
+                          background: form[f.name] ? 'rgba(201,168,76,0.04)' : '#1A1A1A',
+                        }}
+                        onFocus={e => e.target.style.borderColor = '#C9A84C'}
+                        onBlur={e => e.target.style.borderColor = form[f.name] ? 'rgba(201,168,76,0.35)' : 'rgba(201,168,76,0.2)'}
+                      />
                     </div>
                   ))}
                 </div>
+
+                {form.city && form.province && form.zip && (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.9rem',
+                    background: 'rgba(201,168,76,0.05)', border: '1px solid rgba(201,168,76,0.15)',
+                    marginBottom: '1.5rem',
+                  }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" strokeWidth="2">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+                    </svg>
+                    <span style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.62rem', color: '#C9A84C', letterSpacing: '0.04em' }}>
+                      {[form.suburb, form.city, form.province, form.zip].filter(Boolean).join(', ')}
+                    </span>
+                  </div>
+                )}
 
                 {shippingLoading && (
                   <div style={{ padding: '1rem 0', fontSize: '0.72rem', color: '#888', letterSpacing: '0.05em', fontFamily: 'Montserrat, sans-serif' }}>

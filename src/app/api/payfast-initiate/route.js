@@ -31,17 +31,18 @@ export async function POST(req) {
     item_name:     "RnR Agencies Order",
   };
 
-  // Include merchant_key in signature (do NOT delete it)
+  // merchant_key is posted to PayFast but excluded from the signature
+  const signatureFields = { ...pfData };
+  delete signatureFields.merchant_key;
+
   const pfParamString =
-    Object.entries(pfData)
+    Object.entries(signatureFields)
       .filter(([, val]) => String(val ?? "").trim() !== "")
       .map(([key, val]) =>
         `${key}=${encodeURIComponent(String(val).trim()).replace(/%20/g, "+")}`
       )
       .join("&") +
-    (passphrase
-      ? `&passphrase=${encodeURIComponent(passphrase.trim()).replace(/%20/g, "+")}`
-      : "");
+    `&passphrase=${encodeURIComponent(passphrase.trim()).replace(/%20/g, "+")}`;
 
   pfData.signature = md5(pfParamString);
 

@@ -1,7 +1,7 @@
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
-  const { city, province, zip, address } = req.body;
+  const { city, province, zip, address, suburb } = req.body;
 
   if (!city || !zip) {
     return res.status(400).json({ error: 'City and postal code are required.' });
@@ -12,7 +12,7 @@ export default async function handler(req, res) {
       type: 'business',
       company: 'R&R Agencies',
       street_address: '123 Your Street',
-      local_area: 'Your Suburb',
+      local_area: 'Verulam',
       city: 'Verulam',
       zone: 'KwaZulu-Natal',
       country: 'ZA',
@@ -21,7 +21,7 @@ export default async function handler(req, res) {
     delivery_address: {
       type: 'residential',
       street_address: address || '',
-      local_area: city,
+      local_area: suburb || city,
       city: city,
       zone: province,
       country: 'ZA',
@@ -35,7 +35,7 @@ export default async function handler(req, res) {
         weight: 1,
       },
     ],
-    declared_value: 0,
+    declared_value: 500,
   };
 
   try {
@@ -49,6 +49,8 @@ export default async function handler(req, res) {
     });
 
     const data = await response.json();
+
+    console.log('ShipLogic response:', JSON.stringify(data, null, 2));
 
     if (!response.ok) {
       console.error('ShipLogic error:', data);

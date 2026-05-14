@@ -6,16 +6,15 @@ export async function POST(req) {
 
   const merchantId  = process.env.PAYFAST_MERCHANT_ID;
   const merchantKey = process.env.PAYFAST_MERCHANT_KEY;
+  const passphrase  = process.env.PAYFAST_PASSPHRASE;
   const siteUrl     = process.env.NEXT_PUBLIC_SITE_URL;
 
   const finalAmount = parseFloat(subtotal).toFixed(2);
 
-  // Sanitize phone number to 10 digits starting with 0
   const cleanPhone = (form.phone || "")
     .replace(/\D/g, "")
     .replace(/^27/, "0");
 
-  // Normalize name capitalization
   const capitalize = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
 
   const pfData = {
@@ -32,7 +31,6 @@ export async function POST(req) {
     item_name:     "RnR Agencies Order",
   };
 
-  // Signature excludes merchant_key — no passphrase
   const signatureFields = { ...pfData };
   delete signatureFields.merchant_key;
 
@@ -42,22 +40,11 @@ export async function POST(req) {
       .map(([key, val]) =>
         `${key}=${encodeURIComponent(String(val).trim()).replace(/%20/g, "+")}`
       )
-      .join("&");
+      .join("&") +
+    `&passphrase=${encodeURIComponent(passphrase.trim()).replace(/%20/g, "+")}`;
 
   pfData.signature = md5(pfParamString);
 
-  // ── DEBUG LOGS — remove once PayFast is working ──
-  console.log("=== PAYFAST DEBUG ===");
-  console.log("MERCHANT ID:", merchantId);
-  console.log("MERCHANT KEY SET:", !!merchantKey);
-  console.log("PASSPHRASE: none");
-  console.log("SITE URL:", siteUrl);
-  console.log("AMOUNT:", finalAmount);
-  console.log("CLEAN PHONE:", cleanPhone);
-  console.log("SIGNATURE:", pfData.signature);
-  console.log("=====================");
-
-  // Save pending order — wrapped so Firebase can't crash the PayFast response
   try {
     const db = getDb();
     await db.collection("pendingOrders").add({
@@ -72,7 +59,6 @@ export async function POST(req) {
     });
   } catch (err) {
     console.error("Firebase write failed:", err.message);
-    // Don't throw — still return PayFast data
   }
 
   return Response.json(pfData);

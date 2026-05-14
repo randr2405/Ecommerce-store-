@@ -433,8 +433,18 @@ function GlobalStyles() {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body>
-        <AuthProvider>
+      
+        <body>
+  <style dangerouslySetInnerHTML={{ __html: `
+    .pac-container { background-color: #1A1A1A !important; border: 1px solid rgba(201,168,76,0.25) !important; font-family: Montserrat, sans-serif !important; z-index: 999999 !important; }
+    .pac-item { color: #aaa !important; background-color: #1A1A1A !important; padding: 0.65rem 1rem !important; font-size: 0.72rem !important; display: block !important; }
+    .pac-item:hover, .pac-item-selected { background-color: rgba(201,168,76,0.1) !important; }
+    .pac-item-query { color: #F5F0E8 !important; }
+    .pac-matched { color: #C9A84C !important; font-weight: 600 !important; }
+    .pac-icon, .pac-icon-marker, .hdpi .pac-icon { display: none !important; width: 0 !important; height: 0 !important; margin: 0 !important; padding: 0 !important; background-image: none !important; }
+    .pac-logo:after { display: none !important; }
+  ` }} />
+  <AuthProvider>
           <GlobalStyles />
           <PillNav />
           <main>{children}</main>

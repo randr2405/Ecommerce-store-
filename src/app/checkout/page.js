@@ -725,6 +725,11 @@ export default function CheckoutPage() {
   const [shippingError, setShippingError] = useState('');
   const debounceRef = useRef(null);
 
+  const [promoCode, setPromoCode] = useState('');
+  const [promoResult, setPromoResult] = useState(null);
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [promoError, setPromoError] = useState('');
+
   const [form, setForm] = useState({
     firstName: '', lastName: '', email: '', phone: '',
     address: '', suburb: '', city: '', province: '', zip: '',
@@ -795,14 +800,36 @@ export default function CheckoutPage() {
     }, 900);
   }, [form.city, form.province, form.zip]);
 
- const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-const freeDeliveryThreshold = 600;
-const qualifiesForFree = subtotal >= freeDeliveryThreshold;
-const shippingCost = qualifiesForFree ? 0 : (selectedRate?.price ?? 0);
-const total = subtotal + shippingCost;
+  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const freeDeliveryThreshold = 600;
+  const qualifiesForFree = subtotal >= freeDeliveryThreshold;
+  const promoFreeShipping = promoResult?.type === 'freeshipping';
+  const shippingCost = (qualifiesForFree || promoFreeShipping) ? 0 : (selectedRate?.price ?? 0);
+  const promoDiscount = promoResult?.type === 'percent'
+    ? subtotal * (promoResult.value / 100)
+    : promoResult?.type === 'fixed' ? Math.min(promoResult.value, subtotal) : 0;
+  const total = subtotal + shippingCost - promoDiscount;
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleApplyPromo = async () => {
+    if (!promoCode.trim()) return;
+    setPromoLoading(true);
+    setPromoError('');
+    setPromoResult(null);
+    try {
+      const res = await fetch('/api/validate-promo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: promoCode, subtotal }),
+      });
+      const data = await res.json();
+      if (data.valid) setPromoResult(data.promo);
+      else setPromoError(data.message);
+    } catch { setPromoError('Could not validate code.'); }
+    finally { setPromoLoading(false); }
   };
 
   const handlePayFast = async (e) => {
@@ -824,8 +851,10 @@ const total = subtotal + shippingCost;
           subtotal: total.toFixed(2),
           shippingService: selectedRate?.service || 'Standard',
           shippingCost: shippingCost.toFixed(2),
-          cart,
+          cartLength: cart.length,
           userId: user?.uid || null,
+          promoCode: promoResult?.code || null,
+          discount: promoDiscount.toFixed(2),
         }),
       });
       const pfData = await res.json();
@@ -1019,12 +1048,8 @@ const total = subtotal + shippingCost;
                 <div style={{ marginBottom: '1.5rem' }}>
                   <label style={labelStyle}>Street Address</label>
                   <input
-                    type="text"
-                    name="address"
-                    value={form.address}
-                    onChange={handleChange}
-                    placeholder="49 Ilchester Avenue"
-                    style={inputStyle}
+                    type="text" name="address" value={form.address} onChange={handleChange}
+                    placeholder="49 Ilchester Avenue" style={inputStyle}
                     onFocus={e => e.target.style.borderColor = '#C9A84C'}
                     onBlur={e => e.target.style.borderColor = 'rgba(201,168,76,0.2)'}
                   />
@@ -1033,12 +1058,8 @@ const total = subtotal + shippingCost;
                 <div style={{ marginBottom: '1.5rem' }}>
                   <label style={labelStyle}>Suburb</label>
                   <input
-                    type="text"
-                    name="suburb"
-                    value={form.suburb}
-                    onChange={handleChange}
-                    placeholder="Verulam"
-                    style={inputStyle}
+                    type="text" name="suburb" value={form.suburb} onChange={handleChange}
+                    placeholder="Verulam" style={inputStyle}
                     onFocus={e => e.target.style.borderColor = '#C9A84C'}
                     onBlur={e => e.target.style.borderColor = 'rgba(201,168,76,0.2)'}
                   />
@@ -1048,16 +1069,9 @@ const total = subtotal + shippingCost;
                   <div>
                     <label style={labelStyle}>City</label>
                     <input
-                      type="text"
-                      name="city"
-                      value={form.city}
-                      onChange={handleChange}
+                      type="text" name="city" value={form.city} onChange={handleChange}
                       placeholder="Durban"
-                      style={{
-                        ...inputStyle,
-                        borderColor: form.city ? 'rgba(201,168,76,0.35)' : 'rgba(201,168,76,0.2)',
-                        background: form.city ? 'rgba(201,168,76,0.04)' : '#1A1A1A',
-                      }}
+                      style={{ ...inputStyle, borderColor: form.city ? 'rgba(201,168,76,0.35)' : 'rgba(201,168,76,0.2)', background: form.city ? 'rgba(201,168,76,0.04)' : '#1A1A1A' }}
                       onFocus={e => e.target.style.borderColor = '#C9A84C'}
                       onBlur={e => e.target.style.borderColor = form.city ? 'rgba(201,168,76,0.35)' : 'rgba(201,168,76,0.2)'}
                     />
@@ -1067,14 +1081,8 @@ const total = subtotal + shippingCost;
                     <label style={labelStyle}>Province</label>
                     <div className="rr-select-wrap">
                       <select
-                        name="province"
-                        value={form.province}
-                        onChange={handleChange}
-                        className="rr-select"
-                        style={{
-                          borderColor: form.province ? 'rgba(201,168,76,0.35)' : 'rgba(201,168,76,0.2)',
-                          background: form.province ? 'rgba(201,168,76,0.04)' : '#1A1A1A',
-                        }}
+                        name="province" value={form.province} onChange={handleChange} className="rr-select"
+                        style={{ borderColor: form.province ? 'rgba(201,168,76,0.35)' : 'rgba(201,168,76,0.2)', background: form.province ? 'rgba(201,168,76,0.04)' : '#1A1A1A' }}
                       >
                         <option value="">Select province</option>
                         <option value="KwaZulu-Natal">KwaZulu-Natal</option>
@@ -1093,16 +1101,9 @@ const total = subtotal + shippingCost;
                   <div>
                     <label style={labelStyle}>Postal Code</label>
                     <input
-                      type="text"
-                      name="zip"
-                      value={form.zip}
-                      onChange={handleChange}
+                      type="text" name="zip" value={form.zip} onChange={handleChange}
                       placeholder="4340"
-                      style={{
-                        ...inputStyle,
-                        borderColor: form.zip ? 'rgba(201,168,76,0.35)' : 'rgba(201,168,76,0.2)',
-                        background: form.zip ? 'rgba(201,168,76,0.04)' : '#1A1A1A',
-                      }}
+                      style={{ ...inputStyle, borderColor: form.zip ? 'rgba(201,168,76,0.35)' : 'rgba(201,168,76,0.2)', background: form.zip ? 'rgba(201,168,76,0.04)' : '#1A1A1A' }}
                       onFocus={e => e.target.style.borderColor = '#C9A84C'}
                       onBlur={e => e.target.style.borderColor = form.zip ? 'rgba(201,168,76,0.35)' : 'rgba(201,168,76,0.2)'}
                     />
@@ -1112,8 +1113,7 @@ const total = subtotal + shippingCost;
                 {form.city && form.province && form.zip && (
                   <div style={{
                     display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.9rem',
-                    background: 'rgba(201,168,76,0.05)', border: '1px solid rgba(201,168,76,0.15)',
-                    marginBottom: '1.5rem',
+                    background: 'rgba(201,168,76,0.05)', border: '1px solid rgba(201,168,76,0.15)', marginBottom: '1.5rem',
                   }}>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" strokeWidth="2">
                       <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
@@ -1125,39 +1125,39 @@ const total = subtotal + shippingCost;
                 )}
 
                 {!qualifiesForFree && subtotal > 0 && (
-  <div style={{
-    padding: '0.85rem 1rem', marginBottom: '1.2rem',
-    background: 'rgba(201,168,76,0.06)', border: '1px solid rgba(201,168,76,0.25)',
-    display: 'flex', alignItems: 'center', gap: '0.6rem',
-  }}>
-    <div style={{ flex: 1 }}>
-      <p style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.68rem', color: '#C9A84C', letterSpacing: '0.08em', margin: 0, fontWeight: 700 }}>
-        🚚 FREE DELIVERY OVER R600
-      </p>
-      <p style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.62rem', color: '#888', margin: '0.3rem 0 0', letterSpacing: '0.04em' }}>
-        Add <span style={{ color: '#C9A84C', fontWeight: 600 }}>R {(freeDeliveryThreshold - subtotal).toFixed(2)}</span> more to qualify — save on shipping
-      </p>
-    </div>
-    <div style={{ width: '100%', maxWidth: '80px' }}>
-      <div style={{ height: '3px', background: 'rgba(201,168,76,0.15)', borderRadius: '2px', overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${Math.min((subtotal / freeDeliveryThreshold) * 100, 100)}%`, background: '#C9A84C', borderRadius: '2px', transition: 'width 0.4s ease' }} />
-      </div>
-    </div>
-  </div>
-)}
+                  <div style={{
+                    padding: '0.85rem 1rem', marginBottom: '1.2rem',
+                    background: 'rgba(201,168,76,0.06)', border: '1px solid rgba(201,168,76,0.25)',
+                    display: 'flex', alignItems: 'center', gap: '0.6rem',
+                  }}>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.68rem', color: '#C9A84C', letterSpacing: '0.08em', margin: 0, fontWeight: 700 }}>
+                        🚚 FREE DELIVERY OVER R600
+                      </p>
+                      <p style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.62rem', color: '#888', margin: '0.3rem 0 0', letterSpacing: '0.04em' }}>
+                        Add <span style={{ color: '#C9A84C', fontWeight: 600 }}>R {(freeDeliveryThreshold - subtotal).toFixed(2)}</span> more to qualify — save on shipping
+                      </p>
+                    </div>
+                    <div style={{ width: '100%', maxWidth: '80px' }}>
+                      <div style={{ height: '3px', background: 'rgba(201,168,76,0.15)', borderRadius: '2px', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${Math.min((subtotal / freeDeliveryThreshold) * 100, 100)}%`, background: '#C9A84C', borderRadius: '2px', transition: 'width 0.4s ease' }} />
+                      </div>
+                    </div>
+                  </div>
+                )}
 
-{qualifiesForFree && (
-  <div style={{
-    padding: '0.85rem 1rem', marginBottom: '1.2rem',
-    background: 'rgba(80,180,80,0.06)', border: '1px solid rgba(80,180,80,0.25)',
-  }}>
-    <p style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.68rem', color: '#7ec87e', letterSpacing: '0.08em', margin: 0, fontWeight: 700 }}>
-      ✓ FREE DELIVERY UNLOCKED
-    </p>
-  </div>
-)}
+                {qualifiesForFree && (
+                  <div style={{
+                    padding: '0.85rem 1rem', marginBottom: '1.2rem',
+                    background: 'rgba(80,180,80,0.06)', border: '1px solid rgba(80,180,80,0.25)',
+                  }}>
+                    <p style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.68rem', color: '#7ec87e', letterSpacing: '0.08em', margin: 0, fontWeight: 700 }}>
+                      ✓ FREE DELIVERY UNLOCKED
+                    </p>
+                  </div>
+                )}
 
-{shippingLoading && (
+                {shippingLoading && (
                   <div style={{ padding: '1rem 0', fontSize: '0.72rem', color: '#888', letterSpacing: '0.05em', fontFamily: 'Montserrat, sans-serif' }}>
                     ↻ Calculating shipping rates...
                   </div>
@@ -1211,13 +1211,13 @@ const total = subtotal + shippingCost;
                 <div style={{ borderTop: '1px solid rgba(201,168,76,0.1)', paddingTop: '2rem' }}>
                   <p style={{ fontSize: '0.72rem', color: '#555', lineHeight: 1.8, marginBottom: '1.5rem' }}>
                     🔒 You will be redirected to <span style={{ color: '#C9A84C' }}>PayFast</span> to complete secure payment. R&amp;R Agencies never stores your card details.
-</p>
-<div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.75rem', padding: '0.65rem 0.9rem', background: 'rgba(201,168,76,0.04)', border: '1px solid rgba(201,168,76,0.12)' }}>
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-  <p style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.62rem', color: '#666', letterSpacing: '0.04em', margin: 0, lineHeight: 1.6 }}>
-    Delivered by <span style={{ color: '#C9A84C', fontWeight: 600 }}>The Courier Guy</span> — trusted by thousands of South African businesses for fast, reliable delivery nationwide.
-  </p>
-</div>
+                  </p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.75rem', padding: '0.65rem 0.9rem', background: 'rgba(201,168,76,0.04)', border: '1px solid rgba(201,168,76,0.12)' }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    <p style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.62rem', color: '#666', letterSpacing: '0.04em', margin: 0, lineHeight: 1.6 }}>
+                      Delivered by <span style={{ color: '#C9A84C', fontWeight: 600 }}>The Courier Guy</span> — trusted by thousands of South African businesses for fast, reliable delivery nationwide.
+                    </p>
+                  </div>
                   <button
                     onClick={handlePayFast}
                     disabled={checkoutLoading}
@@ -1254,6 +1254,23 @@ const total = subtotal + shippingCost;
                 </div>
 
                 <div style={{ borderTop: '1px solid rgba(201,168,76,0.15)', paddingTop: '1.5rem', marginTop: '0.5rem' }}>
+
+                  <div style={{ marginBottom: '1.2rem' }}>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <input
+                        value={promoCode}
+                        onChange={e => { setPromoCode(e.target.value.toUpperCase()); setPromoError(''); setPromoResult(null); }}
+                        placeholder="PROMO CODE"
+                        style={{ flex: 1, background: '#1A1A1A', border: '1px solid rgba(201,168,76,0.2)', color: '#F5F0E8', padding: '0.6rem 0.8rem', fontSize: '0.72rem', fontFamily: 'Montserrat, sans-serif', outline: 'none', letterSpacing: '0.08em', borderRadius: '4px' }}
+                      />
+                      <button onClick={handleApplyPromo} disabled={promoLoading} style={{ padding: '0.6rem 1rem', background: 'rgba(201,168,76,0.1)', border: '1px solid rgba(201,168,76,0.3)', color: '#C9A84C', cursor: 'pointer', fontSize: '0.62rem', fontFamily: 'Montserrat, sans-serif', letterSpacing: '0.1em', borderRadius: '4px', whiteSpace: 'nowrap' }}>
+                        {promoLoading ? '...' : 'Apply'}
+                      </button>
+                    </div>
+                    {promoError && <p style={{ fontSize: '0.62rem', color: '#e07070', margin: '0.4rem 0 0', fontFamily: 'Montserrat, sans-serif' }}>{promoError}</p>}
+                    {promoResult && <p style={{ fontSize: '0.62rem', color: '#7ec87e', margin: '0.4rem 0 0', fontFamily: 'Montserrat, sans-serif' }}>✓ {promoResult.type === 'freeshipping' ? 'Free shipping applied!' : promoResult.type === 'percent' ? `${promoResult.value}% discount applied!` : `R${promoResult.value} discount applied!`}</p>}
+                  </div>
+
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
                     <p style={{ fontSize: '0.65rem', color: '#888', fontFamily: 'Montserrat, sans-serif', letterSpacing: '0.1em' }}>Subtotal</p>
                     <p style={{ fontSize: '0.78rem', color: '#888' }}>R {subtotal.toFixed(2)}</p>
@@ -1261,13 +1278,19 @@ const total = subtotal + shippingCost;
                   {selectedRate && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
                       <p style={{ fontSize: '0.65rem', color: '#888', fontFamily: 'Montserrat, sans-serif', letterSpacing: '0.05em' }}>Shipping · {selectedRate.service}</p>
-                     <p style={{ fontSize: '0.78rem', color: qualifiesForFree ? '#7ec87e' : '#888' }}>{qualifiesForFree ? 'FREE' : `R ${selectedRate.price.toFixed(2)}`}</p>
+                      <p style={{ fontSize: '0.78rem', color: (qualifiesForFree || promoFreeShipping) ? '#7ec87e' : '#888' }}>{(qualifiesForFree || promoFreeShipping) ? 'FREE' : `R ${selectedRate.price.toFixed(2)}`}</p>
                     </div>
                   )}
                   {!selectedRate && shippingRates.length === 0 && !shippingLoading && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
                       <p style={{ fontSize: '0.65rem', color: '#555', fontFamily: 'Montserrat, sans-serif', letterSpacing: '0.05em' }}>Shipping</p>
                       <p style={{ fontSize: '0.65rem', color: '#555', fontFamily: 'Montserrat, sans-serif' }}>Calculated at address</p>
+                    </div>
+                  )}
+                  {promoDiscount > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                      <p style={{ fontSize: '0.65rem', color: '#7ec87e', fontFamily: 'Montserrat, sans-serif', letterSpacing: '0.05em' }}>Promo · {promoResult?.code}</p>
+                      <p style={{ fontSize: '0.78rem', color: '#7ec87e' }}>−R {promoDiscount.toFixed(2)}</p>
                     </div>
                   )}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.75rem', borderTop: '1px solid rgba(201,168,76,0.1)' }}>

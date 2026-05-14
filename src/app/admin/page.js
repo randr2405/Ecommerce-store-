@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/lib/context";
+import { useAuth } from "@/lib/context/AuthContext";
 import { collection, getDocs, orderBy, query } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 

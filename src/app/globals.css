@@ -101,6 +101,53 @@ h1, h2, h3, h4, h5 {
   color: var(--gold);
 }
 
+.pac-container {
+  background-color: #1A1A1A !important;
+  border: 1px solid rgba(201, 168, 76, 0.25) !important;
+  border-top: none !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6) !important;
+  font-family: 'Montserrat', sans-serif !important;
+  z-index: 99999 !important;
+  border-radius: 0 !important;
+}
+
+.pac-item {
+  padding: 0.6rem 1rem !important;
+  border-top: 1px solid rgba(201, 168, 76, 0.08) !important;
+  cursor: pointer !important;
+  color: #888 !important;
+  font-size: 0.7rem !important;
+  letter-spacing: 0.03em !important;
+  background-color: #1A1A1A !important;
+  line-height: 1.6 !important;
+}
+
+.pac-item:hover,
+.pac-item-selected {
+  background-color: rgba(201, 168, 76, 0.08) !important;
+}
+
+.pac-item-query {
+  color: #F5F0E8 !important;
+  font-size: 0.75rem !important;
+  font-family: 'Montserrat', sans-serif !important;
+}
+
+.pac-matched {
+  color: #C9A84C !important;
+  font-weight: 600 !important;
+}
+
+.pac-icon,
+.pac-icon-marker,
+.hdpi .pac-icon {
+  display: none !important;
+}
+
+.pac-logo:after {
+  display: none !important;
+}
+
 @layer base {
   .theme {
     --font-heading: var(--font-sans);

@@ -1,7 +1,8 @@
 import md5 from 'md5';
+import { db } from '@/lib/firebase-admin';
 
 export async function POST(req) {
-  const { form, subtotal } = await req.json();
+  const { form, subtotal, cart, shippingService, shippingCost, userId } = await req.json();
 
   const merchantId  = process.env.PAYFAST_MERCHANT_ID;
   const merchantKey = process.env.PAYFAST_MERCHANT_KEY;
@@ -23,12 +24,22 @@ export async function POST(req) {
   };
 
   const pfParamString = Object.entries(pfData)
-    .filter(([, val]) => String(val ?? '').trim() !== '')  // ← removed merchant_key exclusion
+    .filter(([, val]) => String(val ?? '').trim() !== '')
     .map(([key, val]) => `${key}=${encodeURIComponent(String(val).trim()).replace(/%20/g, '+')}`)
     .join('&')
     + `&passphrase=${encodeURIComponent(passphrase.trim()).replace(/%20/g, '+')}`;
 
   pfData.signature = md5(pfParamString);
+
+  // Save cart so notify endpoint can retrieve it after PayFast confirms payment
+  await db.collection('pendingOrders').add({
+    email_address: form.email,
+    cart: cart || [],
+    shippingService: shippingService || '',
+    shippingCost: shippingCost || 0,
+    userId: userId || null,
+    createdAt: new Date(),
+  });
 
   return Response.json({ ...pfData, _debug_paramString: pfParamString });
 }

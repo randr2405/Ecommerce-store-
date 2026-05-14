@@ -824,7 +824,7 @@ const total = subtotal + shippingCost;
           subtotal: total.toFixed(2),
           shippingService: selectedRate?.service || 'Standard',
           shippingCost: shippingCost.toFixed(2),
-          cartLength: cart.length,
+          cart,
           userId: user?.uid || null,
         }),
       });

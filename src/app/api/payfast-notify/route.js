@@ -1,7 +1,13 @@
 ﻿import { getDb } from "@/lib/firebase-admin";
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_PASS,
+  },
+});
 
 export async function GET() {
   return new Response("OK", { status: 200 });
@@ -24,10 +30,7 @@ export async function POST(req) {
     .limit(1)
     .get();
 
-  let cart = [];
-  let shippingService = "";
-  let shippingCost = 0;
-  let userId = null;
+  let cart = [], shippingService = "", shippingCost = 0, userId = null;
 
   if (!pendingSnap.empty) {
     const pending = pendingSnap.docs[0].data();
@@ -70,8 +73,8 @@ export async function POST(req) {
     : `<tr><td colspan="2" style="padding:10px 0;color:#7ec87e;font-size:13px;">Shipping</td><td style="padding:10px 0;color:#7ec87e;text-align:right;">FREE</td></tr>`;
 
   try {
-    await resend.emails.send({
-      from: "onboarding@resend.dev",
+    await transporter.sendMail({
+      from: `"R&R Agencies" <${process.env.GMAIL_USER}>`,
       to: params.email_address,
       subject: "Order Confirmed — R&R Agencies",
       html: `

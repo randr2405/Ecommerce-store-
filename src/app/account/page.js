@@ -264,19 +264,22 @@ function AccountContent() {
   }, [searchParams]);
 
   useEffect(() => {
-    if (tab === 'orders' && user) {
-      setOrdersLoading(true);
-      const q = query(
-        collection(db, 'orders'),
-        where('userId', '==', user.uid),
-        orderBy('createdAt', 'desc')
-      );
-      getDocs(q)
-        .then(snap => setOrders(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
-        .catch(() => setOrders([]))
-        .finally(() => setOrdersLoading(false));
-    }
-  }, [tab, user]);
+  if (tab === 'orders' && user) {
+    setOrdersLoading(true);
+    const q = query(
+      collection(db, 'orders'),
+      where('userId', '==', user.uid),
+      orderBy('createdAt', 'desc')
+    );
+    getDocs(q)
+      .then(snap => setOrders(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
+      .catch((err) => {
+        console.error('Orders query error:', err);
+        setOrders([]);
+      })
+      .finally(() => setOrdersLoading(false));
+  }
+}, [tab, user]);
 
   if (loading || !user) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0A0A0A' }}>
@@ -665,7 +668,7 @@ function OrdersTab({ orders, loading }) {
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-            <div className="acc-order-amount">R {(order.total || 0).toFixed(2)}</div>
+            <div className="acc-order-amount">R {parseFloat(order.amount || 0).toFixed(2)}</div>
             <span className={`acc-order-badge ${statusClass(order.status)}`}>
               {order.status || 'Pending'}
             </span>

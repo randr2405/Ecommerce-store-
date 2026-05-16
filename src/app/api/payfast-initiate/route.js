@@ -25,7 +25,6 @@ export async function POST(req) {
     item_name:     "RnR Agencies Order",
   };
 
-  // Include merchant_key in signature this time
   const pfParamString =
     Object.entries(pfData)
       .filter(([, val]) => String(val ?? "").trim() !== "")
@@ -40,6 +39,7 @@ export async function POST(req) {
   console.log("=== PAYFAST DEBUG ===");
   console.log("PARAM STRING:", pfParamString);
   console.log("SIGNATURE:", pfData.signature);
+  console.log("USERID:", userId);
   console.log("=====================");
 
   try {
@@ -54,8 +54,9 @@ export async function POST(req) {
       userId:          userId || null,
       createdAt:       new Date(),
     });
+    console.log("Firebase write SUCCESS");
   } catch (err) {
-    console.error("Firebase write failed:", err.message);
+    console.error("Firebase write FAILED:", err.message);
   }
 
   return Response.json(pfData);

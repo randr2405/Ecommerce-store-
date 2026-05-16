@@ -30,14 +30,15 @@ export async function POST(req) {
     .limit(1)
     .get();
 
-  let cart = [], shippingService = "", shippingCost = 0, userId = null;
+  let cart = [], shippingService = "", shippingCost = 0, userId = null, address = null;
 
-  if (!pendingSnap.empty) {
+if (!pendingSnap.empty) {
     const pending = pendingSnap.docs[0].data();
     cart = pending.cart || [];
     shippingService = pending.shippingService || "";
     shippingCost = pending.shippingCost || 0;
     userId = pending.userId || null;
+    address = pending.address || null;
     await pendingSnap.docs[0].ref.delete();
   }
 
@@ -50,6 +51,7 @@ export async function POST(req) {
     cart,
     shippingService,
     shippingCost,
+     address,
     userId,
     createdAt: new Date(),
   });

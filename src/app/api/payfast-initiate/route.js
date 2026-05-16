@@ -45,15 +45,22 @@ export async function POST(req) {
   try {
     const db = getDb();
     await db.collection("pendingOrders").add({
-      email_address:   form.email,
-      cart:            cart || [],
-      shippingService: shippingService || "",
-      shippingCost:    shippingCost || 0,
-      promoCode:       promoCode || null,
-      discount:        parseFloat(discount || 0),
-      userId:          userId || null,
-      createdAt:       new Date(),
-    });
+  email_address:   form.email,
+  cart:            cart || [],
+  shippingService: shippingService || "",
+  shippingCost:    shippingCost || 0,
+  promoCode:       promoCode || null,
+  discount:        parseFloat(discount || 0),
+  userId:          userId || null,
+  address: {
+    line1:    form.address || "",
+    line2:    form.address2 || "",
+    city:     form.city || "",
+    province: form.province || "",
+    postal:   form.postalCode || "",
+  },
+  createdAt:       new Date(),
+});
     console.log("Firebase write SUCCESS");
   } catch (err) {
     console.error("Firebase write FAILED:", err.message);

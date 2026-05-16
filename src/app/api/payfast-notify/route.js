@@ -76,6 +76,7 @@ export async function POST(req) {
     await transporter.sendMail({
       from: `"R&R Agencies" <${process.env.GMAIL_USER}>`,
       to: params.email_address,
+      bcc: process.env.GMAIL_USER,
       subject: "Order Confirmed — R&R Agencies",
       html: `
         <!DOCTYPE html>

@@ -10,10 +10,8 @@ export async function POST(req) {
   const siteUrl     = process.env.NEXT_PUBLIC_SITE_URL;
 
   const finalAmount = parseFloat(subtotal).toFixed(2);
-
   const capitalize = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
 
-  // Build pfData WITHOUT cell_number — it's optional and can cause rejections
   const pfData = {
     merchant_id:   merchantId,
     merchant_key:  merchantKey,
@@ -27,11 +25,9 @@ export async function POST(req) {
     item_name:     "RnR Agencies Order",
   };
 
-  const signatureFields = { ...pfData };
-  delete signatureFields.merchant_key;
-
+  // Include merchant_key in signature this time
   const pfParamString =
-    Object.entries(signatureFields)
+    Object.entries(pfData)
       .filter(([, val]) => String(val ?? "").trim() !== "")
       .map(([key, val]) =>
         `${key}=${encodeURIComponent(String(val).trim()).replace(/%20/g, "+")}`

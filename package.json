@@ -25,6 +25,7 @@
     "lucide-react": "^1.14.0",
     "md5": "^2.3.0",
     "next": "14.2.35",
+    "nodemailer": "^8.0.7",
     "ogl": "^1.0.11",
     "postprocessing": "^6.39.1",
     "radix-ui": "^1.4.3",

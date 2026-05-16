@@ -227,10 +227,33 @@ function TargetCursor({ targetSelector = 'a, button', spinDuration = 2, hideDefa
 export default function CheckoutSuccessPage() {
   const [visible, setVisible] = useState(false);
   const isMobile = useIsMobile();
+  const savedRef = useRef(false);
 
   useEffect(() => {
     localStorage.removeItem('cart');
     const t = setTimeout(() => setVisible(true), 80);
+
+    if (!savedRef.current) {
+      savedRef.current = true;
+      const email = sessionStorage.getItem('checkout_email') || '';
+      const name = sessionStorage.getItem('checkout_name') || '';
+      const amount = sessionStorage.getItem('checkout_amount') || '0';
+      const paymentId = sessionStorage.getItem('checkout_paymentId') || 'unknown';
+
+      if (email) {
+        fetch('/api/order-confirm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, name, paymentId, amount }),
+        }).catch(console.error);
+      }
+
+      sessionStorage.removeItem('checkout_email');
+      sessionStorage.removeItem('checkout_name');
+      sessionStorage.removeItem('checkout_amount');
+      sessionStorage.removeItem('checkout_paymentId');
+    }
+
     return () => clearTimeout(t);
   }, []);
 
@@ -239,38 +262,25 @@ export default function CheckoutSuccessPage() {
       <div style={{ paddingTop: '70px', background: '#040302', minHeight: '100svh', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
 
         {!isMobile && (
-          <TargetCursor
-            targetSelector="a, button"
-            spinDuration={2.4}
-            hideDefaultCursor={true}
-            hoverDuration={0.18}
-            parallaxOn={true}
-          />
+          <TargetCursor targetSelector="a, button" spinDuration={2.4} hideDefaultCursor={true} hoverDuration={0.18} parallaxOn={true} />
         )}
 
         <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(201,168,76,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(201,168,76,0.03) 1px, transparent 1px)', backgroundSize: '88px 88px', opacity: 0.5, pointerEvents: 'none', zIndex: 0 }} />
         <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: isMobile ? '300px' : '600px', height: isMobile ? '300px' : '600px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(201,168,76,0.06) 0%, rgba(201,168,76,0.02) 40%, transparent 65%)', pointerEvents: 'none', zIndex: 0, animation: 'successBloom 4s ease-in-out infinite alternate' }} />
 
         <div style={{
-          textAlign: 'center',
-          maxWidth: isMobile ? '90vw' : '580px',
-          width: '100%',
-          padding: isMobile ? '2rem 1.2rem' : '4rem 3rem',
-          position: 'relative',
-          zIndex: 2,
+          textAlign: 'center', maxWidth: isMobile ? '90vw' : '580px', width: '100%',
+          padding: isMobile ? '2rem 1.2rem' : '4rem 3rem', position: 'relative', zIndex: 2,
           background: 'linear-gradient(135deg, rgba(10,8,3,0.92) 0%, rgba(18,13,4,0.92) 100%)',
-          border: '1px solid rgba(201,168,76,0.15)',
-          backdropFilter: 'blur(16px)',
+          border: '1px solid rgba(201,168,76,0.15)', backdropFilter: 'blur(16px)',
           boxShadow: '0 40px 80px rgba(0,0,0,0.7), 0 0 60px rgba(201,168,76,0.05), inset 0 1px 0 rgba(201,168,76,0.1)',
-          opacity: visible ? 1 : 0,
-          transform: visible ? 'translateY(0)' : 'translateY(28px)',
+          opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(28px)',
           transition: 'opacity 1s cubic-bezier(0.16,1,0.3,1) 0.1s, transform 1s cubic-bezier(0.16,1,0.3,1) 0.1s',
         }}>
 
           {[['top', 'left'], ['top', 'right'], ['bottom', 'left'], ['bottom', 'right']].map(([v, h], ci) => (
             <div key={ci} style={{
-              position: 'absolute', [v]: 0, [h]: 0,
-              width: '28px', height: '28px',
+              position: 'absolute', [v]: 0, [h]: 0, width: '28px', height: '28px',
               borderTop: v === 'top' ? '1px solid rgba(201,168,76,0.5)' : 'none',
               borderBottom: v === 'bottom' ? '1px solid rgba(201,168,76,0.5)' : 'none',
               borderLeft: h === 'left' ? '1px solid rgba(201,168,76,0.5)' : 'none',
@@ -279,16 +289,12 @@ export default function CheckoutSuccessPage() {
           ))}
 
           <div style={{
-            width: isMobile ? '52px' : '64px',
-            height: isMobile ? '52px' : '64px',
-            borderRadius: '50%',
-            border: '1px solid rgba(201,168,76,0.4)',
+            width: isMobile ? '52px' : '64px', height: isMobile ? '52px' : '64px',
+            borderRadius: '50%', border: '1px solid rgba(201,168,76,0.4)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 1.8rem',
-            background: 'rgba(201,168,76,0.06)',
+            margin: '0 auto 1.8rem', background: 'rgba(201,168,76,0.06)',
             boxShadow: '0 0 30px rgba(201,168,76,0.15)',
-            opacity: visible ? 1 : 0,
-            transform: visible ? 'scale(1)' : 'scale(0.7)',
+            opacity: visible ? 1 : 0, transform: visible ? 'scale(1)' : 'scale(0.7)',
             transition: 'opacity 0.8s cubic-bezier(0.16,1,0.3,1) 0.4s, transform 0.8s cubic-bezier(0.16,1,0.3,1) 0.4s',
           }}>
             <svg width={isMobile ? '22' : '28'} height={isMobile ? '22' : '28'} viewBox="0 0 28 28" fill="none">
@@ -296,46 +302,17 @@ export default function CheckoutSuccessPage() {
             </svg>
           </div>
 
-          <p style={{
-            fontSize: '0.5rem', color: '#C9A84C', letterSpacing: '0.5em', textTransform: 'uppercase',
-            marginBottom: '0.8rem', fontFamily: 'Montserrat, sans-serif',
-            opacity: visible ? 1 : 0, transition: 'opacity 0.8s ease 0.55s',
-          }}>Payment Received</p>
+          <p style={{ fontSize: '0.5rem', color: '#C9A84C', letterSpacing: '0.5em', textTransform: 'uppercase', marginBottom: '0.8rem', fontFamily: 'Montserrat, sans-serif', opacity: visible ? 1 : 0, transition: 'opacity 0.8s ease 0.55s' }}>Payment Received</p>
 
-          <h1 style={{
-            fontFamily: 'Cormorant Garamond, serif',
-            fontSize: isMobile ? 'clamp(2rem, 10vw, 2.8rem)' : 'clamp(2.4rem, 5vw, 3.4rem)',
-            fontWeight: 300, color: '#F5F0E8',
-            marginBottom: '0', lineHeight: 1.1,
-            opacity: visible ? 1 : 0, transition: 'opacity 0.8s ease 0.65s',
-          }}>Order Confirmed</h1>
+          <h1 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: isMobile ? 'clamp(2rem, 10vw, 2.8rem)' : 'clamp(2.4rem, 5vw, 3.4rem)', fontWeight: 300, color: '#F5F0E8', marginBottom: '0', lineHeight: 1.1, opacity: visible ? 1 : 0, transition: 'opacity 0.8s ease 0.65s' }}>Order Confirmed</h1>
 
-          <div style={{
-            width: visible ? '70px' : '0px', height: '1px',
-            background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)',
-            margin: '1.6rem auto',
-            transition: 'width 1.2s cubic-bezier(0.16,1,0.3,1) 0.85s',
-          }} />
+          <div style={{ width: visible ? '70px' : '0px', height: '1px', background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)', margin: '1.6rem auto', transition: 'width 1.2s cubic-bezier(0.16,1,0.3,1) 0.85s' }} />
 
-          <p style={{
-            fontSize: isMobile ? '0.72rem' : '0.8rem',
-            color: 'rgba(180,160,100,0.65)',
-            lineHeight: 1.9,
-            marginBottom: isMobile ? '2rem' : '2.8rem',
-            fontFamily: 'Montserrat, sans-serif',
-            fontWeight: 300,
-            letterSpacing: '0.03em',
-            opacity: visible ? 1 : 0, transition: 'opacity 0.8s ease 0.95s',
-          }}>
+          <p style={{ fontSize: isMobile ? '0.72rem' : '0.8rem', color: 'rgba(180,160,100,0.65)', lineHeight: 1.9, marginBottom: isMobile ? '2rem' : '2.8rem', fontFamily: 'Montserrat, sans-serif', fontWeight: 300, letterSpacing: '0.03em', opacity: visible ? 1 : 0, transition: 'opacity 0.8s ease 0.95s' }}>
             Thank you for your purchase. We've received your order and will be in touch shortly at the email address you provided.
           </p>
 
-          <div style={{
-            display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap',
-            opacity: visible ? 1 : 0,
-            transform: visible ? 'none' : 'translateY(12px)',
-            transition: 'opacity 0.8s ease 1.1s, transform 0.8s cubic-bezier(0.16,1,0.3,1) 1.1s',
-          }}>
+          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap', opacity: visible ? 1 : 0, transform: visible ? 'none' : 'translateY(12px)', transition: 'opacity 0.8s ease 1.1s, transform 0.8s cubic-bezier(0.16,1,0.3,1) 1.1s' }}>
             <Link href="/shop" className="rr-btn-primary">Continue Shopping</Link>
             <Link href="/contact" className="rr-btn-outline">Contact Us</Link>
           </div>
@@ -343,9 +320,7 @@ export default function CheckoutSuccessPage() {
 
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=Montserrat:wght@200;300;400;500&display=swap');
-
           @media (min-width: 769px) { * { cursor: none !important; } }
-
           .tc-wrapper { position: fixed; top: 0; left: 0; width: 0; height: 0; pointer-events: none; z-index: 99999; will-change: transform; }
           .tc-dot { position: absolute; width: 5px; height: 5px; border-radius: 50%; background: #C9A84C; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 8px rgba(201,168,76,0.8), 0 0 16px rgba(201,168,76,0.4); }
           .tc-corner { position: absolute; width: 12px; height: 12px; border-color: #C9A84C; border-style: solid; border-width: 0; will-change: transform; filter: drop-shadow(0 0 4px rgba(201,168,76,0.6)); }
@@ -353,24 +328,19 @@ export default function CheckoutSuccessPage() {
           .tc-tr { border-top-width: 2px; border-right-width: 2px; transform: translate(6px, -18px); }
           .tc-br { border-bottom-width: 2px; border-right-width: 2px; transform: translate(6px, 6px); }
           .tc-bl { border-bottom-width: 2px; border-left-width: 2px; transform: translate(-18px, 6px); }
-
           @keyframes successBloom { from { opacity: 0.5; transform: translate(-50%,-50%) scale(0.95); } to { opacity: 1; transform: translate(-50%,-50%) scale(1.05); } }
-
           @keyframes sparkFly {
             0% { transform: translate(-50%,-50%) scale(1); opacity: 1; }
             100% { transform: translate(calc(-50% + cos(var(--angle)) * var(--radius) * 3), calc(-50% + sin(var(--angle)) * var(--radius) * 3)) scale(0); opacity: 0; }
           }
-
           .rr-btn-primary { display: inline-block; padding: 1rem 2.4rem; background: #C9A84C; color: #080604; font-family: 'Montserrat', sans-serif; font-size: 0.57rem; font-weight: 600; letter-spacing: 0.4em; text-transform: uppercase; text-decoration: none; position: relative; overflow: hidden; transition: transform 0.35s cubic-bezier(0.16,1,0.3,1), box-shadow 0.35s; box-shadow: 0 8px 40px rgba(201,168,76,0.3); white-space: nowrap; }
           .rr-btn-primary::before { content: ''; position: absolute; inset: 0; background: #EDD070; transform: translateX(-101%); transition: transform 0.55s cubic-bezier(0.16,1,0.3,1); }
           .rr-btn-primary:hover::before { transform: translateX(0); }
           .rr-btn-primary:hover { transform: translateY(-5px); box-shadow: 0 25px 60px rgba(201,168,76,0.35); }
-
           .rr-btn-outline { display: inline-block; padding: 1rem 2.4rem; border: 1px solid rgba(201,168,76,0.7); color: #C9A84C; font-family: 'Montserrat', sans-serif; font-size: 0.57rem; font-weight: 300; letter-spacing: 0.4em; text-transform: uppercase; text-decoration: none; position: relative; overflow: hidden; transition: border-color 0.4s, transform 0.35s cubic-bezier(0.16,1,0.3,1), box-shadow 0.35s; white-space: nowrap; }
           .rr-btn-outline::before { content: ''; position: absolute; inset: 0; background: rgba(201,168,76,0.08); transform: scaleX(0); transform-origin: left; transition: transform 0.55s cubic-bezier(0.16,1,0.3,1); }
           .rr-btn-outline:hover::before { transform: scaleX(1); }
           .rr-btn-outline:hover { border-color: #C9A84C; transform: translateY(-5px); box-shadow: 0 20px 50px rgba(201,168,76,0.15); }
-
           @media (max-width: 768px) { .rr-btn-primary, .rr-btn-outline { padding: 0.9rem 1.8rem; font-size: 0.54rem; letter-spacing: 0.2em; } }
           @media (max-width: 480px) { .rr-btn-primary, .rr-btn-outline { padding: 0.8rem 1.4rem; font-size: 0.5rem; letter-spacing: 0.18em; } }
         `}</style>

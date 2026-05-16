@@ -868,6 +868,10 @@ export default function CheckoutPage() {
         input.value = value;
         pfForm.appendChild(input);
       });
+      sessionStorage.setItem('checkout_email', form.email);
+      sessionStorage.setItem('checkout_name', `${form.firstName} ${form.lastName}`);
+      sessionStorage.setItem('checkout_amount', total.toFixed(2));
+      sessionStorage.setItem('checkout_paymentId', 'pending');
       document.body.appendChild(pfForm);
       pfForm.submit();
     } catch (err) {

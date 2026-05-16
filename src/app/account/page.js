@@ -624,6 +624,8 @@ function AccountTab({ user }) {
 }
 
 function OrdersTab({ orders, loading }) {
+  const [expanded, setExpanded] = useState(null);
+
   if (loading) return (
     <div style={{ textAlign: 'center', padding: '3rem' }}>
       <div style={{ width: 32, height: 32, border: '2px solid rgba(201,168,76,0.2)', borderTopColor: '#C9A84C', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />
@@ -658,21 +660,80 @@ function OrdersTab({ orders, loading }) {
     <div>
       <p className="acc-section-title">Order History</p>
       {orders.map(order => (
-        <div key={order.id} className="acc-order-row">
-          <div>
-            <div className="acc-order-id">#{order.id.slice(-8).toUpperCase()}</div>
-            <div className="acc-order-date">
-              {order.createdAt?.toDate
-                ? order.createdAt.toDate().toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })
-                : 'Date unavailable'}
+        <div key={order.id} style={{ marginBottom: '0.8rem' }}>
+          <div
+            className="acc-order-row"
+            onClick={() => setExpanded(expanded === order.id ? null : order.id)}
+            style={{ cursor: 'pointer' }}
+          >
+            <div>
+              <div className="acc-order-id">#{order.id.slice(-8).toUpperCase()}</div>
+              <div className="acc-order-date">
+                {order.createdAt?.toDate
+                  ? order.createdAt.toDate().toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })
+                  : 'Date unavailable'}
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+              <div className="acc-order-amount">R {parseFloat(order.amount || 0).toFixed(2)}</div>
+              <span className={`acc-order-badge ${statusClass(order.status)}`}>
+                {order.status || 'Pending'}
+              </span>
+              <svg
+                width="14" height="14" viewBox="0 0 24 24" fill="none"
+                stroke="#555" strokeWidth="2" strokeLinecap="round"
+                style={{ transition: 'transform 0.2s', transform: expanded === order.id ? 'rotate(180deg)' : 'rotate(0deg)', flexShrink: 0 }}
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-            <div className="acc-order-amount">R {parseFloat(order.amount || 0).toFixed(2)}</div>
-            <span className={`acc-order-badge ${statusClass(order.status)}`}>
-              {order.status || 'Pending'}
-            </span>
-          </div>
+
+          {expanded === order.id && (
+            <div style={{
+              border: '1px solid rgba(201,168,76,0.12)',
+              borderTop: 'none',
+              borderRadius: '0 0 10px 10px',
+              background: 'rgba(201,168,76,0.02)',
+              padding: '1.2rem 1.4rem',
+              animation: 'fadeIn 0.2s ease',
+            }}>
+              {order.paymentId && (
+                <div style={{ marginBottom: '1rem' }}>
+                  <div style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.55rem', letterSpacing: '0.18em', textTransform: 'uppercase', color: '#555', marginBottom: '0.3rem' }}>Payment Reference</div>
+                  <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '0.95rem', color: '#C9A84C' }}>#{order.paymentId}</div>
+                </div>
+              )}
+
+              {order.cart?.length > 0 && (
+                <div style={{ marginBottom: '1rem' }}>
+                  <div style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.55rem', letterSpacing: '0.18em', textTransform: 'uppercase', color: '#555', marginBottom: '0.7rem' }}>Items</div>
+                  {order.cart.map((item, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                      <div>
+                        <div style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.72rem', color: '#ccc' }}>{item.name}</div>
+                        {item.size && <div style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.6rem', color: '#555', marginTop: '0.15rem' }}>Size: {item.size} · Qty: {item.quantity}</div>}
+                      </div>
+                      <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '0.95rem', color: '#E8C96D' }}>
+                        R {(item.price * item.quantity).toFixed(2)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.7rem', borderTop: '1px solid rgba(201,168,76,0.1)' }}>
+                <div style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.6rem', color: '#555', letterSpacing: '0.1em' }}>
+                  {order.shippingService && (
+                    <span>Shipping: {parseFloat(order.shippingCost) > 0 ? `R ${parseFloat(order.shippingCost).toFixed(2)}` : 'FREE'} · {order.shippingService}</span>
+                  )}
+                </div>
+                <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.1rem', color: '#C9A84C' }}>
+                  Total: R {parseFloat(order.amount || 0).toFixed(2)}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       ))}
     </div>

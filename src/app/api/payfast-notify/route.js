@@ -1,4 +1,5 @@
 ﻿import { getDb } from "@/lib/firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
 import nodemailer from "nodemailer";
 
 const transporter = nodemailer.createTransport({
@@ -32,7 +33,7 @@ export async function POST(req) {
 
   let cart = [], shippingService = "", shippingCost = 0, userId = null, address = null;
 
-if (!pendingSnap.empty) {
+  if (!pendingSnap.empty) {
     const pending = pendingSnap.docs[0].data();
     cart = pending.cart || [];
     shippingService = pending.shippingService || "";
@@ -51,10 +52,36 @@ if (!pendingSnap.empty) {
     cart,
     shippingService,
     shippingCost,
-     address,
+    address,
     userId,
     createdAt: new Date(),
   });
+
+  // Decrement stock for each item purchased
+  for (const item of cart) {
+    try {
+      const productSnap = await db.collection("products")
+        .where("name", "==", item.name)
+        .limit(1)
+        .get();
+
+      if (!productSnap.empty) {
+        const productRef = productSnap.docs[0].ref;
+        const productData = productSnap.docs[0].data();
+
+        if (item.size && productData.sizes && productData.sizes[item.size] !== undefined) {
+          await productRef.update({
+            [`sizes.${item.size}`]: FieldValue.increment(-item.quantity),
+          });
+        }
+
+        const newStock = Math.max(0, (productData.stock || 0) - item.quantity);
+        await productRef.update({ stock: newStock });
+      }
+    } catch (err) {
+      console.error("Stock decrement failed for", item.name, err.message);
+    }
+  }
 
   const itemsHtml = cart.map(item => `
     <tr>

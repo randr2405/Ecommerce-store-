@@ -11,12 +11,9 @@ export async function POST(req) {
 
   const finalAmount = parseFloat(subtotal).toFixed(2);
 
-  const cleanPhone = (form.phone || "")
-    .replace(/\D/g, "")
-    .replace(/^27/, "0");
-
   const capitalize = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
 
+  // Build pfData WITHOUT cell_number — it's optional and can cause rejections
   const pfData = {
     merchant_id:   merchantId,
     merchant_key:  merchantKey,
@@ -26,12 +23,10 @@ export async function POST(req) {
     name_first:    capitalize(form.firstName),
     name_last:     capitalize(form.lastName),
     email_address: form.email,
-    cell_number:   cleanPhone,
     amount:        finalAmount,
     item_name:     "RnR Agencies Order",
   };
 
-  // merchant_key is posted to PayFast but excluded from the signature
   const signatureFields = { ...pfData };
   delete signatureFields.merchant_key;
 
@@ -47,12 +42,6 @@ export async function POST(req) {
   pfData.signature = md5(pfParamString);
 
   console.log("=== PAYFAST DEBUG ===");
-  console.log("MERCHANT ID:", merchantId);
-  console.log("MERCHANT KEY SET:", !!merchantKey);
-  console.log("PASSPHRASE SET:", !!passphrase);
-  console.log("SITE URL:", siteUrl);
-  console.log("AMOUNT:", finalAmount);
-  console.log("CLEAN PHONE:", cleanPhone);
   console.log("PARAM STRING:", pfParamString);
   console.log("SIGNATURE:", pfData.signature);
   console.log("=====================");

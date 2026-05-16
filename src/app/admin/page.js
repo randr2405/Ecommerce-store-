@@ -53,6 +53,14 @@ export default function AdminPage() {
   async function updateOrderStatus(id, status) {
     await updateDoc(doc(db, "orders", id), { status });
     setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));
+    const order = orders.find(o => o.id === id);
+    if (order && ["processing", "shipped", "delivered", "cancelled"].includes(status)) {
+      await fetch("/api/order-status-notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ order, status }),
+      });
+    }
   }
 
   async function handleAddPromo(e) {

@@ -234,6 +234,7 @@ export default function ProductPage({ params }) {
   const [selectedSize, setSelectedSize] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [imgLoaded, setImgLoaded] = useState(false);
+const [activeImg, setActiveImg] = useState(0);
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -344,32 +345,58 @@ export default function ProductPage({ params }) {
             alignItems: 'start',
           }}>
 
-            <div style={{
-              background: '#0A0A0A',
-              border: '1px solid rgba(201,168,76,0.12)',
-              overflow: 'hidden',
-              aspectRatio: '3/4',
-              position: 'relative',
-            }}>
-              {!imgLoaded && (
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <div style={{ width: '30px', height: '1px', background: '#C9A84C', animation: 'loadPulse 1.5s ease-in-out infinite' }} />
-                </div>
-              )}
-              {(product.imageUrls?.[0] || product.imageUrl) ? (
-  <img
-    src={product.imageUrls?.[0] || product.imageUrl}
-    alt={product.name}
-                  onLoad={() => setImgLoaded(true)}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: imgLoaded ? 1 : 0, transition: 'opacity 0.6s ease' }}
-                />
-              ) : (
-                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <p style={{ fontSize: '0.6rem', color: '#333', letterSpacing: '0.25em', fontFamily: 'Montserrat, sans-serif' }}>NO IMAGE</p>
-                </div>
-              )}
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(201,168,76,0.4) 50%, transparent)', pointerEvents: 'none' }} />
-            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+  <div style={{
+    background: '#0A0A0A',
+    border: '1px solid rgba(201,168,76,0.12)',
+    overflow: 'hidden',
+    aspectRatio: '3/4',
+    position: 'relative',
+  }}>
+    {!imgLoaded && (
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: '30px', height: '1px', background: '#C9A84C', animation: 'loadPulse 1.5s ease-in-out infinite' }} />
+      </div>
+    )}
+    {(product.imageUrls?.[activeImg] || product.imageUrl) ? (
+      <img
+        src={product.imageUrls?.[activeImg] || product.imageUrl}
+        alt={product.name}
+        onLoad={() => setImgLoaded(true)}
+        style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: imgLoaded ? 1 : 0, transition: 'opacity 0.4s ease' }}
+      />
+    ) : (
+      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p style={{ fontSize: '0.6rem', color: '#333', letterSpacing: '0.25em', fontFamily: 'Montserrat, sans-serif' }}>NO IMAGE</p>
+      </div>
+    )}
+    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(201,168,76,0.4) 50%, transparent)', pointerEvents: 'none' }} />
+  </div>
+
+  {product.imageUrls?.length > 1 && (
+    <div style={{ display: 'flex', gap: '0.5rem' }}>
+      {product.imageUrls.map((url, i) => (
+        <div
+          key={i}
+          onClick={() => { setActiveImg(i); setImgLoaded(false); }}
+          style={{
+            width: '70px',
+            height: '90px',
+            border: '1px solid',
+            borderColor: activeImg === i ? '#C9A84C' : 'rgba(201,168,76,0.15)',
+            overflow: 'hidden',
+            cursor: 'pointer',
+            opacity: activeImg === i ? 1 : 0.5,
+            transition: 'all 0.3s',
+            flexShrink: 0,
+          }}
+        >
+          <img src={url} alt={`${product.name} ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        </div>
+      ))}
+    </div>
+  )}
+</div>
 
             <div style={{ paddingTop: isMobile ? '0' : '1rem' }}>
               {product.sku && (

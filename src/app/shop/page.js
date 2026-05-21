@@ -630,8 +630,8 @@ function ProductCard({ product, index, isMobile }) {
             ))}
             <div style={{ position: 'absolute', bottom: 0, left: 0, zIndex: 3, height: '1px', width: hovered ? '100%' : '0%', background: 'linear-gradient(90deg,transparent,#C9A84C 30%,#C9A84C 70%,transparent)', transition: 'width 0.65s cubic-bezier(0.16,1,0.3,1)' }} />
             <div style={{ width: '100%', height: imageHeight, background: 'rgba(12,10,6,1)', overflow: 'hidden', position: 'relative' }}>
-              {product.imageUrl ? (
-                <img src={product.imageUrl} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover', transform: hovered ? 'scale(1.08)' : 'scale(1)', filter: hovered ? 'brightness(1.05) contrast(1.05)' : isOutOfStock ? 'brightness(0.4) grayscale(0.5)' : 'brightness(0.85)', transition: 'transform 0.7s cubic-bezier(0.16,1,0.3,1),filter 0.5s ease' }} />
+              {(product.imageUrls?.[0] || product.imageUrl) ? (
+  <img src={product.imageUrls?.[0] || product.imageUrl} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover', transform: hovered ? 'scale(1.08)' : 'scale(1)', filter: hovered ? 'brightness(1.05) contrast(1.05)' : isOutOfStock ? 'brightness(0.4) grayscale(0.5)' : 'brightness(0.85)', transition: 'transform 0.7s cubic-bezier(0.16,1,0.3,1),filter 0.5s ease' }} />
               ) : (
                 <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
                   <span style={{ fontSize: isMobile ? '1.5rem' : '3rem', filter: 'grayscale(1)', opacity: 0.3 }}>👕</span>

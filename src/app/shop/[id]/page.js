@@ -273,7 +273,7 @@ export default function ProductPage({ params }) {
         id: product.id,
         name: product.name,
         price: product.price,
-        imageUrl: product.imageUrl,
+        imageUrl: product.imageUrls?.[0] || product.imageUrl,
         size: selectedSize,
         quantity,
         sku: product.sku,
@@ -356,10 +356,10 @@ export default function ProductPage({ params }) {
                   <div style={{ width: '30px', height: '1px', background: '#C9A84C', animation: 'loadPulse 1.5s ease-in-out infinite' }} />
                 </div>
               )}
-              {product.imageUrl ? (
-                <img
-                  src={product.imageUrl}
-                  alt={product.name}
+              {(product.imageUrls?.[0] || product.imageUrl) ? (
+  <img
+    src={product.imageUrls?.[0] || product.imageUrl}
+    alt={product.name}
                   onLoad={() => setImgLoaded(true)}
                   style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: imgLoaded ? 1 : 0, transition: 'opacity 0.6s ease' }}
                 />

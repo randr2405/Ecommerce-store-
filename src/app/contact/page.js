@@ -96,36 +96,17 @@ void main(){
 `;
 
 function Grainient({
-  timeSpeed = 0.25,
-  colorBalance = 0.0,
-  warpStrength = 1.0,
-  warpFrequency = 5.0,
-  warpSpeed = 2.0,
-  warpAmplitude = 50.0,
-  blendAngle = 0.0,
-  blendSoftness = 0.05,
-  rotationAmount = 500.0,
-  noiseScale = 2.0,
-  grainAmount = 0.1,
-  grainScale = 2.0,
-  grainAnimated = false,
-  contrast = 1.5,
-  gamma = 1.0,
-  saturation = 1.0,
-  centerX = 0.0,
-  centerY = 0.0,
-  zoom = 0.9,
-  color1 = '#FF9FFC',
-  color2 = '#5227FF',
-  color3 = '#B497CF',
-  className = ''
+  timeSpeed = 0.25, colorBalance = 0.0, warpStrength = 1.0, warpFrequency = 5.0,
+  warpSpeed = 2.0, warpAmplitude = 50.0, blendAngle = 0.0, blendSoftness = 0.05,
+  rotationAmount = 500.0, noiseScale = 2.0, grainAmount = 0.1, grainScale = 2.0,
+  grainAnimated = false, contrast = 1.5, gamma = 1.0, saturation = 1.0,
+  centerX = 0.0, centerY = 0.0, zoom = 0.9,
+  color1 = '#FF9FFC', color2 = '#5227FF', color3 = '#B497CF', className = ''
 }) {
   const containerRef = useRef(null);
-
   useEffect(() => {
     if (!containerRef.current) return;
     let canvas, gl, program, raf, ro;
-
     const container = containerRef.current;
     canvas = document.createElement('canvas');
     canvas.style.position = 'absolute';
@@ -134,19 +115,15 @@ function Grainient({
     canvas.style.height = '100%';
     canvas.style.display = 'block';
     container.appendChild(canvas);
-
     gl = canvas.getContext('webgl2', { alpha: true, antialias: false });
     if (!gl) return;
-
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-
     const compileShader = (src, type) => {
       const s = gl.createShader(type);
       gl.shaderSource(s, src);
       gl.compileShader(s);
       return s;
     };
-
     const vs = compileShader(grainientVertex, gl.VERTEX_SHADER);
     const fs = compileShader(grainientFragment, gl.FRAGMENT_SHADER);
     program = gl.createProgram();
@@ -154,7 +131,6 @@ function Grainient({
     gl.attachShader(program, fs);
     gl.linkProgram(program);
     gl.useProgram(program);
-
     const positions = new Float32Array([-1, -1, 3, -1, -1, 3]);
     const buf = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buf);
@@ -162,9 +138,7 @@ function Grainient({
     const posLoc = gl.getAttribLocation(program, 'position');
     gl.enableVertexAttribArray(posLoc);
     gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
-
     const u = name => gl.getUniformLocation(program, name);
-
     const setSize = () => {
       const rect = container.getBoundingClientRect();
       const w = Math.max(1, Math.floor(rect.width));
@@ -175,11 +149,9 @@ function Grainient({
       gl.useProgram(program);
       gl.uniform2f(u('iResolution'), canvas.width, canvas.height);
     };
-
     ro = new ResizeObserver(setSize);
     ro.observe(container);
     setSize();
-
     gl.uniform1f(u('uTimeSpeed'), timeSpeed);
     gl.uniform1f(u('uColorBalance'), colorBalance);
     gl.uniform1f(u('uWarpStrength'), warpStrength);
@@ -201,7 +173,6 @@ function Grainient({
     gl.uniform3fv(u('uColor1'), new Float32Array(hexToRgbArr(color1)));
     gl.uniform3fv(u('uColor2'), new Float32Array(hexToRgbArr(color2)));
     gl.uniform3fv(u('uColor3'), new Float32Array(hexToRgbArr(color3)));
-
     const iTimeLoc = u('iTime');
     const t0 = performance.now();
     const loop = t => {
@@ -211,35 +182,22 @@ function Grainient({
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
-
     return () => {
       if (raf) cancelAnimationFrame(raf);
       if (ro) ro.disconnect();
       if (canvas && canvas.parentNode) canvas.parentNode.removeChild(canvas);
     };
-  }, [
-    timeSpeed, colorBalance, warpStrength, warpFrequency, warpSpeed,
-    warpAmplitude, blendAngle, blendSoftness, rotationAmount, noiseScale,
-    grainAmount, grainScale, grainAnimated, contrast, gamma, saturation,
-    centerX, centerY, zoom, color1, color2, color3
-  ]);
-
+  }, [timeSpeed, colorBalance, warpStrength, warpFrequency, warpSpeed, warpAmplitude,
+    blendAngle, blendSoftness, rotationAmount, noiseScale, grainAmount, grainScale,
+    grainAnimated, contrast, gamma, saturation, centerX, centerY, zoom, color1, color2, color3]);
   return (
-    <div
-      ref={containerRef}
-      className={className}
-      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
-    />
+    <div ref={containerRef} className={className} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
   );
 }
 
 const LetterGlitch = ({
-  glitchColors = ['#C9A84C', '#7A5F1A', '#1A1A0A'],
-  className = '',
-  glitchSpeed = 50,
-  centerVignette = false,
-  outerVignette = true,
-  smooth = true,
+  glitchColors = ['#C9A84C', '#7A5F1A', '#1A1A0A'], className = '', glitchSpeed = 50,
+  centerVignette = false, outerVignette = true, smooth = true,
   characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$&*()-_+=/[]{};:<>.,0123456789'
 }) => {
   const canvasRef = useRef(null);
@@ -248,24 +206,18 @@ const LetterGlitch = ({
   const grid = useRef({ columns: 0, rows: 0 });
   const context = useRef(null);
   const lastGlitchTime = useRef(Date.now());
-
   const lettersAndSymbols = Array.from(characters);
   const fontSize = 16;
   const charWidth = 10;
   const charHeight = 20;
-
   const getRandomChar = () => lettersAndSymbols[Math.floor(Math.random() * lettersAndSymbols.length)];
   const getRandomColor = () => glitchColors[Math.floor(Math.random() * glitchColors.length)];
-
   const hexToRgb = hex => {
     const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
     hex = hex.replace(shorthandRegex, (m, r, g, b) => r + r + g + g + b + b);
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result
-      ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) }
-      : null;
+    return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : null;
   };
-
   const interpolateColor = (start, end, factor) => {
     const result = {
       r: Math.round(start.r + (end.r - start.r) * factor),
@@ -274,22 +226,13 @@ const LetterGlitch = ({
     };
     return `rgb(${result.r}, ${result.g}, ${result.b})`;
   };
-
-  const calculateGrid = (width, height) => ({
-    columns: Math.ceil(width / charWidth),
-    rows: Math.ceil(height / charHeight),
-  });
-
+  const calculateGrid = (width, height) => ({ columns: Math.ceil(width / charWidth), rows: Math.ceil(height / charHeight) });
   const initializeLetters = (columns, rows) => {
     grid.current = { columns, rows };
     letters.current = Array.from({ length: columns * rows }, () => ({
-      char: getRandomChar(),
-      color: getRandomColor(),
-      targetColor: getRandomColor(),
-      colorProgress: 1,
+      char: getRandomChar(), color: getRandomColor(), targetColor: getRandomColor(), colorProgress: 1,
     }));
   };
-
   const resizeCanvas = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -306,7 +249,6 @@ const LetterGlitch = ({
     initializeLetters(columns, rows);
     drawLetters();
   };
-
   const drawLetters = () => {
     if (!context.current || letters.current.length === 0) return;
     const ctx = context.current;
@@ -321,7 +263,6 @@ const LetterGlitch = ({
       ctx.fillText(letter.char, x, y);
     });
   };
-
   const updateLetters = () => {
     if (!letters.current || letters.current.length === 0) return;
     const updateCount = Math.max(1, Math.floor(letters.current.length * 0.05));
@@ -338,7 +279,6 @@ const LetterGlitch = ({
       }
     }
   };
-
   const handleSmoothTransitions = () => {
     let needsRedraw = false;
     letters.current.forEach(letter => {
@@ -355,7 +295,6 @@ const LetterGlitch = ({
     });
     if (needsRedraw) drawLetters();
   };
-
   const animate = () => {
     const now = Date.now();
     if (now - lastGlitchTime.current >= glitchSpeed) {
@@ -366,7 +305,6 @@ const LetterGlitch = ({
     if (smooth) handleSmoothTransitions();
     animationRef.current = requestAnimationFrame(animate);
   };
-
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -388,23 +326,14 @@ const LetterGlitch = ({
       window.removeEventListener('resize', handleResize);
     };
   }, [glitchSpeed, smooth]);
-
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', backgroundColor: '#0A0A0A', overflow: 'hidden' }} className={className}>
       <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: '100%' }} />
       {outerVignette && (
-        <div style={{
-          position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-          pointerEvents: 'none',
-          background: 'radial-gradient(circle, rgba(0,0,0,0) 60%, rgba(0,0,0,1) 100%)',
-        }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', background: 'radial-gradient(circle, rgba(0,0,0,0) 60%, rgba(0,0,0,1) 100%)' }} />
       )}
       {centerVignette && (
-        <div style={{
-          position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-          pointerEvents: 'none',
-          background: 'radial-gradient(circle, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 60%)',
-        }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', background: 'radial-gradient(circle, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 60%)' }} />
       )}
     </div>
   );
@@ -437,9 +366,8 @@ function ClickSpark({ children, sparkColor = '#C9A84C', sparkSize = 8, sparkRadi
       <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 99999 }}>
         {sparks.map(spark => (
           <div key={spark.id} style={{
-            position: 'absolute', left: spark.x, top: spark.y,
-            width: sparkSize, height: sparkSize, borderRadius: '50%',
-            background: sparkColor, transform: 'translate(-50%, -50%)',
+            position: 'absolute', left: spark.x, top: spark.y, width: sparkSize, height: sparkSize,
+            borderRadius: '50%', background: sparkColor, transform: 'translate(-50%, -50%)',
             animation: `sparkFly ${duration}ms ease-out forwards`,
             '--angle': `${spark.angle}deg`, '--radius': `${sparkRadius}px`,
           }} />
@@ -458,7 +386,6 @@ function TargetCursor({ targetSelector = 'a, button', spinDuration = 2, hideDefa
   const targetCornerPositionsRef = useRef(null);
   const tickerFnRef = useRef(null);
   const activeStrengthRef = useRef(0);
-
   const isMobile = React.useMemo(() => {
     if (typeof window === 'undefined') return false;
     const hasTouchScreen = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
@@ -466,14 +393,11 @@ function TargetCursor({ targetSelector = 'a, button', spinDuration = 2, hideDefa
     const ua = navigator.userAgent || navigator.vendor || window.opera;
     return (hasTouchScreen && isSmallScreen) || /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua.toLowerCase());
   }, []);
-
   const constants = React.useMemo(() => ({ borderWidth: 3, cornerSize: 12 }), []);
-
   const moveCursor = useCallback((x, y) => {
     if (!cursorRef.current) return;
     gsap.to(cursorRef.current, { x, y, duration: 0.1, ease: 'power3.out' });
   }, []);
-
   useEffect(() => {
     if (isMobile || !cursorRef.current) return;
     const originalCursor = document.body.style.cursor;
@@ -616,9 +540,7 @@ function TargetCursor({ targetSelector = 'a, button', spinDuration = 2, hideDefa
       activeStrengthRef.current = 0;
     };
   }, [targetSelector, spinDuration, moveCursor, constants, hideDefaultCursor, isMobile, hoverDuration, parallaxOn]);
-
   if (isMobile) return null;
-
   return (
     <div ref={cursorRef} className="tc-wrapper">
       <div ref={dotRef} className="tc-dot" />
@@ -626,6 +548,250 @@ function TargetCursor({ targetSelector = 'a, button', spinDuration = 2, hideDefa
       <div className="tc-corner tc-tr" />
       <div className="tc-corner tc-br" />
       <div className="tc-corner tc-bl" />
+    </div>
+  );
+}
+
+function SocialHoverCard({ platform, handle, followers, bio, profileUrl, profileImage }) {
+  const [visible, setVisible] = useState(false);
+  const cardRef = useRef(null);
+  const timeoutRef = useRef(null);
+
+  const isInstagram = platform === 'instagram';
+
+  const formatFollowers = n => {
+    if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+    if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+    return n.toString();
+  };
+
+  const instagramGradient = 'linear-gradient(135deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)';
+
+  const InstagramIcon = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+    </svg>
+  );
+
+  const TikTokIcon = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.24 8.24 0 004.84 1.56V6.79a4.85 4.85 0 01-1.07-.1z"/>
+    </svg>
+  );
+
+  const show = () => {
+    clearTimeout(timeoutRef.current);
+    setVisible(true);
+  };
+
+  const hide = () => {
+    timeoutRef.current = setTimeout(() => setVisible(false), 150);
+  };
+
+  const platformColor = isInstagram ? '#e6683c' : '#010101';
+  const platformBorder = isInstagram ? instagramGradient : 'linear-gradient(135deg, #69C9D0, #010101)';
+
+  return (
+    <div
+      style={{ position: 'relative', display: 'inline-block' }}
+      onMouseEnter={show}
+      onMouseLeave={hide}
+    >
+      <a
+        href={profileUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.6rem',
+          padding: '0.55rem 1rem',
+          border: '1px solid rgba(201,168,76,0.25)',
+          color: '#C9A84C',
+          textDecoration: 'none',
+          fontFamily: 'Montserrat, sans-serif',
+          fontSize: '0.65rem',
+          letterSpacing: '0.15em',
+          textTransform: 'uppercase',
+          background: 'transparent',
+          transition: 'border-color 0.3s, background 0.3s',
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.borderColor = '#C9A84C';
+          e.currentTarget.style.background = 'rgba(201,168,76,0.06)';
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.borderColor = 'rgba(201,168,76,0.25)';
+          e.currentTarget.style.background = 'transparent';
+        }}
+      >
+        <span style={{ color: '#C9A84C' }}>
+          {isInstagram ? <InstagramIcon /> : <TikTokIcon />}
+        </span>
+        @{handle}
+      </a>
+
+      <div
+        ref={cardRef}
+        onMouseEnter={show}
+        onMouseLeave={hide}
+        style={{
+          position: 'absolute',
+          bottom: 'calc(100% + 12px)',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '260px',
+          background: '#111',
+          border: '1px solid rgba(201,168,76,0.2)',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(201,168,76,0.05)',
+          zIndex: 1000,
+          opacity: visible ? 1 : 0,
+          pointerEvents: visible ? 'auto' : 'none',
+          transform: visible
+            ? 'translateX(-50%) translateY(0)'
+            : 'translateX(-50%) translateY(8px)',
+          transition: 'opacity 0.25s ease, transform 0.25s ease',
+        }}
+      >
+        <div style={{
+          height: '4px',
+          background: isInstagram ? instagramGradient : 'linear-gradient(90deg, #69C9D0, #EE1D52)',
+        }} />
+
+        <div style={{ padding: '1.2rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', marginBottom: '1rem' }}>
+            <div style={{
+              width: '48px',
+              height: '48px',
+              borderRadius: '50%',
+              flexShrink: 0,
+              overflow: 'hidden',
+              border: '2px solid rgba(201,168,76,0.3)',
+            }}>
+              {profileImage ? (
+                <img src={profileImage} alt={handle} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                <div style={{
+                  width: '100%',
+                  height: '100%',
+                  background: 'linear-gradient(135deg, #1a1a0a, #2a2010)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#C9A84C',
+                  fontSize: '0.65rem',
+                  fontFamily: 'Montserrat, sans-serif',
+                  fontWeight: 600,
+                  letterSpacing: '0.05em',
+                }}>
+                  R&R
+                </div>
+              )}
+            </div>
+
+            <div>
+              <div style={{
+                color: '#F5F0E8',
+                fontFamily: 'Montserrat, sans-serif',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                letterSpacing: '0.05em',
+                marginBottom: '0.15rem',
+              }}>
+                @{handle}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#888', fontSize: '0.6rem', fontFamily: 'Montserrat, sans-serif' }}>
+                <span style={{ color: '#C9A84C' }}>
+                  {isInstagram ? <InstagramIcon /> : <TikTokIcon />}
+                </span>
+                {isInstagram ? 'Instagram' : 'TikTok'}
+              </div>
+            </div>
+          </div>
+
+          <p style={{
+            fontSize: '0.7rem',
+            color: '#aaa',
+            fontFamily: 'Cormorant Garamond, serif',
+            fontStyle: 'italic',
+            lineHeight: 1.6,
+            margin: '0 0 1rem',
+          }}>
+            "{bio}"
+          </p>
+
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            padding: '0.75rem 0',
+            borderTop: '1px solid rgba(201,168,76,0.1)',
+            borderBottom: '1px solid rgba(201,168,76,0.1)',
+            marginBottom: '1rem',
+          }}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '0.85rem', color: '#C9A84C', fontFamily: 'Montserrat, sans-serif', fontWeight: 600 }}>
+                {formatFollowers(followers)}
+              </div>
+              <div style={{ fontSize: '0.55rem', color: '#666', fontFamily: 'Montserrat, sans-serif', letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: '0.15rem' }}>
+                Followers
+              </div>
+            </div>
+            <div style={{ width: '1px', background: 'rgba(201,168,76,0.1)' }} />
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '0.85rem', color: '#F5F0E8', fontFamily: 'Montserrat, sans-serif', fontWeight: 600 }}>
+                R&R
+              </div>
+              <div style={{ fontSize: '0.55rem', color: '#666', fontFamily: 'Montserrat, sans-serif', letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: '0.15rem' }}>
+                Agencies
+              </div>
+            </div>
+            <div style={{ width: '1px', background: 'rgba(201,168,76,0.1)' }} />
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '0.85rem', color: '#F5F0E8', fontFamily: 'Montserrat, sans-serif', fontWeight: 600 }}>
+                ✦
+              </div>
+              <div style={{ fontSize: '0.55rem', color: '#666', fontFamily: 'Montserrat, sans-serif', letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: '0.15rem' }}>
+                Privé
+              </div>
+            </div>
+          </div>
+
+          <a
+            href={profileUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'block',
+              textAlign: 'center',
+              padding: '0.6rem',
+              background: isInstagram ? instagramGradient : 'linear-gradient(135deg, #69C9D0, #EE1D52)',
+              color: '#fff',
+              fontFamily: 'Montserrat, sans-serif',
+              fontSize: '0.58rem',
+              fontWeight: 600,
+              letterSpacing: '0.25em',
+              textTransform: 'uppercase',
+              textDecoration: 'none',
+            }}
+          >
+            Follow Now
+          </a>
+        </div>
+
+        <div style={{
+          position: 'absolute',
+          bottom: '-6px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '10px',
+          height: '10px',
+          background: '#111',
+          border: '1px solid rgba(201,168,76,0.2)',
+          borderTop: 'none',
+          borderLeft: 'none',
+          rotate: '45deg',
+        }} />
+      </div>
     </div>
   );
 }
@@ -644,11 +810,7 @@ export default function ContactPage() {
       await emailjs.send(
         process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID,
         process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID,
-        {
-          from_name: formData.name,
-          from_email: formData.email,
-          message: formData.message,
-        },
+        { from_name: formData.name, from_email: formData.email, message: formData.message },
         process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY
       );
       setSubmitted(true);
@@ -756,19 +918,13 @@ export default function ContactPage() {
 
         <div style={{ paddingTop: '70px', background: '#040302' }}>
           <section className="hero-section" style={{
-            position: 'relative',
-            padding: '6rem 2rem',
-            textAlign: 'center',
-            borderBottom: '1px solid rgba(201,168,76,0.15)',
-            overflow: 'hidden',
+            position: 'relative', padding: '6rem 2rem', textAlign: 'center',
+            borderBottom: '1px solid rgba(201,168,76,0.15)', overflow: 'hidden',
           }}>
             <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
               <LetterGlitch
                 glitchColors={['#C9A84C', '#7A5F1A', '#1A1A0A']}
-                glitchSpeed={60}
-                outerVignette={true}
-                centerVignette={true}
-                smooth={true}
+                glitchSpeed={60} outerVignette={true} centerVignette={true} smooth={true}
               />
               <div style={{
                 position: 'absolute', inset: 0,
@@ -819,6 +975,28 @@ export default function ContactPage() {
                     </div>
                   </div>
                 ))}
+
+                <div style={{ marginTop: '0.5rem' }}>
+                  <p style={{ fontSize: '0.55rem', color: '#C9A84C', letterSpacing: '0.5em', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif', marginBottom: '1rem' }}>
+                    Follow Us
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'flex-start' }}>
+                    <SocialHoverCard
+                      platform="instagram"
+                      handle="randragencies"
+                      followers={170}
+                      bio="Own the look, own the moment."
+                      profileUrl="https://www.instagram.com/randragencies"
+                    />
+                    <SocialHoverCard
+                      platform="tiktok"
+                      handle="randragencies"
+                      followers={4300}
+                      bio="Own the look, own the moment."
+                      profileUrl="https://www.tiktok.com/@randragencies"
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="form-box" style={{ border: '1px solid rgba(201,168,76,0.2)', padding: '3rem', background: '#0F0F0F' }}>
@@ -858,8 +1036,7 @@ export default function ContactPage() {
                           style={{
                             width: '100%', background: '#1A1A1A', border: '1px solid rgba(201,168,76,0.2)',
                             color: '#F5F0E8', padding: '0.85rem 1rem', fontSize: '0.82rem',
-                            fontFamily: 'Montserrat, sans-serif', outline: 'none', letterSpacing: '0.03em',
-                            boxSizing: 'border-box',
+                            fontFamily: 'Montserrat, sans-serif', outline: 'none', letterSpacing: '0.03em', boxSizing: 'border-box',
                           }}
                           onFocus={e => e.target.style.borderColor = '#C9A84C'}
                           onBlur={e => e.target.style.borderColor = 'rgba(201,168,76,0.2)'}
@@ -909,34 +1086,14 @@ export default function ContactPage() {
             </div>
           </section>
 
-          <section style={{
-            position: 'relative',
-            borderTop: '1px solid rgba(201,168,76,0.15)',
-            overflow: 'hidden',
-          }}>
+          <section style={{ position: 'relative', borderTop: '1px solid rgba(201,168,76,0.15)', overflow: 'hidden' }}>
             <Grainient
-              color1="#C9A84C"
-              color2="#1A1A0A"
-              color3="#7A5F1A"
-              timeSpeed={0.25}
-              colorBalance={0}
-              warpStrength={1}
-              warpFrequency={5}
-              warpSpeed={2}
-              warpAmplitude={50}
-              blendAngle={0}
-              blendSoftness={0.05}
-              rotationAmount={500}
-              noiseScale={2}
-              grainAmount={0.12}
-              grainScale={2}
-              grainAnimated={false}
-              contrast={1.5}
-              gamma={1}
-              saturation={0.7}
-              centerX={0}
-              centerY={0}
-              zoom={0.9}
+              color1="#C9A84C" color2="#1A1A0A" color3="#7A5F1A"
+              timeSpeed={0.25} colorBalance={0} warpStrength={1} warpFrequency={5}
+              warpSpeed={2} warpAmplitude={50} blendAngle={0} blendSoftness={0.05}
+              rotationAmount={500} noiseScale={2} grainAmount={0.12} grainScale={2}
+              grainAnimated={false} contrast={1.5} gamma={1} saturation={0.7}
+              centerX={0} centerY={0} zoom={0.9}
             />
             <div style={{
               position: 'absolute', inset: 0, zIndex: 0,
@@ -955,8 +1112,7 @@ export default function ContactPage() {
                 rel="noopener noreferrer"
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: '0.6rem',
-                  background: '#25D366', color: '#fff',
-                  padding: '0.9rem 2rem',
+                  background: '#25D366', color: '#fff', padding: '0.9rem 2rem',
                   fontSize: '0.82rem', fontFamily: 'Montserrat, sans-serif',
                   letterSpacing: '0.1em', textTransform: 'uppercase',
                   textDecoration: 'none', fontWeight: '600', transition: 'opacity 0.2s',

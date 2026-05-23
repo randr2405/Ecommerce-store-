@@ -103,10 +103,10 @@ export async function POST(req) {
 
   try {
     await transporter.sendMail({
-      from: `"R&R Agencies" <${process.env.GMAIL_USER}>`,
+      from: `"R&R Sport and Lifestyle" <${process.env.GMAIL_USER}>`,
       to: params.email_address,
       bcc: process.env.GMAIL_USER,
-      subject: "Order Confirmed — R&R Agencies",
+      subject: "Order Confirmed — R&R Sport and Lifestyle",
       html: `
         <!DOCTYPE html>
         <html>

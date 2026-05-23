@@ -10,7 +10,7 @@ export default async function handler(req, res) {
   const body = {
     collection_address: {
       type: 'business',
-      company: 'R&R Agencies',
+      company: 'R&R Sport and Lifestyle',
       street_address: '123 Your Street',
       local_area: 'Verulam',
       city: 'Verulam',

@@ -674,7 +674,7 @@ function WhatsAppBubble() {
   const cardRef = useRef(null);
   const btnRef = useRef(null);
 
-  const defaultMessage = "Hi R&R Agencies, I'd like to find out more about your products.";
+  const defaultMessage = "Hi R&R Sport and Lifestyle, I'd like to find out more about your products.";
   const phoneNumber = '27813365266';
 
   const buildLink = () => {
@@ -707,7 +707,7 @@ function WhatsAppBubble() {
         <div className="wa-card-header">
           <div className="wa-avatar">R&R</div>
           <div className="wa-header-info">
-            <div className="wa-header-name">R&R AGENCIES</div>
+            <div className="wa-header-name">R&R Sport and Lifestyle</div>
             <div className="wa-header-status">
               <div className="wa-status-dot" />
               <span className="wa-status-text">Typically replies fast</span>
@@ -718,7 +718,7 @@ function WhatsAppBubble() {
         <div className="wa-card-body">
           <div className="wa-message-bubble">
             <p className="wa-message-text">
-              👋 Hey there! Welcome to R&R Agencies. How can we help you today? Feel free to ask about our products, sizing, or orders.
+              👋 Hey there! Welcome to R&R Sport and Lifestyle. How can we help you today? Feel free to ask about our products, sizing, or orders.
             </p>
             <div className="wa-message-time">{timeStr} ✓✓</div>
           </div>

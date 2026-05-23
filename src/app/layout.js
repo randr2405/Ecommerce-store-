@@ -426,29 +426,387 @@ function GlobalStyles() {
       @media (max-width: 480px) {
         .rr-pill-logo { font-size: 0.85rem; }
       }
+
+      .wa-bubble-btn {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        z-index: 990;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: #25D366;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 24px rgba(37,211,102,0.35), 0 2px 8px rgba(0,0,0,0.4);
+        transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.25s;
+        animation: waPulse 2.8s ease-in-out infinite;
+      }
+      .wa-bubble-btn:hover {
+        transform: scale(1.1);
+        box-shadow: 0 8px 32px rgba(37,211,102,0.5), 0 2px 8px rgba(0,0,0,0.4);
+        animation: none;
+      }
+      .wa-bubble-btn--open {
+        transform: scale(0.92);
+        animation: none;
+      }
+
+      @keyframes waPulse {
+        0%, 100% { box-shadow: 0 4px 24px rgba(37,211,102,0.35), 0 2px 8px rgba(0,0,0,0.4); }
+        50% { box-shadow: 0 4px 32px rgba(37,211,102,0.6), 0 0 0 10px rgba(37,211,102,0.08), 0 2px 8px rgba(0,0,0,0.4); }
+      }
+
+      .wa-card {
+        position: fixed;
+        bottom: 6.5rem;
+        right: 2rem;
+        z-index: 989;
+        width: 300px;
+        background: #111;
+        border: 1px solid rgba(201,168,76,0.2);
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(201,168,76,0.06);
+        transform-origin: bottom right;
+        transition: opacity 0.25s ease, transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+      }
+      .wa-card--hidden {
+        opacity: 0;
+        transform: scale(0.88) translateY(12px);
+        pointer-events: none;
+      }
+      .wa-card--visible {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+        pointer-events: auto;
+      }
+
+      .wa-card-header {
+        background: #1A2E1A;
+        padding: 1rem 1.2rem;
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        border-bottom: 1px solid rgba(37,211,102,0.15);
+      }
+
+      .wa-avatar {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #1a1a0a, #2a2010);
+        border: 2px solid rgba(201,168,76,0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Cormorant Garamond', serif;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #C9A84C;
+        letter-spacing: 0.05em;
+        flex-shrink: 0;
+      }
+
+      .wa-header-info { flex: 1; min-width: 0; }
+
+      .wa-header-name {
+        font-family: 'Montserrat', sans-serif;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #F5F0E8;
+        letter-spacing: 0.08em;
+      }
+
+      .wa-header-status {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        margin-top: 0.2rem;
+      }
+
+      .wa-status-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #25D366;
+        animation: waDotPulse 2s ease-in-out infinite;
+      }
+
+      @keyframes waDotPulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.4; }
+      }
+
+      .wa-status-text {
+        font-family: 'Montserrat', sans-serif;
+        font-size: 0.58rem;
+        color: #25D366;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .wa-card-body {
+        padding: 1.2rem;
+      }
+
+      .wa-message-bubble {
+        background: #1E2E1E;
+        border: 1px solid rgba(37,211,102,0.12);
+        border-radius: 12px 12px 12px 3px;
+        padding: 0.85rem 1rem;
+        margin-bottom: 1.2rem;
+        position: relative;
+      }
+
+      .wa-message-text {
+        font-family: 'Montserrat', sans-serif;
+        font-size: 0.72rem;
+        color: #ccc;
+        line-height: 1.7;
+        letter-spacing: 0.02em;
+      }
+
+      .wa-message-time {
+        font-family: 'Montserrat', sans-serif;
+        font-size: 0.55rem;
+        color: #555;
+        text-align: right;
+        margin-top: 0.4rem;
+        letter-spacing: 0.05em;
+      }
+
+      .wa-input-row {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        background: #1A1A1A;
+        border: 1px solid rgba(201,168,76,0.15);
+        border-radius: 999px;
+        padding: 0.4rem 0.4rem 0.4rem 0.9rem;
+        margin-bottom: 0.8rem;
+      }
+
+      .wa-input {
+        flex: 1;
+        background: none;
+        border: none;
+        outline: none;
+        font-family: 'Montserrat', sans-serif;
+        font-size: 0.72rem;
+        color: #F5F0E8;
+        letter-spacing: 0.02em;
+        min-width: 0;
+      }
+      .wa-input::placeholder { color: #444; }
+
+      .wa-send-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: #25D366;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition: background 0.2s, transform 0.2s;
+      }
+      .wa-send-btn:hover {
+        background: #20c25c;
+        transform: scale(1.08);
+      }
+
+      .wa-cta {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        width: 100%;
+        padding: 0.7rem;
+        background: #25D366;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-family: 'Montserrat', sans-serif;
+        font-size: 0.62rem;
+        font-weight: 700;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: #fff;
+        text-decoration: none;
+        transition: opacity 0.2s, transform 0.15s;
+      }
+      .wa-cta:hover {
+        opacity: 0.88;
+        transform: translateY(-1px);
+      }
+
+      .wa-card-footer {
+        padding: 0.6rem 1.2rem 0.8rem;
+        text-align: center;
+        border-top: 1px solid rgba(255,255,255,0.04);
+      }
+
+      .wa-footer-text {
+        font-family: 'Montserrat', sans-serif;
+        font-size: 0.55rem;
+        color: #444;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      @media (max-width: 480px) {
+        .wa-bubble-btn { bottom: 1.2rem; right: 1.2rem; }
+        .wa-card { right: 1.2rem; bottom: 5.5rem; width: calc(100vw - 2.4rem); max-width: 300px; }
+      }
     `}</style>
+  );
+}
+
+function WhatsAppBubble() {
+  const [open, setOpen] = useState(false);
+  const [message, setMessage] = useState('');
+  const cardRef = useRef(null);
+  const btnRef = useRef(null);
+
+  const defaultMessage = "Hi R&R Agencies, I'd like to find out more about your products.";
+  const phoneNumber = '27813365266';
+
+  const buildLink = () => {
+    const text = encodeURIComponent(message.trim() || defaultMessage);
+    return `https://wa.me/${phoneNumber}?text=${text}`;
+  };
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (
+        open &&
+        cardRef.current &&
+        !cardRef.current.contains(e.target) &&
+        btnRef.current &&
+        !btnRef.current.contains(e.target)
+      ) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  return (
+    <>
+      <div ref={cardRef} className={`wa-card ${open ? 'wa-card--visible' : 'wa-card--hidden'}`}>
+        <div className="wa-card-header">
+          <div className="wa-avatar">R&R</div>
+          <div className="wa-header-info">
+            <div className="wa-header-name">R&R AGENCIES</div>
+            <div className="wa-header-status">
+              <div className="wa-status-dot" />
+              <span className="wa-status-text">Typically replies fast</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="wa-card-body">
+          <div className="wa-message-bubble">
+            <p className="wa-message-text">
+              👋 Hey there! Welcome to R&R Agencies. How can we help you today? Feel free to ask about our products, sizing, or orders.
+            </p>
+            <div className="wa-message-time">{timeStr} ✓✓</div>
+          </div>
+
+          <div className="wa-input-row">
+            <input
+              className="wa-input"
+              type="text"
+              placeholder="Type a message..."
+              value={message}
+              onChange={e => setMessage(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  window.open(buildLink(), '_blank', 'noopener,noreferrer');
+                }
+              }}
+            />
+            <a
+              href={buildLink()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="wa-send-btn"
+              aria-label="Send"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+                <path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+              </svg>
+            </a>
+          </div>
+
+          <a
+            href={buildLink()}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="wa-cta"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+            </svg>
+            Open in WhatsApp
+          </a>
+        </div>
+
+        <div className="wa-card-footer">
+          <span className="wa-footer-text">Powered by WhatsApp Business</span>
+        </div>
+      </div>
+
+      <button
+        ref={btnRef}
+        className={`wa-bubble-btn${open ? ' wa-bubble-btn--open' : ''}`}
+        onClick={() => setOpen(v => !v)}
+        aria-label="Chat on WhatsApp"
+      >
+        {open ? (
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        ) : (
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="white">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+          </svg>
+        )}
+      </button>
+    </>
   );
 }
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      
-        <body>
-  <style dangerouslySetInnerHTML={{ __html: `
-    .pac-container { background-color: #1A1A1A !important; border: 1px solid rgba(201,168,76,0.25) !important; font-family: Montserrat, sans-serif !important; z-index: 999999 !important; }
-    .pac-item { color: #aaa !important; background-color: #1A1A1A !important; padding: 0.65rem 1rem !important; font-size: 0.72rem !important; display: block !important; }
-    .pac-item:hover, .pac-item-selected { background-color: rgba(201,168,76,0.1) !important; }
-    .pac-item-query { color: #F5F0E8 !important; }
-    .pac-matched { color: #C9A84C !important; font-weight: 600 !important; }
-    .pac-icon, .pac-icon-marker, .hdpi .pac-icon { display: none !important; width: 0 !important; height: 0 !important; margin: 0 !important; padding: 0 !important; background-image: none !important; }
-    .pac-logo:after { display: none !important; }
-  ` }} />
-  <AuthProvider>
+      <body>
+        <style dangerouslySetInnerHTML={{ __html: `
+          .pac-container { background-color: #1A1A1A !important; border: 1px solid rgba(201,168,76,0.25) !important; font-family: Montserrat, sans-serif !important; z-index: 999999 !important; }
+          .pac-item { color: #aaa !important; background-color: #1A1A1A !important; padding: 0.65rem 1rem !important; font-size: 0.72rem !important; display: block !important; }
+          .pac-item:hover, .pac-item-selected { background-color: rgba(201,168,76,0.1) !important; }
+          .pac-item-query { color: #F5F0E8 !important; }
+          .pac-matched { color: #C9A84C !important; font-weight: 600 !important; }
+          .pac-icon, .pac-icon-marker, .hdpi .pac-icon { display: none !important; width: 0 !important; height: 0 !important; margin: 0 !important; padding: 0 !important; background-image: none !important; }
+          .pac-logo:after { display: none !important; }
+        ` }} />
+        <AuthProvider>
           <GlobalStyles />
           <PillNav />
           <main>{children}</main>
           <Footer />
+          <WhatsAppBubble />
           <Toaster
             position="top-right"
             toastOptions={{

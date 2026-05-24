@@ -791,6 +791,9 @@ function WhatsAppBubble() {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
+      <head>
+        <meta name="google-site-verification" content="3FXW4jQsTo0R8rhUdNFUdDTKeel--WeaReaRBfiZFwQ" />
+      </head>
       <body>
         <style dangerouslySetInnerHTML={{ __html: `
           .pac-container { background-color: #1A1A1A !important; border: 1px solid rgba(201,168,76,0.25) !important; font-family: Montserrat, sans-serif !important; z-index: 999999 !important; }
